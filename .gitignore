@@ -1,17 +1,60 @@
 # See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
-# Compiled output
+# ----------------------------------------------------------------------
+# Angular & Build Outputs
+# ----------------------------------------------------------------------
 /dist
 /tmp
 /out-tsc
 /bazel-out
+/.angular/cache
+.sass-cache/
+/connect.lock
+/coverage
+/libpeerconnection.log
+testem.log
+/typings
+__screenshots__/
 
-# Node
+# ----------------------------------------------------------------------
+# Node & Package Managers
+# ----------------------------------------------------------------------
 /node_modules
-npm-debug.log
-yarn-error.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
 
-# IDEs and editors
+# ----------------------------------------------------------------------
+# Tailwind CSS & Build Artifacts
+# ----------------------------------------------------------------------
+# Ignore temporary Tailwind output/cache files if custom build scripts are used
+.tailwindcss/
+*.log
+
+# ----------------------------------------------------------------------
+# Environment Variables & API Secrets (IMPORTANT)
+# ----------------------------------------------------------------------
+# Never commit real API keys or sensitive secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+# Keep Angular template environment files tracked, but ignore custom local overrides
+src/environments/environment.development.local.ts
+src/environments/environment.local.ts
+
+# ----------------------------------------------------------------------
+# OpenAPI / Swagger Generated Artifacts (Optional)
+# ----------------------------------------------------------------------
+# If you run openapi-generator into a temp directory
+/src/app/api/temp/
+
+# ----------------------------------------------------------------------
+# IDEs and Editors
+# ----------------------------------------------------------------------
 .idea/
 .project
 .classpath
@@ -19,6 +62,8 @@ yarn-error.log
 *.launch
 .settings/
 *.sublime-workspace
+*.swp
+*.swo
 
 # Visual Studio Code
 .vscode/*
@@ -29,16 +74,13 @@ yarn-error.log
 !.vscode/mcp.json
 .history/*
 
-# Miscellaneous
-/.angular/cache
-.sass-cache/
-/connect.lock
-/coverage
-/libpeerconnection.log
-testem.log
-/typings
-__screenshots__/
-
-# System files
+# ----------------------------------------------------------------------
+# Operating System & System Files
+# ----------------------------------------------------------------------
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
