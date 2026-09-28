@@ -45,18 +45,18 @@ export const manufacturerNavigation: NavigationItem[] = [
         label: 'Live Map',
         route: '/manufacturer/logistics/live-map',
         icon: 'map-pin'
-      },
-      {
-        label: 'Drivers',
-        route: '/manufacturer/drivers',
-        icon: 'users'
-      },
-      {
-        label: 'Vehicles',
-        route: '/manufacturer/vehicles',
-        icon: 'truck'
       }
     ]
+  },
+  {
+    label: 'Drivers',
+    route: '/manufacturer/drivers',
+    icon: 'users'
+  },
+  {
+    label: 'Vehicles',
+    route: '/manufacturer/vehicles',
+    icon: 'truck'
   },
   {
     label: 'Staff',

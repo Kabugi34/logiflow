@@ -53,6 +53,42 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./features/manufacturer/shipments/shipment.routes')
             .then(m => m.SHIPMENT_ROUTES)
+      },
+      {
+        path: 'logistics',
+        loadChildren: () =>
+          import('./features/manufacturer/logistics/logistics.routes')
+            .then(m => m.LOGISTICS_ROUTES)
+      },
+      {
+        path: 'drivers',
+        loadChildren: () =>
+          import('./features/manufacturer/drivers/drivers.routes')
+            .then(m => m.DRIVER_ROUTES)
+      },
+      {
+        path: 'vehicles',
+        loadChildren: () =>
+          import('./features/manufacturer/vehicles/vehicles.routes')
+            .then(m => m.VEHICLE_ROUTES)
+      },
+      {
+        path: 'staff',
+        loadChildren: () =>
+          import('./features/manufacturer/staff/staff.routes')
+            .then(m => m.STAFF_ROUTES)
+      },
+      {
+        path: 'reports',
+        loadChildren: () =>
+          import('./features/manufacturer/reports/reports.routes')
+            .then(m => m.REPORT_ROUTES)
+      },
+      {
+        path: 'settings',
+        loadChildren: () =>
+          import('./features/manufacturer/settings/settings.routes')
+            .then(m => m.SETTINGS_ROUTES)
       }
     ]
   },

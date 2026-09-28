@@ -4,5 +4,4 @@ export type UserRole =
   | 'MANUFACTURER_STAFF'
   | 'DISTRIBUTOR_ADMIN'
   | 'DISTRIBUTOR_STAFF'
-  | 'DRIVER'
   | 'CUSTOMER';
