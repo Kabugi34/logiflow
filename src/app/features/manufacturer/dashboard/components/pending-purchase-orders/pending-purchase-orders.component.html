@@ -1,0 +1,26 @@
+<section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+    <h2 class="text-sm font-semibold text-slate-900">Pending Distributor Purchase Orders</h2>
+    <span class="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-medium text-amber-700">REQUIRES ACTION</span>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-155 text-xs">
+      <thead class="bg-slate-50 text-left font-medium text-slate-600">
+        <tr><th scope="col" class="px-3 py-2.5">PO Number</th><th scope="col" class="px-3 py-2.5">Distributor Client</th><th scope="col" class="px-3 py-2.5">Items</th><th scope="col" class="px-3 py-2.5">Total Value</th><th scope="col" class="px-3 py-2.5">Action</th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        @for (po of purchaseOrders(); track po.id) {
+          <tr class="text-slate-700 hover:bg-slate-50">
+            <td class="whitespace-nowrap px-3 py-3 font-medium text-slate-900">{{ po.orderNumber }}</td>
+            <td class="whitespace-nowrap px-3 py-3">{{ po.distributorName }}</td>
+            <td class="px-3 py-3">{{ po.itemSummary }}</td>
+            <td class="whitespace-nowrap px-3 py-3 font-medium text-slate-900">{{ po.totalAmount | currency:'USD':'symbol':'1.0-0' }}</td>
+            <td class="px-3 py-3"><button type="button" class="rounded bg-blue-600 px-3 py-1.5 font-medium text-white hover:bg-blue-700">Approve</button></td>
+          </tr>
+        } @empty {
+          <tr><td colspan="5" class="px-4 py-8 text-center text-xs text-slate-500">No purchase orders require review.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

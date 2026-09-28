@@ -1,0 +1,8 @@
+export type UserRole =
+  | 'SUPER_ADMIN'
+  | 'MANUFACTURER_ADMIN'
+  | 'MANUFACTURER_STAFF'
+  | 'DISTRIBUTOR_ADMIN'
+  | 'DISTRIBUTOR_STAFF'
+  | 'DRIVER'
+  | 'CUSTOMER';

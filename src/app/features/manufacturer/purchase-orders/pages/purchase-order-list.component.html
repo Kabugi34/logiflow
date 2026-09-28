@@ -1,0 +1,29 @@
+<section class="space-y-5">
+  <header class="border-b border-slate-200 pb-4">
+    <nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-xs text-slate-400"><a routerLink="/manufacturer/dashboard" queryParamsHandling="preserve" class="hover:text-blue-600">LogiFlow</a><span aria-hidden="true">›</span><span>Purchase Orders</span><span aria-hidden="true">›</span><span class="font-medium text-slate-600">All POs</span></nav>
+    <div class="flex flex-wrap items-end justify-between gap-3"><div><h1 class="text-xl font-semibold text-slate-900">Distributor Purchase Orders</h1><p class="mt-1 text-sm text-slate-500">Review and process incoming procurement request files from Global Distributors.</p></div><button type="button" (click)="exportCsv()" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50">Export CSV</button></div>
+  </header>
+
+  <div class="flex flex-wrap items-center gap-2" role="tablist" aria-label="Purchase order status">
+    <button type="button" role="tab" [attr.aria-selected]="activeStatus() === 'PENDING'" (click)="setStatus('PENDING')" class="rounded-md border px-3 py-2 text-[10px] font-medium" [class]="activeStatus() === 'PENDING' ? 'border-blue-500 bg-white text-blue-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'">Pending Approval ({{ counts().PENDING }})</button>
+    <button type="button" role="tab" [attr.aria-selected]="activeStatus() === 'ACCEPTED'" (click)="setStatus('ACCEPTED')" class="rounded-md border px-3 py-2 text-[10px] font-medium" [class]="activeStatus() === 'ACCEPTED' ? 'border-blue-500 bg-white text-blue-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'">Accepted ({{ counts().ACCEPTED }})</button>
+    <button type="button" role="tab" [attr.aria-selected]="activeStatus() === 'REJECTED'" (click)="setStatus('REJECTED')" class="rounded-md border px-3 py-2 text-[10px] font-medium" [class]="activeStatus() === 'REJECTED' ? 'border-blue-500 bg-white text-blue-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'">Rejected ({{ counts().REJECTED }})</button>
+    <button type="button" role="tab" [attr.aria-selected]="activeStatus() === 'FULFILLED'" (click)="setStatus('FULFILLED')" class="rounded-md border px-3 py-2 text-[10px] font-medium" [class]="activeStatus() === 'FULFILLED' ? 'border-blue-500 bg-white text-blue-700' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'">Fulfilled ({{ counts().FULFILLED }})</button>
+  </div>
+
+  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <div class="overflow-x-auto"><table class="w-full min-w-190 text-xs">
+      <thead class="bg-slate-50 text-left font-medium text-slate-600"><tr><th scope="col" class="px-3 py-3">PO Number</th><th scope="col" class="px-3 py-3">Distributor Client</th><th scope="col" class="px-3 py-3">Issue Date</th><th scope="col" class="px-3 py-3">Procured Items</th><th scope="col" class="px-3 py-3">Total Value</th><th scope="col" class="px-3 py-3">Status</th><th scope="col" class="px-3 py-3">Actions</th></tr></thead>
+      <tbody class="divide-y divide-slate-100">
+        @for (order of orders(); track order.id) {
+          <tr class="text-slate-700 hover:bg-slate-50">
+            <td class="whitespace-nowrap px-3 py-3 font-semibold text-slate-900"><a [routerLink]="['/manufacturer/purchase-orders', order.id]" queryParamsHandling="preserve" class="hover:text-blue-600">{{ order.id }}</a></td><td class="whitespace-nowrap px-3 py-3">{{ order.distributorName }}</td><td class="whitespace-nowrap px-3 py-3">{{ order.issueDate }}</td><td class="max-w-48 truncate px-3 py-3">{{ order.lines[0].requestedQuantity | number }} {{ order.lines[0].productName }}</td><td class="whitespace-nowrap px-3 py-3 font-semibold text-slate-900">{{ total(order) | currency:'USD':'symbol':'1.0-0' }}</td><td class="px-3 py-3"><app-purchase-order-status [status]="order.status" /></td>
+            <td class="whitespace-nowrap px-3 py-3">@if (order.status === 'PENDING') { <button type="button" (click)="approve(order.id)" class="rounded bg-blue-600 px-3 py-1.5 text-[10px] font-medium text-white hover:bg-blue-700">Approve</button> } @else { <a [routerLink]="['/manufacturer/purchase-orders', order.id]" queryParamsHandling="preserve" class="font-medium text-blue-600 hover:text-blue-700">View Details</a> }</td>
+          </tr>
+        } @empty {
+          <tr><td colspan="7" class="px-4 py-12 text-center text-sm text-slate-500">No purchase orders in this status.</td></tr>
+        }
+      </tbody>
+    </table></div>
+  </div>
+</section>

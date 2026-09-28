@@ -1,0 +1,25 @@
+<section class="space-y-5">
+  <header class="border-b border-slate-200 pb-4">
+    <nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-xs text-slate-400"><a routerLink="/manufacturer/dashboard" queryParamsHandling="preserve" class="hover:text-blue-600">LogiFlow</a><span aria-hidden="true">›</span><span class="text-slate-500">Inventory</span></nav>
+    <h1 class="text-xl font-semibold text-slate-900">Warehouse Inventory Center</h1>
+    <p class="mt-1 text-sm text-slate-500">Terminal levels, stock holds, and dispatch validation logs.</p>
+  </header>
+
+  <div class="flex flex-wrap items-center gap-2">
+    <label class="sr-only" for="active-terminal">Active terminal</label>
+    <select id="active-terminal" [value]="selectedTerminalId()" (change)="selectTerminal($event)" class="h-9 max-w-full rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100">
+      @for (terminal of inventoryService.terminals; track terminal.id) { <option [value]="terminal.id">Active Terminal: {{ terminal.name }}</option> }
+    </select>
+    <label class="sr-only" for="inventory-category">Inventory category</label>
+    <select id="inventory-category" (change)="selectCategory($event)" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100">
+      <option>All categories</option>
+      @for (category of categories; track category) { <option [value]="category">{{ category }}</option> }
+    </select>
+    <div class="ml-auto flex items-center gap-2">
+      @if (auditRequested()) { <span role="status" class="text-xs font-medium text-emerald-700">Audit requested</span> }
+      <button type="button" (click)="requestAudit()" [disabled]="auditRequested()" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-default disabled:text-slate-400">{{ auditRequested() ? 'Audit Requested' : 'Request Stock Audit' }}</button>
+    </div>
+  </div>
+
+  <app-inventory-table [rows]="rows()" />
+</section>

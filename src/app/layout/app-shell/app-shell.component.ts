@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { SidebarComponent } from '../sidebar/sidebar.component';
-import { TopbarComponent } from '../topbar/topbar.component';
+import { SidebarComponent } from '../app-sidebar/sidebar.component';
+import { TopbarComponent } from '../app-topbar/topbar.component';
 
 @Component({
   selector: 'app-shell',
