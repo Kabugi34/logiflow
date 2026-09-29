@@ -1,0 +1,38 @@
+@if (product(); as item) {
+  <section class="space-y-5">
+    <header class="border-b border-slate-200 pb-4">
+      <nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-xs text-slate-400"><a routerLink="/manufacturer/dashboard" queryParamsHandling="preserve" class="hover:text-blue-600">LogiFlow</a><span aria-hidden="true">›</span><a routerLink="/manufacturer/products" queryParamsHandling="preserve" class="hover:text-blue-600">Products</a><span aria-hidden="true">›</span><span>Product Master</span><span aria-hidden="true">›</span><span class="text-slate-500">{{ item.sku }}</span></nav>
+      <h1 class="text-xl font-semibold text-slate-900">{{ item.sku }} Specifications</h1><p class="mt-1 text-sm text-slate-500">Full manufacturing specifications, stock levels across terminals.</p>
+    </header>
+
+    <article class="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:p-5">
+      <div class="grid h-20 w-20 shrink-0 place-items-center rounded-md bg-slate-100 text-xs font-semibold text-slate-400">{{ item.category.slice(0, 3).toUpperCase() }}</div>
+      <div class="min-w-0 flex-1"><h2 class="text-lg font-semibold text-slate-900">{{ item.name }} ({{ item.sku }})</h2><p class="mt-1 max-w-3xl text-xs leading-5 text-slate-600">{{ item.description }}</p><div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs"><span><span class="text-slate-400">Brand:</span> <strong>{{ item.brand }}</strong></span><span><span class="text-slate-400">Primary Class:</span> <strong>{{ item.category }}</strong></span><span><span class="text-slate-400">Base Unit:</span> <strong>{{ item.unit }}</strong></span></div></div>
+      <span class="shrink-0 rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-[9px] font-medium text-emerald-700">{{ item.status === 'ACTIVE' ? 'ON SCHEDULE STATUS' : item.status }}</span>
+    </article>
+
+    <div class="grid grid-cols-1 items-start gap-4 2xl:grid-cols-[1.55fr_1fr]">
+      <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <h2 class="border-b border-slate-200 px-4 py-3 text-sm font-semibold text-slate-900">Current Inventory Across Terminals</h2>
+        <div class="divide-y divide-slate-100">
+          @for (location of item.inventory; track location.terminal) {
+            <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+              <div><p class="text-xs font-semibold text-slate-800">{{ location.terminal }}</p><p class="mt-1 text-[10px] text-slate-500">{{ location.reserved | number }} Reserved for Dispatch</p></div>
+              <p class="text-right text-xs font-semibold text-blue-600">{{ location.available | number }} {{ item.unit }} Available</p>
+            </div>
+          } @empty { <p class="px-4 py-8 text-center text-xs text-slate-500">No terminal inventory recorded.</p> }
+        </div>
+      </section>
+      <section class="rounded-lg border border-slate-200 bg-white p-4">
+        <h2 class="text-sm font-semibold text-slate-900">Active Stock Movements Log</h2>
+        <ul class="mt-2 divide-y divide-slate-100">
+          @for (movement of item.movements; track movement.title) {
+            <li class="flex gap-2.5 py-2.5"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-600"></span><div><p class="text-xs font-medium text-slate-800">{{ movement.title }}</p><p class="mt-0.5 text-[10px] text-slate-500">{{ movement.detail }} · {{ movement.date }}</p></div></li>
+          } @empty { <li class="py-6 text-center text-xs text-slate-500">No stock movements recorded.</li> }
+        </ul>
+      </section>
+    </div>
+  </section>
+} @else {
+  <section class="rounded-lg border border-slate-200 bg-white px-5 py-12 text-center"><h1 class="text-lg font-semibold text-slate-900">Product not found</h1><p class="mt-1 text-sm text-slate-500">The requested SKU is not in this catalog.</p><a routerLink="/manufacturer/products" queryParamsHandling="preserve" class="mt-4 inline-flex text-sm font-medium text-blue-600">Return to products</a></section>
+}

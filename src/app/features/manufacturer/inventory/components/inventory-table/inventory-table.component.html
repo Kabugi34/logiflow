@@ -1,0 +1,20 @@
+<div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-150 text-xs">
+      <thead class="bg-slate-50 text-left font-medium text-slate-600"><tr><th scope="col" class="px-4 py-3">Product Name / SKU</th><th scope="col" class="px-3 py-3 text-right">Total Stock</th><th scope="col" class="px-3 py-3 text-right">Reserved Holds</th><th scope="col" class="px-3 py-3 text-right">Available Net</th><th scope="col" class="px-4 py-3 text-right">Status Alerts</th></tr></thead>
+      <tbody class="divide-y divide-slate-100">
+        @for (row of rows(); track row.sku) {
+          <tr class="text-slate-700 hover:bg-slate-50">
+            <td class="px-4 py-3"><a [routerLink]="['/manufacturer/products', row.sku]" queryParamsHandling="preserve" class="font-semibold text-slate-800 hover:text-blue-700">{{ row.productName }}</a><p class="mt-1 text-[10px] text-slate-500">{{ row.sku }}</p></td>
+            <td class="whitespace-nowrap px-3 py-3 text-right">{{ row.totalStock | number }} Pcs</td>
+            <td class="whitespace-nowrap px-3 py-3 text-right">{{ row.reservedHolds | number }} Pcs</td>
+            <td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-900">{{ row.availableNet | number }} Pcs</td>
+            <td class="px-4 py-3 text-right"><span class="inline-flex whitespace-nowrap rounded border px-2 py-1 text-[9px] font-medium" [class]="row.alert === 'HEALTHY LEVEL' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-700'">{{ row.alert }}</span></td>
+          </tr>
+        } @empty {
+          <tr><td colspan="5" class="px-4 py-10 text-center text-xs text-slate-500">No inventory for this terminal and category.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -1,0 +1,25 @@
+<section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+    <h2 class="text-sm font-semibold text-slate-900">Active Customer Orders</h2>
+    <div class="flex items-center gap-3">
+      @if (awaitingFulfillment()) { <span class="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-[9px] font-medium text-amber-700">{{ awaitingFulfillment() }} NEEDS FULFILLMENT</span> }
+      <a routerLink="/distributor/orders" queryParamsHandling="preserve" class="text-xs font-medium text-blue-600 hover:text-blue-700">View all</a>
+    </div>
+  </div>
+  <div class="overflow-x-auto"><table class="w-full min-w-140 text-xs">
+    <thead class="bg-slate-50 text-left text-[10px] font-medium text-slate-600"><tr><th scope="col" class="px-4 py-2.5">Order No</th><th scope="col" class="px-3 py-2.5">Client Store</th><th scope="col" class="px-3 py-2.5">Items Summary</th><th scope="col" class="px-3 py-2.5 text-right">Total</th><th scope="col" class="px-3 py-2.5">Status</th></tr></thead>
+    <tbody class="divide-y divide-slate-100">
+      @for (order of orders(); track order.id) {
+        <tr class="hover:bg-slate-50">
+          <td class="whitespace-nowrap px-4 py-3 font-semibold text-slate-900"><a [routerLink]="['/distributor/orders', order.id]" queryParamsHandling="preserve" class="hover:text-blue-600">{{ order.id }}</a></td>
+          <td class="whitespace-nowrap px-3 py-3 text-slate-600">{{ order.customerName }}</td>
+          <td class="max-w-44 truncate px-3 py-3 text-slate-600" [title]="order.itemSummary">{{ order.itemSummary }}</td>
+          <td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-900">{{ order.total | currency:'USD':'symbol':'1.0-0' }}</td>
+          <td class="px-3 py-3"><app-order-badge [value]="order.status" /></td>
+        </tr>
+      } @empty {
+        <tr><td colspan="5" class="px-4 py-8 text-center text-xs text-slate-500">No active customer orders.</td></tr>
+      }
+    </tbody>
+  </table></div>
+</section>

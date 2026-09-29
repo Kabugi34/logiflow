@@ -1,0 +1,20 @@
+<section class="space-y-5">
+  <header class="border-b border-slate-200 pb-4">
+    <nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-xs text-slate-400"><a routerLink="/manufacturer/dashboard" queryParamsHandling="preserve" class="hover:text-blue-600">LogiFlow</a><span aria-hidden="true">›</span><span class="text-slate-500">Warehouses</span></nav>
+    <h1 class="text-xl font-semibold text-slate-900">LogiFlow Terminal Warehouses</h1>
+    <p class="mt-1 text-sm text-slate-500">Manage manufactured stock holds, active site managers, and dispatch terminals.</p>
+  </header>
+
+  <div class="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(300px,0.85fr)]">
+    <div class="grid grid-cols-1 gap-3 2xl:grid-cols-2">
+      @for (warehouse of warehouses(); track warehouse.id) {
+        <app-warehouse-card [warehouse]="warehouse" [selected]="selectedWarehouseId() === warehouse.id" (selectWarehouse)="selectWarehouse($event)" />
+      } @empty {
+        <p class="rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">No warehouses are configured.</p>
+      }
+    </div>
+    @if (selectedWarehouse(); as warehouse) {
+      <app-warehouse-details [warehouse]="warehouse" (closeDetails)="closeDetails()" />
+    }
+  </div>
+</section>

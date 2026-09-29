@@ -1,0 +1,33 @@
+<header class="flex h-16 shrink-0 items-center justify-end gap-2 border-b border-slate-200 bg-white px-3 sm:gap-3 sm:px-5 lg:px-6">
+  <button type="button" (click)="layout.toggleSidebar()" aria-controls="app-sidebar" [attr.aria-expanded]="layout.isSidebarOpen()" [attr.aria-label]="layout.isSidebarOpen() ? 'Hide sidebar' : 'Show sidebar'" [title]="layout.isSidebarOpen() ? 'Hide sidebar' : 'Show sidebar'" class="mr-auto grid h-9 w-9 shrink-0 place-items-center rounded-md border border-slate-200 bg-white text-slate-600 hover:bg-slate-50">
+    <svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M9 4v16" />
+      @if (layout.isSidebarOpen()) {
+        <path d="m15 10-2 2 2 2" />
+      } @else {
+        <path d="m13 10 2 2-2 2" />
+      }
+    </svg>
+  </button>
+  <label class="relative w-full max-w-64">
+    <span class="sr-only">Universal lookup</span>
+    <span aria-hidden="true" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">⌕</span>
+    <input
+      type="search"
+      [placeholder]="searchPlaceholder()"
+      class="h-9 w-full rounded-md border border-slate-200 bg-slate-50 pl-8 pr-3 text-xs text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100">
+  </label>
+  <button type="button" (click)="appearance.toggle()" [attr.aria-label]="appearance.isDark() ? 'Switch to light theme' : 'Switch to dark theme'" [title]="appearance.isDark() ? 'Switch to light theme' : 'Switch to dark theme'" class="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-slate-200 bg-white text-slate-600 hover:bg-slate-50">
+    @if (appearance.isDark()) {
+      <svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+    } @else {
+      <svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
+    }
+  </button>
+  <button type="button" aria-label="Notifications" title="Notifications" class="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-slate-200 bg-white text-slate-600 hover:bg-slate-50">
+    <svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
+    </svg>
+  </button>
+</header>

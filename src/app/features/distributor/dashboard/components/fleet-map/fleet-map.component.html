@@ -1,0 +1,15 @@
+<section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+    <h2 class="text-sm font-semibold text-slate-900">Fleet Active Map</h2>
+    <span class="rounded border border-blue-200 bg-blue-50 px-2 py-1 text-[9px] font-medium text-blue-700">{{ activeVehicles().length }} {{ activeVehicles().length === 1 ? 'VEHICLE' : 'VEHICLES' }} ACTIVE</span>
+  </div>
+  <div #mapElement class="h-56 w-full bg-slate-100 sm:h-64" role="application" aria-label="Map showing distributor fleet vehicle locations"></div>
+  <div class="flex items-center gap-2 border-t border-slate-100 px-4 py-2.5 text-[10px] text-slate-600">
+    <svg aria-hidden="true" viewBox="0 0 24 24" class="h-3.5 w-3.5 shrink-0 text-blue-600" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7" /><circle cx="7" cy="17" r="1.5" /><circle cx="17" cy="17" r="1.5" /></svg>
+    @if (activeVehicles()[0]; as leadVehicle) {
+      <span class="truncate">{{ leadVehicle.id }} currently on {{ leadVehicle.locationLabel }}.</span>
+    } @else {
+      <span>No vehicles on a trip right now.</span>
+    }
+  </div>
+</section>

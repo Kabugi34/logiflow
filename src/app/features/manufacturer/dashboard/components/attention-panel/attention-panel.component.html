@@ -1,0 +1,10 @@
+<section class="rounded-lg border border-slate-200 bg-white">
+  <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3"><h2 class="text-sm font-semibold text-slate-900">Needs Attention</h2><span class="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-700">{{ items().length }}</span></div>
+  <ul class="divide-y divide-slate-100">
+    @for (item of items(); track item.id) {
+      <li class="flex items-start gap-3 px-4 py-3"><span class="mt-1.5 h-2 w-2 shrink-0 rounded-full" [class.bg-amber-500]="item.severity === 'WARNING'" [class.bg-red-500]="item.severity === 'CRITICAL'"></span><div class="min-w-0 flex-1"><p class="text-xs font-semibold text-slate-800">{{ item.title }}</p><p class="mt-1 text-[10px] leading-4 text-slate-500">{{ item.description }}</p><a [routerLink]="item.route" queryParamsHandling="preserve" class="mt-1.5 inline-flex text-[10px] font-medium text-blue-600 hover:text-blue-700">{{ item.actionLabel }} <span aria-hidden="true" class="ml-1">›</span></a></div></li>
+    } @empty {
+      <li class="px-4 py-6 text-center text-xs text-slate-500">Everything is on track.</li>
+    }
+  </ul>
+</section>

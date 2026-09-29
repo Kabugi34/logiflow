@@ -1,0 +1,46 @@
+<section class="space-y-5">
+  <header class="border-b border-slate-200 pb-4">
+    <nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-xs text-slate-400"><a routerLink="/manufacturer/dashboard" queryParamsHandling="preserve" class="hover:text-blue-600">LogiFlow</a><span aria-hidden="true">›</span><span>Products</span><span aria-hidden="true">›</span><span class="text-slate-500">All Products</span></nav>
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <div><h1 class="text-xl font-semibold text-slate-900">Product Master Catalog</h1><p class="mt-1 text-sm text-slate-500">Global list of manufactured equipment, stock units, and SKUs.</p></div>
+      <a routerLink="/manufacturer/products/new" queryParamsHandling="preserve" class="rounded-md bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700">+ Add Product</a>
+    </div>
+  </header>
+
+  <div class="flex flex-wrap items-center gap-2">
+    <label class="sr-only" for="product-search">Search products</label>
+    <input id="product-search" type="search" placeholder="Search product, SKU, or brand" (input)="updateSearch($event)" class="h-9 w-full max-w-64 rounded-md border border-slate-200 bg-white px-3 text-xs outline-none placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100">
+    <label class="sr-only" for="product-category">Filter by category</label>
+    <select id="product-category" (change)="updateCategory($event)" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-700 outline-none focus:border-blue-400">
+      <option>All categories</option>
+      @for (category of categories; track category) { <option [value]="category">{{ category }}</option> }
+    </select>
+    <label class="sr-only" for="product-status">Filter by status</label>
+    <select id="product-status" (change)="updateStatus($event)" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-700 outline-none focus:border-blue-400">
+      <option>All statuses</option><option>ACTIVE</option><option>LOW STOCK</option><option>CRITICAL STOCK</option>
+    </select>
+    <span class="ml-auto text-xs text-slate-500">{{ filteredProducts().length }} products</span>
+  </div>
+
+  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-190 text-xs">
+        <thead class="bg-slate-50 text-left font-medium text-slate-600">
+          <tr><th scope="col" class="px-4 py-3">Image</th><th scope="col" class="px-3 py-3">Product Name</th><th scope="col" class="px-3 py-3">SKU</th><th scope="col" class="px-3 py-3">Brand</th><th scope="col" class="px-3 py-3">Category</th><th scope="col" class="px-3 py-3">Unit</th><th scope="col" class="px-3 py-3 text-right">Stock</th><th scope="col" class="px-3 py-3">Status</th><th scope="col" class="px-3 py-3">Actions</th></tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          @for (product of filteredProducts(); track product.id) {
+            <tr class="text-slate-700 hover:bg-slate-50">
+              <td class="px-4 py-3"><div class="grid h-10 w-10 place-items-center rounded-md bg-slate-100 text-[9px] font-semibold text-slate-400">{{ product.category.slice(0, 3).toUpperCase() }}</div></td>
+              <td class="min-w-40 px-3 py-3 font-medium text-slate-900">{{ product.name }}</td><td class="whitespace-nowrap px-3 py-3 text-slate-500">{{ product.sku }}</td><td class="whitespace-nowrap px-3 py-3">{{ product.brand }}</td><td class="whitespace-nowrap px-3 py-3">{{ product.category }}</td><td class="px-3 py-3">{{ product.unit }}</td><td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-900">{{ product.stock | number }} {{ product.unit }}</td>
+              <td class="px-3 py-3"><span class="whitespace-nowrap rounded border px-2 py-1 text-[9px] font-medium" [class]="product.status === 'ACTIVE' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : product.status === 'LOW STOCK' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-red-200 bg-red-50 text-red-700'">{{ product.status }}</span></td>
+              <td class="whitespace-nowrap px-3 py-3"><a [routerLink]="['/manufacturer/products', product.sku]" queryParamsHandling="preserve" class="font-medium text-blue-600 hover:text-blue-700">View</a></td>
+            </tr>
+          } @empty {
+            <tr><td colspan="9" class="px-4 py-12 text-center text-sm text-slate-500">No products match these filters.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

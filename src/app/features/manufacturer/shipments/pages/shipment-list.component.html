@@ -1,0 +1,40 @@
+<section class="space-y-5">
+  <header class="border-b border-slate-200 pb-4">
+    <nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-xs text-slate-400"><a routerLink="/manufacturer/dashboard" queryParamsHandling="preserve" class="hover:text-blue-600">LogiFlow</a><span aria-hidden="true">›</span><span>Shipments</span><span aria-hidden="true">›</span><span class="font-medium text-slate-600">All Shipments</span></nav>
+    <div class="flex flex-wrap items-end justify-between gap-3"><div><h1 class="text-xl font-semibold text-slate-900">Consolidated Shipments</h1><p class="mt-1 text-sm text-slate-500">Track loaded logistics shipments and their corresponding dispatch itineraries.</p></div><button type="button" (click)="openAllocation()" class="h-9 rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700">+ Allocate Shipment</button></div>
+  </header>
+
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="inline-flex h-9 items-center gap-1 rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-700">Carrier: <strong>LogiCore</strong></span>
+    <label class="sr-only" for="shipment-status">Filter shipments by status</label>
+    <select id="shipment-status" [value]="selectedStatus()" (change)="setStatus($event)" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-700 outline-none focus:border-blue-400"><option value="ACTIVE">Status: All Active</option><option value="ALL">All statuses</option><option value="DELIVERED">Delivered</option><option value="BORDER_HOLD">Border hold</option></select>
+    <span class="ml-auto text-xs text-slate-500">{{ shipments().length }} shipments</span>
+  </div>
+
+  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white"><div class="overflow-x-auto"><table class="w-full min-w-220 text-xs">
+    <thead class="bg-slate-50 text-left text-[10px] font-medium text-slate-600"><tr><th scope="col" class="px-3 py-3">Shipment ID</th><th scope="col" class="px-3 py-3">PO Reference</th><th scope="col" class="px-3 py-3">Destination Hub</th><th scope="col" class="px-3 py-3">Freight Details</th><th scope="col" class="px-3 py-3 text-right">Qty</th><th scope="col" class="px-3 py-3">Status</th><th scope="col" class="px-3 py-3">Trip</th><th scope="col" class="px-3 py-3">Assigned Driver</th></tr></thead>
+    <tbody class="divide-y divide-slate-100">
+      @for (shipment of shipments(); track shipment.id) {
+        <tr class="text-slate-700 hover:bg-slate-50"><td class="whitespace-nowrap px-3 py-3"><a [routerLink]="['/manufacturer/shipments', shipment.id]" queryParamsHandling="preserve" class="font-medium text-blue-600 hover:text-blue-700">{{ shipment.id }}</a></td><td class="whitespace-nowrap px-3 py-3 text-slate-500">{{ shipment.poReference }}</td><td class="max-w-36 px-3 py-3">{{ shipment.destination }}</td><td class="whitespace-nowrap px-3 py-3 text-slate-500">{{ shipment.freightDetails }}</td><td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-900">{{ shipment.quantity | number }}</td><td class="px-3 py-3"><span class="whitespace-nowrap rounded border px-2 py-1 text-[9px] font-medium" [class]="statusClass(shipment.status)">{{ statusLabel(shipment.status) }}</span></td><td class="whitespace-nowrap px-3 py-3">{{ shipment.tripId }}</td><td class="whitespace-nowrap px-3 py-3"><p class="font-semibold text-slate-800">{{ shipment.assignedDriver }}</p><p class="mt-0.5 text-[10px] text-slate-500">{{ shipment.vehicle.split(' (')[0] }}</p></td></tr>
+      } @empty { <tr><td colspan="8" class="px-4 py-12 text-center text-sm text-slate-500">No shipments match this status.</td></tr> }
+    </tbody>
+  </table></div></div>
+</section>
+
+@if (isAllocationOpen()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/40 p-4" (click)="closeAllocation()" (keydown.escape)="closeAllocation()">
+    <section role="dialog" aria-modal="true" aria-labelledby="allocate-title" class="my-auto w-full max-w-xl rounded-lg border border-slate-200 bg-white p-5 shadow-xl" (click)="$event.stopPropagation()">
+      <div class="flex items-start justify-between gap-4"><div><h2 id="allocate-title" class="text-base font-semibold text-slate-900">Allocate Shipment</h2><p class="mt-1 text-xs text-slate-500">Create a dispatch from an existing distributor purchase order.</p></div><button type="button" (click)="closeAllocation()" aria-label="Close dialog" class="grid h-7 w-7 place-items-center rounded text-lg text-slate-500 hover:bg-slate-100">×</button></div>
+      <form [formGroup]="form" (ngSubmit)="allocate()" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label class="space-y-1"><span class="block text-xs font-medium text-slate-700">Purchase Order</span><select formControlName="poReference" (change)="updateOrderDefaults()" class="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-xs">@for (order of orders(); track order.id) { <option [value]="order.id">{{ order.id }} · {{ order.distributorName }}</option> }</select></label>
+        <label class="space-y-1"><span class="block text-xs font-medium text-slate-700">Trip ID</span><input formControlName="tripId" class="h-9 w-full rounded-md border border-slate-200 px-2 text-xs"></label>
+        <label class="space-y-1"><span class="block text-xs font-medium text-slate-700">Destination Hub</span><input formControlName="destination" placeholder="Dallas Depot #4" class="h-9 w-full rounded-md border border-slate-200 px-2 text-xs"></label>
+        <label class="space-y-1"><span class="block text-xs font-medium text-slate-700">Freight Details</span><input formControlName="freightDetails" placeholder="Hydraulic Motors" class="h-9 w-full rounded-md border border-slate-200 px-2 text-xs"></label>
+        <label class="space-y-1"><span class="block text-xs font-medium text-slate-700">Quantity</span><input type="number" min="1" formControlName="quantity" class="h-9 w-full rounded-md border border-slate-200 px-2 text-xs"></label>
+        <label class="space-y-1"><span class="block text-xs font-medium text-slate-700">Assigned Driver</span><input formControlName="assignedDriver" placeholder="Driver name" class="h-9 w-full rounded-md border border-slate-200 px-2 text-xs"></label>
+        @if (allocationError()) { <p role="alert" class="text-xs text-red-600 sm:col-span-2">{{ allocationError() }}</p> }
+        <div class="mt-2 flex justify-end gap-2 sm:col-span-2"><button type="button" (click)="closeAllocation()" class="h-9 rounded-md border border-slate-200 px-3 text-xs font-medium text-slate-700 hover:bg-slate-50">Cancel</button><button type="submit" class="h-9 rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700">Create Dispatch</button></div>
+      </form>
+    </section>
+  </div>
+}

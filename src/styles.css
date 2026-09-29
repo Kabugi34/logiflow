@@ -1,3 +1,96 @@
 /* You can add global styles to this file, and also import other style files */
 
 @import 'tailwindcss';
+@import 'leaflet/dist/leaflet.css';
+
+html.dark {
+	color-scheme: dark;
+	background: #0b1220;
+}
+
+html.dark body {
+	background: #0b1220;
+	color: #e2e8f0;
+}
+
+html.dark .bg-white {
+	background-color: #111827;
+}
+
+html.dark .bg-slate-50 {
+	background-color: #0f172a;
+}
+
+html.dark .bg-slate-100 {
+	background-color: #1e293b;
+}
+
+html.dark .bg-slate-200 {
+	background-color: #334155;
+}
+
+html.dark .bg-blue-50 {
+	background-color: #172554;
+}
+
+html.dark .bg-emerald-50 {
+	background-color: #052e2b;
+}
+
+html.dark .bg-amber-50 {
+	background-color: #3b2507;
+}
+
+html.dark .bg-orange-50 {
+	background-color: #431407;
+}
+
+html.dark .bg-red-50 {
+	background-color: #450a0a;
+}
+
+html.dark .bg-indigo-50 {
+	background-color: #1e1b4b;
+}
+
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-slate-700 {
+	color: #e2e8f0;
+}
+
+html.dark .text-slate-600,
+html.dark .text-slate-500 {
+	color: #a7b4c7;
+}
+
+html.dark .text-slate-400 {
+	color: #8291a8;
+}
+
+html.dark .border-slate-100,
+html.dark .border-slate-200,
+html.dark .border-slate-300 {
+	border-color: #334155;
+}
+
+html.dark input,
+html.dark select,
+html.dark textarea {
+	border-color: #475569;
+	background-color: #0f172a;
+	color: #e2e8f0;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+	color: #8291a8;
+}
+
+html.dark .hover\:bg-slate-50:hover {
+	background-color: #1e293b;
+}
+
+html.dark .hover\:bg-slate-100:hover {
+	background-color: #334155;
+}
