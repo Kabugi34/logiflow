@@ -3,6 +3,7 @@ import { Routes } from '@angular/router';
 import { manufacturerGuard } from './core/guards/manufacturer.guard';
 import { distributorGuard } from './core/guards/distributor.guard';
 import { AppShellComponent } from './layout/app-shell/app-shell.component';
+import { distributorWorkspace, manufacturerWorkspace } from './layout/navigation/navigation.config';
 
 
 
@@ -10,13 +11,14 @@ export const routes: Routes = [
     {
     path: '',
     pathMatch: 'full',
-    redirectTo: 'manufacturer/dashboard?preview=manufacturer'
+    redirectTo: '/manufacturer/dashboard?preview=manufacturer'
   },
 
   {
     path: 'manufacturer',
     component: AppShellComponent,
     canActivate: [manufacturerGuard],
+    data: { workspace: manufacturerWorkspace },
     children: [
       {
         path: 'dashboard',
@@ -95,14 +97,25 @@ export const routes: Routes = [
 
   {
     path: 'distributor',
+    component: AppShellComponent,
     canActivate: [distributorGuard],
+    data: { workspace: distributorWorkspace },
     children: [
       {
         path: 'dashboard',
-        loadComponent: () =>
-          import(
-            './features/distributor/dashboard/pages/distributor-dashboard/distributor-dashboard.component'
-          ).then(m => m.DistributorDashboardComponent)
+        loadChildren: () =>
+          import('./features/distributor/dashboard/dashboard.routes')
+            .then(m => m.DASHBOARD_ROUTES)
+      },
+      {
+        path: 'orders',
+        loadChildren: () =>
+          import('./features/distributor/orders/orders.routes')
+            .then(m => m.ORDER_ROUTES)
+      },
+      {
+        path: '**',
+        redirectTo: 'dashboard'
       }
     ]
   },

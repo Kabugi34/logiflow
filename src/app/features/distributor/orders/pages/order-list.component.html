@@ -1,0 +1,52 @@
+<section class="space-y-5">
+  <header class="border-b border-slate-200 pb-4">
+    <nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-xs text-slate-400"><a routerLink="/distributor/dashboard" queryParamsHandling="preserve" class="hover:text-blue-600">LogiFlow</a><span aria-hidden="true">›</span><span>Distributor</span><span aria-hidden="true">›</span><span class="font-medium text-slate-600">Orders</span></nav>
+    <h1 class="text-xl font-semibold text-slate-900">Customer Orders Catalog</h1>
+    <p class="mt-1 text-sm text-slate-500">Process and monitor wholesale client orders and dispatch statuses.</p>
+  </header>
+
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex flex-wrap items-center gap-2">
+      <label class="inline-flex h-8 items-center gap-1 rounded-md border border-slate-200 bg-white pl-3 text-[10px] font-medium text-slate-700 focus-within:border-blue-400">
+        <span>Status:</span>
+        <select [value]="selectedStatus()" (change)="updateStatus($event)" class="h-full cursor-pointer rounded-md bg-transparent pr-2 text-[10px] font-medium text-slate-900 outline-none">
+          @for (option of statusOptions; track option.value) { <option [value]="option.value">{{ option.label }}</option> }
+        </select>
+      </label>
+      <label class="inline-flex h-8 items-center gap-1 rounded-md border border-slate-200 bg-white pl-3 text-[10px] font-medium text-slate-700 focus-within:border-blue-400">
+        <span>Payment:</span>
+        <select [value]="selectedPayment()" (change)="updatePayment($event)" class="h-full cursor-pointer rounded-md bg-transparent pr-2 text-[10px] font-medium text-slate-900 outline-none">
+          @for (option of paymentOptions; track option.value) { <option [value]="option.value">{{ option.label }}</option> }
+        </select>
+      </label>
+      @if (selectedStatus() !== 'ALL' || selectedPayment() !== 'ALL') {
+        <button type="button" (click)="clearFilters()" class="h-8 px-2 text-[10px] font-medium text-blue-600 hover:text-blue-700">Clear filters</button>
+      }
+    </div>
+    <a routerLink="/distributor/orders/new" queryParamsHandling="preserve" class="inline-flex h-9 items-center rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700">+ Create Client Order</a>
+  </div>
+
+  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <div class="overflow-x-auto"><table class="w-full min-w-220 text-xs">
+      <thead class="bg-slate-50 text-left text-[10px] font-medium text-slate-600">
+        <tr><th scope="col" class="px-4 py-3">Order No</th><th scope="col" class="px-3 py-3">Customer Store</th><th scope="col" class="px-3 py-3">Order Date</th><th scope="col" class="px-3 py-3">Items Summary</th><th scope="col" class="px-3 py-3 text-right">Total</th><th scope="col" class="px-3 py-3">Payment</th><th scope="col" class="px-3 py-3">Order Status</th><th scope="col" class="px-3 py-3">Delivery</th></tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        @for (order of filteredOrders(); track order.id) {
+          <tr class="text-slate-700 hover:bg-slate-50">
+            <td class="whitespace-nowrap px-4 py-3 font-semibold"><a [routerLink]="['/distributor/orders', order.id]" queryParamsHandling="preserve" class="text-blue-600 hover:text-blue-700">{{ order.id }}</a></td>
+            <td class="whitespace-nowrap px-3 py-3 font-medium text-slate-900">{{ order.customerName }}</td>
+            <td class="whitespace-nowrap px-3 py-3">{{ order.orderDate | date:'MMM d, y' }}</td>
+            <td class="max-w-56 truncate px-3 py-3" [title]="orderService.itemSummary(order)">{{ orderService.itemSummary(order) }}</td>
+            <td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-900">{{ orderService.total(order) | currency:'USD':'symbol':'1.0-0' }}</td>
+            <td class="px-3 py-3"><app-order-badge [value]="order.paymentStatus" /></td>
+            <td class="px-3 py-3"><app-order-badge [value]="order.status" /></td>
+            <td class="px-3 py-3"><app-order-badge [value]="order.deliveryStatus" /></td>
+          </tr>
+        } @empty {
+          <tr><td colspan="8" class="px-4 py-12 text-center text-sm text-slate-500">No orders match these filters.</td></tr>
+        }
+      </tbody>
+    </table></div>
+  </div>
+</section>

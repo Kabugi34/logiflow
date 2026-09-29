@@ -1,0 +1,108 @@
+@if (order(); as currentOrder) {
+  <section class="space-y-5">
+    <header class="border-b border-slate-200 pb-4">
+      <nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-xs text-slate-400"><a routerLink="/distributor/dashboard" queryParamsHandling="preserve" class="hover:text-blue-600">LogiFlow</a><span aria-hidden="true">›</span><span>Distributor</span><span aria-hidden="true">›</span><a routerLink="/distributor/orders" queryParamsHandling="preserve" class="hover:text-blue-600">Orders</a><span aria-hidden="true">›</span><span class="font-medium text-slate-600">Details</span></nav>
+      <h1 class="text-xl font-semibold text-slate-900">Order Information: {{ currentOrder.id }}</h1>
+      <p class="mt-1 text-sm text-slate-500">Comprehensive view of client requirements, routing logs, and execution stages.</p>
+    </header>
+
+    <div class="grid grid-cols-1 items-start gap-4 2xl:grid-cols-[1.55fr_1fr]">
+      <div class="space-y-4">
+        <section class="rounded-lg border border-slate-200 bg-white p-4 sm:p-5">
+          <div class="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <h2 class="text-sm font-semibold text-slate-900">Client Demands &amp; Value</h2>
+            <app-order-badge [value]="currentOrder.status" [label]="currentOrder.status === 'PREPARING' ? 'AWAITING DISPATCH' : ''" />
+          </div>
+          <dl class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div><dt class="text-[10px] uppercase text-slate-400">B2B Customer</dt><dd class="mt-1 text-xs font-semibold text-slate-800">{{ currentOrder.customerName }}</dd><dd class="mt-0.5 text-[10px] text-slate-500">Store ID: {{ currentOrder.customerId }}</dd></div>
+            <div><dt class="text-[10px] uppercase text-slate-400">Shipping Destination</dt><dd class="mt-1 text-xs font-semibold text-slate-800">{{ currentOrder.destinationName }}</dd><dd class="mt-0.5 text-[10px] text-slate-500">{{ currentOrder.destinationAddress }}</dd></div>
+            <div><dt class="text-[10px] uppercase text-slate-400">Order Date</dt><dd class="mt-1 text-xs font-semibold text-slate-800">{{ currentOrder.orderDate | date:'MMM d, y' }}</dd></div>
+            <div>
+              <dt class="text-[10px] uppercase text-slate-400">Payment</dt>
+              <dd class="mt-1 flex items-center gap-2"><app-order-badge [value]="currentOrder.paymentStatus" />@if (currentOrder.paymentStatus === 'PENDING') { <button type="button" (click)="markPaid()" class="text-[10px] font-medium text-blue-600 hover:text-blue-700">Record payment</button> }</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <h2 class="border-b border-slate-200 px-4 py-3 text-sm font-semibold text-slate-900">Ordered Items &amp; Stock Availability</h2>
+          <div class="overflow-x-auto"><table class="w-full min-w-150 text-xs">
+            <thead class="bg-slate-50 text-left text-[10px] font-medium text-slate-600"><tr><th scope="col" class="px-4 py-2.5">Preview</th><th scope="col" class="px-3 py-2.5">Item Description</th><th scope="col" class="px-3 py-2.5">SKU Code</th><th scope="col" class="px-3 py-2.5 text-right">Qty</th><th scope="col" class="px-3 py-2.5 text-right">Price</th><th scope="col" class="px-3 py-2.5">Local Stock</th></tr></thead>
+            <tbody class="divide-y divide-slate-100">
+              @for (line of currentOrder.lines; track line.sku) {
+                <tr>
+                  <td class="px-4 py-3"><span class="grid h-8 w-8 place-items-center rounded-md bg-slate-100 text-slate-400" aria-hidden="true"><svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5V8Z" /><path d="m3 8 9 5 9-5M12 13v8" /></svg></span></td>
+                  <td class="px-3 py-3 font-medium text-slate-800">{{ line.productName }}</td>
+                  <td class="whitespace-nowrap px-3 py-3 text-slate-500">{{ line.sku }}</td>
+                  <td class="whitespace-nowrap px-3 py-3 text-right text-slate-600">{{ line.quantity | number }} {{ line.unit }}</td>
+                  <td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-900">{{ line.quantity * line.unitPrice | currency:'USD':'symbol':'1.0-0' }}</td>
+                  <td class="whitespace-nowrap px-3 py-3">
+                    @if (currentOrder.status !== 'PREPARING') {
+                      <span class="inline-flex rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[9px] font-medium text-slate-600">ALLOCATED</span>
+                    } @else if (shortfall(line) > 0) {
+                      <span class="inline-flex rounded border border-red-200 bg-red-50 px-2 py-1 text-[9px] font-medium text-red-700">SHORT {{ shortfall(line) | number }}</span>
+                    } @else {
+                      <span class="inline-flex rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-[9px] font-medium text-emerald-700">AVAILABLE</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table></div>
+          <div class="flex items-center justify-between border-t border-slate-100 px-4 py-3"><span class="text-xs font-semibold text-slate-700">Order Total:</span><span class="text-lg font-semibold text-blue-600">{{ orderService.total(currentOrder) | currency:'USD':'symbol':'1.0-0' }}</span></div>
+        </section>
+      </div>
+
+      <aside class="space-y-4">
+        <section class="rounded-lg border border-slate-200 bg-white p-4 sm:p-5">
+          <div class="flex items-center justify-between gap-3"><h2 class="text-sm font-semibold text-slate-900">Fulfillment &amp; Fleet Assignment</h2><app-order-badge [value]="currentOrder.deliveryStatus" /></div>
+
+          @if (currentOrder.status === 'PREPARING') {
+            <label class="mt-4 block space-y-1.5">
+              <span class="text-[10px] uppercase text-slate-400">Assigned Fleet Truck</span>
+              <span class="flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
+                <svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4 shrink-0 text-blue-600" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7" /><circle cx="7" cy="17" r="1.5" /><circle cx="17" cy="17" r="1.5" /></svg>
+                <select [value]="selectedVehicleId()" (change)="updateVehicle($event)" [disabled]="!fleetService.availableVehicles().length" class="h-full min-w-0 flex-1 cursor-pointer bg-transparent text-xs text-slate-800 outline-none">
+                  @for (vehicle of fleetService.availableVehicles(); track vehicle.id) { <option [value]="vehicle.id">{{ vehicle.model }} (Plate: {{ vehicle.plate }})</option> } @empty { <option value="">No trucks available</option> }
+                </select>
+              </span>
+            </label>
+            <label class="mt-3 block space-y-1.5">
+              <span class="text-[10px] uppercase text-slate-400">Assigned B2B Driver</span>
+              <span class="flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100">
+                <svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4 shrink-0 text-blue-600" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3" /><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M21 20a5 5 0 0 0-4-4.9" /></svg>
+                <select [value]="selectedDriverId()" (change)="updateDriver($event)" [disabled]="!fleetService.standbyDrivers().length" class="h-full min-w-0 flex-1 cursor-pointer bg-transparent text-xs text-slate-800 outline-none">
+                  @for (driver of fleetService.standbyDrivers(); track driver.id) { <option [value]="driver.id">{{ driver.name }} ({{ driver.locationLabel }})</option> } @empty { <option value="">No drivers on standby</option> }
+                </select>
+              </span>
+            </label>
+            <button type="button" (click)="dispatch()" [disabled]="hasStockShortage() || !selectedVehicleId() || !selectedDriverId()" class="mt-4 min-h-10 w-full rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300">Dispatch Order Now</button>
+            @if (hasStockShortage()) { <p class="mt-2 text-[10px] text-red-600">Local stock is short for one or more items. Restock before dispatching.</p> }
+            @if (errorMessage()) { <p role="alert" class="mt-2 text-[10px] text-red-600">{{ errorMessage() }}</p> }
+          } @else {
+            <dl class="mt-4 space-y-3">
+              <div><dt class="text-[10px] uppercase text-slate-400">Assigned Fleet Truck</dt><dd class="mt-1.5 flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs text-slate-800"><svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4 shrink-0 text-blue-600" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7" /><circle cx="7" cy="17" r="1.5" /><circle cx="17" cy="17" r="1.5" /></svg>{{ assignedVehicle() ? assignedVehicle()!.model + ' (Plate: ' + assignedVehicle()!.plate + ')' : 'Released after delivery' }}</dd></div>
+              <div><dt class="text-[10px] uppercase text-slate-400">Assigned B2B Driver</dt><dd class="mt-1.5 flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs text-slate-800"><svg aria-hidden="true" viewBox="0 0 24 24" class="h-4 w-4 shrink-0 text-blue-600" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3" /><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M21 20a5 5 0 0 0-4-4.9" /></svg>{{ assignedDriver() ? assignedDriver()!.name + ' (' + assignedDriver()!.locationLabel + ')' : 'Released after delivery' }}</dd></div>
+            </dl>
+            @if (currentOrder.status === 'IN_TRANSIT' || currentOrder.status === 'REROUTED') {
+              <button type="button" (click)="confirmDelivery()" class="mt-4 min-h-10 w-full rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700">Confirm Delivery</button>
+            } @else {
+              <p class="mt-4 rounded-md bg-emerald-50 px-3 py-2 text-[10px] font-medium text-emerald-700">Delivered to {{ currentOrder.destinationName }}.</p>
+            }
+          }
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white p-4 sm:p-5">
+          <h2 class="text-sm font-semibold text-slate-900">Execution Log</h2>
+          <ol class="mt-3 space-y-3">
+            @for (event of currentOrder.log; track $index) {
+              <li class="flex gap-3"><span class="mt-1 h-2 w-2 shrink-0 rounded-full" [class.bg-emerald-500]="event.state === 'COMPLETE'" [class.bg-amber-500]="event.state === 'CURRENT'"></span><div><p class="text-xs font-semibold text-slate-800">{{ event.title }}</p><p class="mt-0.5 text-[10px] text-slate-500">{{ event.detail }}</p></div></li>
+            }
+          </ol>
+        </section>
+      </aside>
+    </div>
+  </section>
+} @else {
+  <section class="rounded-lg border border-slate-200 bg-white px-5 py-12 text-center"><h1 class="text-lg font-semibold text-slate-900">Order not found</h1><a routerLink="/distributor/orders" queryParamsHandling="preserve" class="mt-4 inline-flex text-sm font-medium text-blue-600">Return to orders</a></section>
+}

@@ -5,6 +5,20 @@ export interface NavigationItem {
   children?: NavigationItem[];
 }
 
+export interface WorkspaceAccount {
+  initials: string;
+  name: string;
+  subtitle: string;
+}
+
+export interface WorkspaceConfig {
+  name: string;
+  homeRoute: string;
+  searchPlaceholder: string;
+  navigation: NavigationItem[];
+  account: WorkspaceAccount;
+}
+
 export const manufacturerNavigation: NavigationItem[] = [
   {
     label: 'Dashboard',
@@ -79,3 +93,32 @@ export const manufacturerNavigation: NavigationItem[] = [
     icon: 'settings'
   }
 ];
+
+export const distributorNavigation: NavigationItem[] = [
+  {
+    label: 'Dashboard',
+    route: '/distributor/dashboard',
+    icon: 'grid'
+  },
+  {
+    label: 'Orders',
+    route: '/distributor/orders',
+    icon: 'shopping-bag'
+  }
+];
+
+export const manufacturerWorkspace: WorkspaceConfig = {
+  name: 'Manufacturer',
+  homeRoute: '/manufacturer/dashboard',
+  searchPlaceholder: 'Universal lookup (PO, SKU, Driver)...',
+  navigation: manufacturerNavigation,
+  account: { initials: 'MV', name: 'Marcus Vance', subtitle: 'Global Operations' }
+};
+
+export const distributorWorkspace: WorkspaceConfig = {
+  name: 'Distributor',
+  homeRoute: '/distributor/dashboard',
+  searchPlaceholder: 'Search order, customer, SKU...',
+  navigation: distributorNavigation,
+  account: { initials: 'VD', name: 'Vance Distributors', subtitle: 'Enterprise Wholesaler' }
+};

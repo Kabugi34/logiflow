@@ -13,9 +13,12 @@ export class LogisticsMapComponent implements AfterViewInit, OnDestroy {
   readonly selectTrip = output<string>();
   private readonly mapElement = viewChild.required<ElementRef<HTMLDivElement>>('mapElement');
   private map?: Leaflet.Map;
+  private resizeObserver?: ResizeObserver;
 
   ngAfterViewInit(): void {
     this.map = Leaflet.map(this.mapElement().nativeElement, { zoomControl: false, scrollWheelZoom: true });
+    this.resizeObserver = new ResizeObserver(() => this.map?.invalidateSize());
+    this.resizeObserver.observe(this.mapElement().nativeElement);
     Leaflet.control.zoom({ position: 'topright' }).addTo(this.map);
     Leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
@@ -62,6 +65,7 @@ export class LogisticsMapComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.resizeObserver?.disconnect();
     this.map?.remove();
   }
 }

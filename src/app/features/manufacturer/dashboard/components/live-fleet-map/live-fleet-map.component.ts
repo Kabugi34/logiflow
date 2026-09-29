@@ -11,6 +11,7 @@ export class LiveFleetMapComponent implements AfterViewInit, OnDestroy {
   readonly drivers = input.required<DashboardDriver[]>();
   private readonly mapElement = viewChild.required<ElementRef<HTMLDivElement>>('mapElement');
   private map?: L.Map;
+  private resizeObserver?: ResizeObserver;
 
   ngAfterViewInit(): void {
     this.map = L.map(this.mapElement().nativeElement, {
@@ -18,6 +19,8 @@ export class LiveFleetMapComponent implements AfterViewInit, OnDestroy {
       scrollWheelZoom: false,
       attributionControl: true
     });
+    this.resizeObserver = new ResizeObserver(() => this.map?.invalidateSize());
+    this.resizeObserver.observe(this.mapElement().nativeElement);
     L.control.zoom({ position: 'topright' }).addTo(this.map);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
@@ -47,6 +50,7 @@ export class LiveFleetMapComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.resizeObserver?.disconnect();
     this.map?.remove();
   }
 }

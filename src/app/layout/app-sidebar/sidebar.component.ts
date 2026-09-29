@@ -1,6 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, input } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { manufacturerNavigation } from '../navigation/navigation.config';
+import { WorkspaceConfig } from '../navigation/navigation.config';
 
 @Component({
   selector: 'app-sidebar',
@@ -9,5 +9,5 @@ import { manufacturerNavigation } from '../navigation/navigation.config';
   templateUrl: './sidebar.component.html'
 })
 export class SidebarComponent {
-  protected readonly navigation = manufacturerNavigation;
+  readonly workspace = input.required<WorkspaceConfig>();
 }

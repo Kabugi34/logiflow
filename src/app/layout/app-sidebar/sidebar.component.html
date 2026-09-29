@@ -1,14 +1,14 @@
-<aside class="flex min-h-screen w-14 shrink-0 flex-col border-r border-slate-200 bg-white md:w-40">
-  <a routerLink="/manufacturer/dashboard" class="flex h-16 items-center gap-2 border-b border-slate-100 px-3 md:px-4" aria-label="LogiFlow Manufacturer home">
+<aside class="flex h-screen w-14 shrink-0 flex-col border-r border-slate-200 bg-white md:w-40">
+  <a [routerLink]="workspace().homeRoute" queryParamsHandling="preserve" class="flex h-16 shrink-0 items-center gap-2 border-b border-slate-100 px-3 md:px-4" [attr.aria-label]="'LogiFlow ' + workspace().name + ' home'">
     <span class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-blue-600 text-xs font-bold text-white">LF</span>
     <span class="hidden min-w-0 md:block">
       <span class="block text-sm font-semibold leading-4 text-slate-900">LogiFlow</span>
-      <span class="mt-0.5 block text-[9px] font-medium tracking-wide text-slate-500">MANUFACTURER</span>
+      <span class="mt-0.5 block text-[9px] font-medium uppercase tracking-wide text-slate-500">{{ workspace().name }}</span>
     </span>
   </a>
 
-  <nav aria-label="Manufacturer navigation" class="flex-1 space-y-1 px-2 py-4">
-    @for (item of navigation; track item.route) {
+  <nav [attr.aria-label]="workspace().name + ' navigation'" class="min-h-0 flex-1 space-y-1 overflow-y-auto px-2 py-4">
+    @for (item of workspace().navigation; track item.route) {
       <a
         [routerLink]="item.route"
         queryParamsHandling="preserve"
@@ -22,12 +22,12 @@
     }
   </nav>
 
-  <div class="border-t border-slate-200 p-2 md:p-3">
+  <div class="shrink-0 border-t border-slate-200 p-2 md:p-3">
     <div class="flex items-center gap-2">
-      <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-slate-200 text-[9px] font-semibold text-slate-700">MV</span>
+      <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-slate-200 text-[9px] font-semibold text-slate-700">{{ workspace().account.initials }}</span>
       <span class="hidden min-w-0 md:block">
-        <span class="block truncate text-[10px] font-semibold text-slate-800">Marcus Vance</span>
-        <span class="block truncate text-[9px] text-slate-500">Global Operations</span>
+        <span class="block truncate text-[10px] font-semibold text-slate-800">{{ workspace().account.name }}</span>
+        <span class="block truncate text-[9px] text-slate-500">{{ workspace().account.subtitle }}</span>
       </span>
     </div>
   </div>

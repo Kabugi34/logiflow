@@ -1,17 +1,17 @@
-<div class="min-h-screen bg-slate-50">
-  <div class="flex min-h-screen">
+<div class="flex h-screen overflow-hidden bg-slate-50">
 
-    <app-sidebar />
+  @if (layout.isSidebarOpen()) {
+    <app-sidebar id="app-sidebar" [workspace]="workspace" />
+  }
 
-    <div class="min-w-0 flex-1">
+  <div class="flex min-w-0 flex-1 flex-col">
 
-      <app-topbar />
+    <app-topbar [searchPlaceholder]="workspace.searchPlaceholder" />
 
-      <main class="p-3 sm:p-5 lg:p-6">
-        <router-outlet />
-      </main>
-
-    </div>
+    <main class="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6">
+      <router-outlet />
+    </main>
 
   </div>
+
 </div>
