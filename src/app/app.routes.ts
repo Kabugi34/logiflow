@@ -4,6 +4,7 @@ import { manufacturerGuard } from './core/guards/manufacturer.guard';
 import { distributorGuard } from './core/guards/distributor.guard';
 import { AppShellComponent } from './layout/app-shell/app-shell.component';
 import { distributorWorkspace, manufacturerWorkspace } from './layout/navigation/navigation.config';
+import { AUTH_ROUTES } from './features/auth/auth.routes';
 
 
 
@@ -11,7 +12,12 @@ export const routes: Routes = [
     {
     path: '',
     pathMatch: 'full',
-    redirectTo: '/manufacturer/dashboard?preview=manufacturer'
+    redirectTo: '/auth/request-access'
+  },
+
+  {
+    path: 'auth',
+    children: AUTH_ROUTES
   },
 
   {
@@ -128,6 +134,6 @@ export const routes: Routes = [
 
   {
     path: '**',
-    redirectTo: 'manufacturer/dashboard'
+    redirectTo: 'auth/request-access'
   }
 ];

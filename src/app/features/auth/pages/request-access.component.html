@@ -1,0 +1,65 @@
+<section class="mx-auto max-w-3xl py-10">
+  <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div class="border-b border-slate-200 bg-slate-50 px-6 py-5">
+      <p class="text-xs font-medium uppercase tracking-[0.18em] text-blue-600">Welcome to LogiFlow</p>
+      <h1 class="mt-2 text-2xl font-semibold text-slate-900">We simplify the flow of distribution.</h1>
+      <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">LogiFlow brings manufacturers and distributors together to make it easier to manage products, orders, inventory, and deliveries, all in one connected workspace.</p>
+      <div class="mt-5 border-t border-slate-200 pt-4">
+        <h2 class="text-base font-semibold text-slate-900">Request access</h2>
+        <p class="mt-1 text-sm text-slate-500">Tell us about your organization and we’ll help you get started.</p>
+      </div>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-5 p-6">
+      @if (errorMessage()) {
+        <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{{ errorMessage() }}</div>
+      }
+
+      @if (successMessage()) {
+        <div class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">{{ successMessage() }}</div>
+      }
+
+      <div class="grid gap-4 md:grid-cols-2">
+        <label class="block text-xs font-medium text-slate-700 md:col-span-2">
+          <span class="mb-1.5 block">I want to join as</span>
+          <select formControlName="organizationType" class="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100">
+            <option value="MANUFACTURER">Manufacturer</option>
+            <option value="DISTRIBUTOR">Distributor</option>
+          </select>
+        </label>
+
+        <label class="block text-xs font-medium text-slate-700 md:col-span-2">
+          <span class="mb-1.5 block">Organization name</span>
+          <input formControlName="organizationName" class="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="Bamburi cement" />
+        </label>
+
+        <label class="block text-xs font-medium text-slate-700">
+          <span class="mb-1.5 block">Your full name</span>
+          <input formControlName="contactName" class="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="Boogie bats" />
+        </label>
+
+        <label class="block text-xs font-medium text-slate-700">
+          <span class="mb-1.5 block">Phone number</span>
+          <input formControlName="phoneNumber" class="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="0738987234" />
+        </label>
+
+        <label class="block text-xs font-medium text-slate-700">
+          <span class="mb-1.5 block">Your email</span>
+          <input formControlName="contactEmail" type="email" class="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="boogie@company.com" />
+        </label>
+
+        <label class="block text-xs font-medium text-slate-700">
+          <span class="mb-1.5 block">Organization email</span>
+          <input formControlName="organizationEmail" type="email" class="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="ops@company.com" />
+        </label>
+      </div>
+
+      <div class="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-between">
+        <a routerLink="/auth/login" class="inline-flex items-center justify-center text-sm font-medium text-slate-600 hover:text-slate-800">Already have access? Sign in</a>
+        <button type="submit" class="inline-flex h-11 items-center justify-center rounded-md bg-blue-600 px-5 text-sm font-medium text-white hover:bg-blue-700">
+          Submit request
+        </button>
+      </div>
+    </form>
+  </div>
+</section>

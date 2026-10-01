@@ -18,5 +18,5 @@ export const manufacturerGuard: CanActivateFn = (_route, state) => {
     return true;
   }
 
-  return router.createUrlTree(['/']);
+  return router.createUrlTree(['/auth/login']);
 };

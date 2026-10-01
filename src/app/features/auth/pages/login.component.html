@@ -1,0 +1,32 @@
+<section class="mx-auto max-w-xl py-12">
+  <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div class="border-b border-slate-200 bg-slate-50 px-6 py-5">
+      <p class="text-xs font-medium uppercase tracking-[0.18em] text-blue-600">Welcome back</p>
+      <h1 class="mt-2 text-2xl font-semibold text-slate-900">Sign in to LogiFlow</h1>
+      <p class="mt-2 text-sm text-slate-500">Use the credentials created during activation for your workspace.</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-5 p-6">
+      @if (errorMessage()) {
+        <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{{ errorMessage() }}</div>
+      }
+
+      <label class="block text-xs font-medium text-slate-700">
+        <span class="mb-1.5 block">Email</span>
+        <input formControlName="email" type="email" class="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="you@company.com" />
+      </label>
+
+      <label class="block text-xs font-medium text-slate-700">
+        <span class="mb-1.5 block">Password</span>
+        <input formControlName="password" type="password" class="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="Enter your password" />
+      </label>
+
+      <div class="flex items-center justify-between gap-3 pt-2">
+        <a routerLink="/auth/request-access" class="text-sm font-medium text-blue-600 hover:text-blue-700">Request access</a>
+        <button type="submit" class="inline-flex h-11 items-center justify-center rounded-md bg-blue-600 px-5 text-sm font-medium text-white hover:bg-blue-700">
+          Sign in
+        </button>
+      </div>
+    </form>
+  </div>
+</section>
