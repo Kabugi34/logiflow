@@ -108,6 +108,12 @@ export const routes: Routes = [
             .then(m => m.DASHBOARD_ROUTES)
       },
       {
+        path: 'catalog',
+        loadChildren: () =>
+          import('./features/distributor/catalog/catalog.routes')
+            .then(m => m.CATALOG_ROUTES)
+      },
+      {
         path: 'orders',
         loadChildren: () =>
           import('./features/distributor/orders/orders.routes')

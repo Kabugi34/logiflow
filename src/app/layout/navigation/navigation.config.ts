@@ -101,6 +101,11 @@ export const distributorNavigation: NavigationItem[] = [
     icon: 'grid'
   },
   {
+    label: 'Catalog',
+    route: '/distributor/catalog',
+    icon: 'package'
+  },
+  {
     label: 'Orders',
     route: '/distributor/orders',
     icon: 'shopping-bag'
