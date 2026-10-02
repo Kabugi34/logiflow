@@ -1,52 +1,54 @@
-import { Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
+import { ManufacturerFleetService } from '../fleet/fleet.service';
 import { ManufacturerShipment, ShipmentStatus } from './shipment.models';
 
-const chicagoToDallas = [
-  { latitude: 41.8781, longitude: -87.6298, label: 'Chicago, IL' },
-  { latitude: 39.0997, longitude: -94.5786, label: 'Kansas City, MO' },
-  { latitude: 35.4676, longitude: -97.5164, label: 'Oklahoma City, OK' },
-  { latitude: 32.7767, longitude: -96.797, label: 'Dallas, TX' }
+const nairobiToMombasa = [
+  { latitude: -1.2864, longitude: 36.8172, label: 'Nairobi, Kenya' },
+  { latitude: -0.7172, longitude: 36.4310, label: 'Naivasha, Kenya' },
+  { latitude: -3.3960, longitude: 38.5560, label: 'Voi, Kenya' },
+  { latitude: -4.0435, longitude: 39.6682, label: 'Mombasa, Kenya' }
 ];
 
 const initialShipments: ManufacturerShipment[] = [
   {
-    id: 'SHP-094', poReference: 'PO-2026-981', destination: 'Dallas Depot #4', freightDetails: 'Hydraulic Motors', quantity: 140, unit: 'Pcs', status: 'IN_TRANSIT', tripId: 'TRP-8012', assignedDriver: 'Alex Mercer', vehicle: 'Kenworth T680 (Plate: 409-TDX)', carrier: 'LogiCore', origin: 'Chicago Manufacturing Hub', destinationFacility: 'Dallas Distribution Center', route: chicagoToDallas,
+    id: 'SHP-094', poReference: 'PO-2026-981', destination: 'Mombasa Depot #4', freightDetails: 'Hydraulic Motors', quantity: 140, unit: 'Pcs', status: 'IN_TRANSIT', tripId: 'TRP-8012', assignedDriver: 'Daniel Kamau', vehicle: 'Isuzu FVR (Plate: KDA 123A)', carrier: 'LogiFlow Kenya', origin: 'Nairobi Manufacturing Hub', destinationFacility: 'Mombasa Distribution Centre', route: nairobiToMombasa,
     timeline: [
-      { title: 'Checked in Chicago Yard #4', detail: 'Jan 28, 09:30 AM', state: 'COMPLETE' },
+      { title: 'Checked in Nairobi Yard #4', detail: 'Jan 28, 09:30 AM', state: 'COMPLETE' },
       { title: 'Cargo Secured & Dispatched', detail: 'Jan 28, 10:00 AM', state: 'COMPLETE' },
-      { title: 'In-Transit (I-55 Southbound)', detail: 'Current Location: Springfield Hub', state: 'CURRENT' }
+      { title: 'In transit on A109', detail: 'Current location: Voi checkpoint', state: 'CURRENT' }
     ]
   },
   {
-    id: 'SHP-092', poReference: 'PO-2026-982', destination: 'Chicago Gate #4', freightDetails: 'Gear Assemblies', quantity: 80, unit: 'Pcs', status: 'DELIVERED', tripId: 'TRP-8010', assignedDriver: 'David Jenkins', vehicle: 'Peterbilt 579 (Plate: 812-OKL)', carrier: 'LogiCore', origin: 'Houston Terminal C-4', destinationFacility: 'Chicago Distribution Gate #4', route: [
-      { latitude: 29.7604, longitude: -95.3698, label: 'Houston, TX' },
-      { latitude: 35.4676, longitude: -97.5164, label: 'Oklahoma City, OK' },
-      { latitude: 41.8781, longitude: -87.6298, label: 'Chicago, IL' }
+    id: 'SHP-092', poReference: 'PO-2026-982', destination: 'Nairobi Gate #4', freightDetails: 'Gear Assemblies', quantity: 80, unit: 'Pcs', status: 'DELIVERED', tripId: 'TRP-8010', assignedDriver: 'Peter Otieno', vehicle: 'Hino 500 (Plate: KDC 789C)', carrier: 'LogiFlow Kenya', origin: 'Mombasa Terminal C-4', destinationFacility: 'Nairobi Distribution Gate #4', route: [
+      { latitude: -4.0435, longitude: 39.6682, label: 'Mombasa, Kenya' },
+      { latitude: -3.3960, longitude: 38.5560, label: 'Voi, Kenya' },
+      { latitude: -1.2864, longitude: 36.8172, label: 'Nairobi, Kenya' }
     ],
-    timeline: [{ title: 'Departed Houston Terminal', detail: 'Jan 27, 08:10 AM', state: 'COMPLETE' }, { title: 'Arrived at Chicago Gate #4', detail: 'Jan 28, 12:42 PM', state: 'COMPLETE' }, { title: 'Delivery Confirmed', detail: 'Jan 28, 01:05 PM', state: 'CURRENT' }]
+    timeline: [{ title: 'Departed Mombasa Terminal', detail: 'Jan 27, 08:10 AM', state: 'COMPLETE' }, { title: 'Arrived at Nairobi Gate #4', detail: 'Jan 28, 12:42 PM', state: 'COMPLETE' }, { title: 'Delivery Confirmed', detail: 'Jan 28, 01:05 PM', state: 'CURRENT' }]
   },
   {
-    id: 'SHP-093', poReference: 'PO-2026-983', destination: 'Seattle Harbor Depot', freightDetails: 'Volt-Regulators', quantity: 300, unit: 'Pcs', status: 'BORDER_HOLD', tripId: 'TRP-8015', assignedDriver: 'Sarah Connor', vehicle: 'Freightliner Cascadia (Plate: 556-WQE)', carrier: 'LogiCore', origin: 'Chicago Manufacturing Hub', destinationFacility: 'Seattle Harbor Depot', route: [
-      { latitude: 41.8781, longitude: -87.6298, label: 'Chicago, IL' },
-      { latitude: 44.9778, longitude: -93.265, label: 'Minneapolis, MN' },
-      { latitude: 47.6062, longitude: -122.3321, label: 'Seattle, WA' }
+    id: 'SHP-093', poReference: 'PO-2026-983', destination: 'Kisumu Inland Depot', freightDetails: 'Volt-Regulators', quantity: 300, unit: 'Pcs', status: 'BORDER_HOLD', tripId: 'TRP-8015', assignedDriver: 'Faith Njeri', vehicle: 'Mitsubishi Fuso (Plate: KDB 456B)', carrier: 'LogiFlow Kenya', origin: 'Nairobi Manufacturing Hub', destinationFacility: 'Kisumu Distribution Depot', route: [
+      { latitude: -1.2864, longitude: 36.8172, label: 'Nairobi, Kenya' },
+      { latitude: -0.3031, longitude: 36.0800, label: 'Nakuru, Kenya' },
+      { latitude: -0.0917, longitude: 34.7680, label: 'Kisumu, Kenya' }
     ],
-    timeline: [{ title: 'Dispatched from Chicago', detail: 'Jan 27, 06:20 AM', state: 'COMPLETE' }, { title: 'Documentation Review', detail: 'Jan 28, 11:14 AM', state: 'CURRENT' }]
+    timeline: [{ title: 'Dispatched from Nairobi', detail: 'Jan 27, 06:20 AM', state: 'COMPLETE' }, { title: 'County weighbridge review', detail: 'Jan 28, 11:14 AM', state: 'CURRENT' }]
   },
   {
-    id: 'SHP-044', poReference: 'PO-2026-984', destination: 'Houston Terminal B', freightDetails: 'Micro Valves', quantity: 1200, unit: 'Pcs', status: 'IN_TRANSIT', tripId: 'TRP-8016', assignedDriver: 'John Doe', vehicle: 'Volvo VNL (Plate: 733-KLP)', carrier: 'LogiCore', origin: 'Seattle Cargo Center', destinationFacility: 'Houston Terminal B', route: [
-      { latitude: 47.6062, longitude: -122.3321, label: 'Seattle, WA' },
-      { latitude: 39.0997, longitude: -94.5786, label: 'Kansas City, MO' },
-      { latitude: 29.7604, longitude: -95.3698, label: 'Houston, TX' }
+    id: 'SHP-044', poReference: 'PO-2026-984', destination: 'Eldoret Terminal B', freightDetails: 'Micro Valves', quantity: 1200, unit: 'Pcs', status: 'IN_TRANSIT', tripId: 'TRP-8016', assignedDriver: 'Kevin Kiptoo', vehicle: 'Isuzu Giga (Plate: KDD 234D)', carrier: 'LogiFlow Kenya', origin: 'Nairobi Cargo Centre', destinationFacility: 'Eldoret Terminal B', route: [
+      { latitude: -1.2864, longitude: 36.8172, label: 'Nairobi, Kenya' },
+      { latitude: -0.3031, longitude: 36.0800, label: 'Nakuru, Kenya' },
+      { latitude: 0.5143, longitude: 35.2698, label: 'Eldoret, Kenya' }
     ],
-    timeline: [{ title: 'Manifest Synced', detail: 'Jan 28, 07:15 AM', state: 'COMPLETE' }, { title: 'In-Transit', detail: 'En route to Houston Terminal B', state: 'CURRENT' }]
+    timeline: [{ title: 'Manifest Synced', detail: 'Jan 28, 07:15 AM', state: 'COMPLETE' }, { title: 'In transit', detail: 'En route to Eldoret Terminal B', state: 'CURRENT' }]
   }
 ];
 
-export type NewShipment = Pick<ManufacturerShipment, 'poReference' | 'destination' | 'freightDetails' | 'quantity' | 'assignedDriver' | 'tripId'>;
+export type NewShipment = Pick<ManufacturerShipment, 'poReference' | 'destination' | 'freightDetails' | 'quantity' | 'assignedDriver' | 'vehicle' | 'tripId'>;
 
 @Injectable({ providedIn: 'root' })
 export class ManufacturerShipmentService {
+  private readonly fleetService = inject(ManufacturerFleetService);
   private readonly shipmentRecords = signal(initialShipments);
   readonly shipments = this.shipmentRecords.asReadonly();
 
@@ -62,11 +64,11 @@ export class ManufacturerShipmentService {
       id,
       unit: 'Pcs',
       status: 'IN_TRANSIT',
-      vehicle: 'Unassigned',
+      vehicle: shipment.vehicle,
       carrier: 'LogiCore',
-      origin: 'Chicago Manufacturing Hub',
+      origin: 'Nairobi Manufacturing Hub',
       destinationFacility: shipment.destination,
-      route: chicagoToDallas,
+      route: nairobiToMombasa,
       timeline: [{ title: 'Shipment Allocated', detail: 'Manifest created just now', state: 'CURRENT' }]
     };
     this.shipmentRecords.update(records => [createdShipment, ...records]);
@@ -74,6 +76,11 @@ export class ManufacturerShipmentService {
   }
 
   updateStatus(id: string, status: ShipmentStatus): void {
+    const shipment = this.findById(id);
+    if (status === 'DELIVERED' && shipment) {
+      this.fleetService.completeTrip(shipment.tripId);
+    }
+
     this.shipmentRecords.update(records => records.map(shipment => {
       if (shipment.id !== id) return shipment;
       const title = status === 'DELIVERED' ? 'Delivery Confirmed' : status === 'IN_TRANSIT' ? 'Released from Hold' : 'Border Hold';

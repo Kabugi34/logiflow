@@ -1,5 +1,6 @@
 import { AfterViewInit, Component, ElementRef, OnDestroy, input, viewChild } from '@angular/core';
 import * as Leaflet from 'leaflet';
+import { addCurrentLocationControl, addMapBaseLayer, KENYA_MAP_CENTER } from '../../../../../core/maps/map.utils';
 import { ManufacturerShipment } from '../../shipment.models';
 
 @Component({
@@ -19,10 +20,8 @@ export class ShipmentRouteMapComponent implements AfterViewInit, OnDestroy {
     this.resizeObserver = new ResizeObserver(() => this.map?.invalidateSize());
     this.resizeObserver.observe(this.mapElement().nativeElement);
     Leaflet.control.zoom({ position: 'topright' }).addTo(this.map);
-    Leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(this.map);
+    addMapBaseLayer(this.map);
+    addCurrentLocationControl(this.map);
 
     if (route.length > 1) {
       Leaflet.polyline(route, { color: '#2563eb', weight: 4, opacity: 0.9 }).addTo(this.map);
@@ -32,7 +31,7 @@ export class ShipmentRouteMapComponent implements AfterViewInit, OnDestroy {
       Leaflet.circleMarker(route[route.length - 1], { radius: 6, color: '#ffffff', weight: 2, fillColor: '#f97316', fillOpacity: 1 }).bindPopup(end.label).addTo(this.map);
       this.map.fitBounds(Leaflet.latLngBounds(route), { padding: [24, 24] });
     } else {
-      this.map.setView([39.5, -98.35], 4);
+      this.map.setView(KENYA_MAP_CENTER, 8);
     }
   }
 

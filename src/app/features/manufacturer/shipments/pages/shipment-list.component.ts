@@ -3,6 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ManufacturerPurchaseOrderService } from '../../purchase-orders/purchase-order.service';
+import { ManufacturerFleetService } from '../../fleet/fleet.service';
 import { ManufacturerShipmentService, NewShipment } from '../shipment.service';
 import { ShipmentStatus } from '../shipment.models';
 
@@ -15,12 +16,18 @@ import { ShipmentStatus } from '../shipment.models';
 export class ShipmentListComponent {
   private readonly shipmentService = inject(ManufacturerShipmentService);
   private readonly purchaseOrderService = inject(ManufacturerPurchaseOrderService);
+  private readonly fleetService = inject(ManufacturerFleetService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly router = inject(Router);
   protected readonly selectedStatus = signal('ACTIVE');
   protected readonly isAllocationOpen = signal(false);
   protected readonly allocationError = signal('');
   protected readonly orders = this.purchaseOrderService.orders;
+  protected readonly availableDrivers = computed(() => this.fleetService.drivers().filter(driver => {
+    const vehicle = driver.vehicleId ? this.fleetService.findVehicle(driver.vehicleId) : undefined;
+    return driver.status === 'STANDBY' && driver.currentTripId === null &&
+      vehicle?.assignedDriverId === driver.id && this.fleetService.vehicleStatus(vehicle) === 'STANDBY' && vehicle.currentTripId === null;
+  }));
   protected readonly shipments = computed(() => this.shipmentService.shipments().filter(shipment => {
     const status = this.selectedStatus();
     return status === 'ALL' || (status === 'ACTIVE' ? shipment.status !== 'DELIVERED' : shipment.status === status);
@@ -30,7 +37,7 @@ export class ShipmentListComponent {
     destination: ['', [Validators.required, Validators.maxLength(100)]],
     freightDetails: ['', [Validators.required, Validators.maxLength(100)]],
     quantity: [1, [Validators.required, Validators.min(1)]],
-    assignedDriver: ['', [Validators.required, Validators.maxLength(80)]],
+    driverId: ['', Validators.required],
     tripId: ['TRP-8017', [Validators.required, Validators.maxLength(24)]]
   });
 
@@ -40,7 +47,7 @@ export class ShipmentListComponent {
 
   protected openAllocation(): void {
     this.allocationError.set('');
-    this.form.reset({ poReference: 'PO-2026-981', destination: '', freightDetails: '', quantity: 1, assignedDriver: '', tripId: 'TRP-8017' });
+    this.form.reset({ poReference: 'PO-2026-981', destination: '', freightDetails: '', quantity: 1, driverId: '', tripId: 'TRP-8017' });
     this.updateOrderDefaults();
     this.isAllocationOpen.set(true);
   }
@@ -69,17 +76,41 @@ export class ShipmentListComponent {
       this.allocationError.set('Select a valid purchase order.');
       return;
     }
-    const newShipment: NewShipment = {
-      ...this.form.getRawValue(),
-      freightDetails: this.form.controls.freightDetails.value
-    };
+    const driver = this.fleetService.findDriver(this.form.controls.driverId.value);
+    const vehicle = driver?.vehicleId ? this.fleetService.findVehicle(driver.vehicleId) : undefined;
+    if (!driver || !vehicle) {
+      this.allocationError.set('Choose a standby driver with an assigned vehicle.');
+      return;
+    }
+
+    const tripId = this.form.controls.tripId.value;
     try {
-      const shipmentId = this.shipmentService.create(newShipment);
+      if (!this.fleetService.dispatchDriver(driver.id, tripId)) {
+        this.allocationError.set('That driver or vehicle is no longer available for dispatch.');
+        return;
+      }
+
+      const shipmentId = this.shipmentService.create({
+        poReference: this.form.controls.poReference.value,
+        destination: this.form.controls.destination.value,
+        freightDetails: this.form.controls.freightDetails.value,
+        quantity: this.form.controls.quantity.value,
+        assignedDriver: driver.name,
+        vehicle: `${vehicle.type} (Plate: ${vehicle.plate})`,
+        tripId
+      });
       this.isAllocationOpen.set(false);
       void this.router.navigate(['/manufacturer/shipments', shipmentId], { queryParamsHandling: 'preserve' });
     } catch {
+      this.fleetService.completeTrip(tripId);
       this.allocationError.set('Shipment could not be allocated. Please try again.');
     }
+  }
+
+  protected driverVehicleLabel(driverId: string): string {
+    const driver = this.fleetService.findDriver(driverId);
+    const vehicle = driver?.vehicleId ? this.fleetService.findVehicle(driver.vehicleId) : undefined;
+    return vehicle ? `${vehicle.plate} · ${vehicle.type}` : 'No assigned vehicle';
   }
 
   protected statusLabel(status: ShipmentStatus): string {

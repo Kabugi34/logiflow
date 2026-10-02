@@ -14,7 +14,7 @@
           <td class="whitespace-nowrap px-4 py-3 font-semibold text-slate-900"><a [routerLink]="['/distributor/orders', order.id]" queryParamsHandling="preserve" class="hover:text-blue-600">{{ order.id }}</a></td>
           <td class="whitespace-nowrap px-3 py-3 text-slate-600">{{ order.customerName }}</td>
           <td class="max-w-44 truncate px-3 py-3 text-slate-600" [title]="order.itemSummary">{{ order.itemSummary }}</td>
-          <td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-900">{{ order.total | currency:'USD':'symbol':'1.0-0' }}</td>
+          <td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-900">{{ order.total | currency:'KES':'symbol':'1.0-0' }}</td>
           <td class="px-3 py-3"><app-order-badge [value]="order.status" /></td>
         </tr>
       } @empty {

@@ -30,9 +30,7 @@ export class SettingsCenterComponent {
     defaultWarehouseId: [this.profile().defaultWarehouseId, Validators.required]
   });
   protected readonly timezones = [
-    { value: 'America/Chicago', label: 'Central Time (Chicago)' },
-    { value: 'America/Los_Angeles', label: 'Pacific Time (Los Angeles)' },
-    { value: 'America/New_York', label: 'Eastern Time (New York)' },
+    { value: 'Africa/Nairobi', label: 'East Africa Time (Nairobi)' },
     { value: 'UTC', label: 'Coordinated Universal Time (UTC)' }
   ];
 

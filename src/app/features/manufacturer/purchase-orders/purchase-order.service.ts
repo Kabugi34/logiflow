@@ -3,10 +3,10 @@ import { ManufacturerPurchaseOrder, PurchaseOrderStatus } from './purchase-order
 
 const initialOrders: ManufacturerPurchaseOrder[] = [
   {
-    id: 'PO-2026-981', distributorName: 'Apex Distributor Corp', destinationHub: 'Dallas Logistics Depot #4', issueDate: 'Jan 28, 2026', status: 'PENDING',
+    id: 'PO-2026-981', distributorName: 'Apex Distribution Kenya Ltd', destinationHub: 'Mombasa Freight Depot #4', issueDate: 'Jan 28, 2026', status: 'PENDING',
     lines: [
-      { productName: 'Heavy Duty Hydraulic Motor', sku: 'HDM-092-X', requestedQuantity: 140, availableStock: 450, unitPrice: 250, unit: 'Pcs' },
-      { productName: 'High-Precision Gear Box', sku: 'HPG-881-A', requestedQuantity: 30, availableStock: 120, unitPrice: 250, unit: 'Pcs' }
+      { productName: 'Heavy Duty Hydraulic Motor', sku: 'HDM-092-X', requestedQuantity: 140, availableStock: 450, unitPrice: 75000, unit: 'Pcs' },
+      { productName: 'High-Precision Gear Box', sku: 'HPG-881-A', requestedQuantity: 30, availableStock: 120, unitPrice: 65000, unit: 'Pcs' }
     ],
     timeline: [
       { title: 'Order Received', detail: 'Jan 28, 2:15 PM', occurredAt: 'Jan 28, 2026', state: 'COMPLETE' },
@@ -15,23 +15,23 @@ const initialOrders: ManufacturerPurchaseOrder[] = [
     ]
   },
   {
-    id: 'PO-2026-982', distributorName: 'InterState Supply Ltd', destinationHub: 'Phoenix Distribution Hub', issueDate: 'Jan 28, 2026', status: 'ACCEPTED',
-    lines: [{ productName: 'High-Precision Gear Box', sku: 'HPG-881-A', requestedQuantity: 80, availableStock: 120, unitPrice: 227.5, unit: 'Pcs' }],
+    id: 'PO-2026-982', distributorName: 'Lake Region Supply Ltd', destinationHub: 'Kisumu Distribution Hub', issueDate: 'Jan 28, 2026', status: 'ACCEPTED',
+    lines: [{ productName: 'High-Precision Gear Box', sku: 'HPG-881-A', requestedQuantity: 80, availableStock: 120, unitPrice: 65000, unit: 'Pcs' }],
     timeline: [{ title: 'Order Received', detail: 'Jan 28, 10:30 AM', occurredAt: 'Jan 28, 2026', state: 'COMPLETE' }, { title: 'Accepted', detail: 'Awaiting fulfillment', occurredAt: 'Jan 28, 2026', state: 'CURRENT' }]
   },
   {
-    id: 'PO-2026-983', distributorName: 'VoltLine Grid Solutions', destinationHub: 'Denver Industrial Terminal', issueDate: 'Jan 27, 2026', status: 'ACCEPTED',
-    lines: [{ productName: 'Voltage Regulator Block', sku: 'VRB-332-Y', requestedQuantity: 300, availableStock: 1240, unitPrice: 37.34, unit: 'Pcs' }],
+    id: 'PO-2026-983', distributorName: 'VoltLine Grid Solutions Kenya', destinationHub: 'Nakuru Industrial Terminal', issueDate: 'Jan 27, 2026', status: 'ACCEPTED',
+    lines: [{ productName: 'Voltage Regulator Block', sku: 'VRB-332-Y', requestedQuantity: 300, availableStock: 1240, unitPrice: 55000, unit: 'Pcs' }],
     timeline: [{ title: 'Order Received', detail: 'Jan 27, 11:10 AM', occurredAt: 'Jan 27, 2026', state: 'COMPLETE' }, { title: 'Accepted', detail: 'Stock reserved', occurredAt: 'Jan 27, 2026', state: 'CURRENT' }]
   },
   {
-    id: 'PO-2026-984', distributorName: 'Global Freight Traders', destinationHub: 'Seattle Cargo Center', issueDate: 'Jan 25, 2026', status: 'FULFILLED',
-    lines: [{ productName: 'Micro Valves', sku: 'MV-221-K', requestedQuantity: 1200, availableStock: 2400, unitPrice: 258.33, unit: 'Pcs' }],
+    id: 'PO-2026-984', distributorName: 'Coastline Freight Traders', destinationHub: 'Mombasa Cargo Centre', issueDate: 'Jan 25, 2026', status: 'FULFILLED',
+    lines: [{ productName: 'Micro Valves', sku: 'MV-221-K', requestedQuantity: 1200, availableStock: 2400, unitPrice: 35000, unit: 'Pcs' }],
     timeline: [{ title: 'Order Received', detail: 'Jan 25, 9:00 AM', occurredAt: 'Jan 25, 2026', state: 'COMPLETE' }, { title: 'Manifest Generated', detail: 'Dispatch scheduled', occurredAt: 'Jan 25, 2026', state: 'COMPLETE' }]
   },
   {
-    id: 'PO-2026-985', distributorName: 'Acme Industrial S.A.', destinationHub: 'Monterrey Supply Depot', issueDate: 'Jan 24, 2026', status: 'REJECTED',
-    lines: [{ productName: 'Control Boards', sku: 'CB-100-Q', requestedQuantity: 45, availableStock: 300, unitPrice: 217.78, unit: 'Pcs' }],
+    id: 'PO-2026-985', distributorName: 'Rift Valley Industrial Supplies', destinationHub: 'Eldoret Supply Depot', issueDate: 'Jan 24, 2026', status: 'REJECTED',
+    lines: [{ productName: 'Control Boards', sku: 'CB-100-Q', requestedQuantity: 45, availableStock: 300, unitPrice: 28000, unit: 'Pcs' }],
     timeline: [{ title: 'Order Received', detail: 'Jan 24, 8:00 AM', occurredAt: 'Jan 24, 2026', state: 'COMPLETE' }, { title: 'Rejected', detail: 'Insufficient inventory', occurredAt: 'Jan 24, 2026', state: 'CURRENT' }]
   }
 ];

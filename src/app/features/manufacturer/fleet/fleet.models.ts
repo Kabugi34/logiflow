@@ -1,5 +1,6 @@
-export type DriverStatus = 'ACTIVE' | 'STANDBY' | 'DELAYED' | 'OFF_DUTY' | 'INVITED';
-export type VehicleStatus = 'ACTIVE' | 'MAINTENANCE' | 'IDLE' | 'OUT_OF_SERVICE';
+export type DriverStatus = 'ACTIVE' | 'STANDBY' | 'DELAYED' | 'OFF_DUTY' | 'INVITED' | 'SUSPENDED';
+export type VehicleStatus = 'ACTIVE' | 'STANDBY' | 'MAINTENANCE' | 'IDLE' | 'OUT_OF_SERVICE';
+export type VehicleCondition = 'READY' | 'MAINTENANCE' | 'OUT_OF_SERVICE';
 
 export interface DriverActivity {
   tripId: string;
@@ -31,7 +32,7 @@ export interface FleetVehicle {
   plate: string;
   type: string;
   maxWeightCapacity: number;
-  serviceStatus: VehicleStatus;
+  condition: VehicleCondition;
   assignedDriverId: string | null;
   currentTripId: string | null;
 }
@@ -40,6 +41,7 @@ export interface NewFleetDriver {
   name: string;
   phone: string;
   license: string;
+  vehicleId?: string;
 }
 
 export interface NewFleetVehicle {

@@ -1,5 +1,6 @@
 import { AfterViewInit, Component, ElementRef, OnDestroy, input, viewChild } from '@angular/core';
 import * as L from 'leaflet';
+import { addCurrentLocationControl, addMapBaseLayer, KENYA_MAP_CENTER } from '../../../../../core/maps/map.utils';
 import { DashboardDriver } from '../../dashboard.models';
 
 @Component({
@@ -22,10 +23,8 @@ export class LiveFleetMapComponent implements AfterViewInit, OnDestroy {
     this.resizeObserver = new ResizeObserver(() => this.map?.invalidateSize());
     this.resizeObserver.observe(this.mapElement().nativeElement);
     L.control.zoom({ position: 'topright' }).addTo(this.map);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(this.map);
+    addMapBaseLayer(this.map);
+    addCurrentLocationControl(this.map);
 
     const markers = this.drivers().map(driver => {
       const color = driver.status === 'ACTIVE' ? '#2563eb' : '#10b981';
@@ -45,7 +44,7 @@ export class LiveFleetMapComponent implements AfterViewInit, OnDestroy {
     } else if (markers.length > 1) {
       this.map.fitBounds(L.featureGroup(markers).getBounds(), { padding: [32, 32], maxZoom: 6 });
     } else {
-      this.map.setView([39.5, -98.35], 4);
+      this.map.setView(KENYA_MAP_CENTER, 8);
     }
   }
 

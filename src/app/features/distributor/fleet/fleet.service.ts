@@ -1,21 +1,21 @@
 import { computed, Injectable, signal } from '@angular/core';
 import { DistributorDriver, DistributorVehicle } from './fleet.models';
 
-const HOME_WAREHOUSE = 'Chicago Warehouse';
+const HOME_WAREHOUSE = 'Nairobi Distribution Centre';
 
 const initialVehicles: DistributorVehicle[] = [
-  { id: 'TRK-40912', model: 'Peterbilt 579', plate: '409-TXD', status: 'AVAILABLE', locationLabel: HOME_WAREHOUSE, latitude: 41.8527, longitude: -87.6512 },
-  { id: 'TRK-09214', model: 'Freightliner Cascadia', plate: '812-OKL', status: 'ON_TRIP', locationLabel: 'Interstate 90 Eastbound', latitude: 41.7508, longitude: -87.5652, currentOrderId: 'ORD-88104' },
-  { id: 'TRK-33190', model: 'Kenworth T680', plate: '556-WQE', status: 'ON_TRIP', locationLabel: 'I-294 detour near O’Hare', latitude: 41.9786, longitude: -87.9048, currentOrderId: 'ORD-33291' },
-  { id: 'TRK-51420', model: 'Volvo VNL 760', plate: '220-BXR', status: 'AVAILABLE', locationLabel: HOME_WAREHOUSE, latitude: 41.8541, longitude: -87.6489 },
-  { id: 'TRK-61033', model: 'International LT', plate: '731-PQA', status: 'MAINTENANCE', locationLabel: 'Service bay 2', latitude: 41.8512, longitude: -87.6530 }
+  { id: 'TRK-40912', model: 'Isuzu FVR', plate: 'KDA 123A', status: 'AVAILABLE', locationLabel: HOME_WAREHOUSE, latitude: -1.2864, longitude: 36.8172 },
+  { id: 'TRK-09214', model: 'Mitsubishi Fuso Fighter', plate: 'KDB 456B', status: 'ON_TRIP', locationLabel: 'Mombasa Road outbound', latitude: -1.3451, longitude: 36.8502, currentOrderId: 'ORD-88104' },
+  { id: 'TRK-33190', model: 'Hino 500 Series', plate: 'KDC 789C', status: 'ON_TRIP', locationLabel: 'Athi River logistics corridor', latitude: -1.4563, longitude: 36.9783, currentOrderId: 'ORD-33291' },
+  { id: 'TRK-51420', model: 'Isuzu Giga', plate: 'KDD 234D', status: 'AVAILABLE', locationLabel: HOME_WAREHOUSE, latitude: -1.2921, longitude: 36.8219 },
+  { id: 'TRK-61033', model: 'Toyota Dyna', plate: 'KDE 567E', status: 'MAINTENANCE', locationLabel: 'Service bay 2 · Industrial Area, Nairobi', latitude: -1.3167, longitude: 36.8500 }
 ];
 
 const initialDrivers: DistributorDriver[] = [
-  { id: 'DRV-101', name: 'Alex Mercer', status: 'STANDBY', locationLabel: 'Mobile standby' },
-  { id: 'DRV-102', name: 'Sarah Connor', status: 'ON_TRIP', locationLabel: 'Interstate 90 Eastbound', vehicleId: 'TRK-09214', currentOrderId: 'ORD-88104' },
-  { id: 'DRV-103', name: 'David Jenkins', status: 'ON_TRIP', locationLabel: 'I-294 detour near O’Hare', vehicleId: 'TRK-33190', currentOrderId: 'ORD-33291' },
-  { id: 'DRV-104', name: 'Maria Lopez', status: 'STANDBY', locationLabel: HOME_WAREHOUSE }
+  { id: 'DRV-101', name: 'Daniel Kamau', status: 'STANDBY', locationLabel: 'Mobile standby · Nairobi' },
+  { id: 'DRV-102', name: 'Faith Njeri', status: 'ON_TRIP', locationLabel: 'Mombasa Road outbound', vehicleId: 'TRK-09214', currentOrderId: 'ORD-88104' },
+  { id: 'DRV-103', name: 'Peter Otieno', status: 'ON_TRIP', locationLabel: 'Athi River logistics corridor', vehicleId: 'TRK-33190', currentOrderId: 'ORD-33291' },
+  { id: 'DRV-104', name: 'Mary Wanjiku', status: 'STANDBY', locationLabel: HOME_WAREHOUSE }
 ];
 
 @Injectable({ providedIn: 'root' })

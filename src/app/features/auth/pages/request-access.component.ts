@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { OrganizationType } from '../../../core/models/organization.model';
 
@@ -12,11 +12,11 @@ import { OrganizationType } from '../../../core/models/organization.model';
 })
 export class RequestAccessComponent {
   private readonly formBuilder = inject(FormBuilder);
-  private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
 
   protected readonly errorMessage = signal('');
   protected readonly successMessage = signal('');
+  protected readonly submitted = signal(false);
 
   protected readonly form = this.formBuilder.nonNullable.group({
     organizationType: ['MANUFACTURER' as OrganizationType, Validators.required],
@@ -30,6 +30,7 @@ export class RequestAccessComponent {
   protected submit(): void {
     this.errorMessage.set('');
     this.successMessage.set('');
+    this.submitted.set(false);
 
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -38,17 +39,9 @@ export class RequestAccessComponent {
     }
 
     try {
-      const request = this.authService.requestAccess(this.form.getRawValue());
-      this.successMessage.set(`Your access request was submitted. Use the OTP ${request.invitationOtp} to activate your account.`);
-
-      void this.router.navigate(['/auth/activate'], {
-        queryParams: {
-          email: request.contactEmail,
-          organizationEmail: request.organizationEmail,
-          organizationType: request.organizationType,
-          otp: request.invitationOtp
-        }
-      });
+      this.authService.requestAccess(this.form.getRawValue());
+      this.successMessage.set('Your request has been sent to the LogiFlow team. If approved, the super admin will email you a secure activation link.');
+      this.submitted.set(true);
     } catch (error) {
       this.errorMessage.set(error instanceof Error ? error.message : 'Unable to submit your request right now.');
     }

@@ -16,29 +16,21 @@ export class ActivateAccountComponent {
   private readonly authService = inject(AuthService);
 
   protected readonly errorMessage = signal('');
+  protected readonly email = this.route.snapshot.queryParamMap.get('email') ?? '';
+  protected readonly activationToken = this.route.snapshot.queryParamMap.get('token') ?? '';
 
   protected readonly form = this.formBuilder.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
-    organizationEmail: ['', [Validators.required, Validators.email]],
-    invitationOtp: ['', [Validators.required, Validators.minLength(4)]],
     password: ['', [Validators.required, Validators.minLength(8)]],
     confirmPassword: ['', [Validators.required, Validators.minLength(8)]]
   });
 
-  constructor() {
-    const email = this.route.snapshot.queryParamMap.get('email') ?? '';
-    const organizationEmail = this.route.snapshot.queryParamMap.get('organizationEmail') ?? '';
-    const otp = this.route.snapshot.queryParamMap.get('otp') ?? '';
-
-    this.form.patchValue({
-      email,
-      organizationEmail,
-      invitationOtp: otp
-    });
-  }
-
   protected submit(): void {
     this.errorMessage.set('');
+
+    if (!this.email || !this.activationToken) {
+      this.errorMessage.set('This activation link is incomplete. Please use the link from your LogiFlow invitation email.');
+      return;
+    }
 
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -53,9 +45,13 @@ export class ActivateAccountComponent {
     }
 
     try {
-      const invite = this.authService.activateAccount(this.form.getRawValue());
-      this.authService.setUser(invite.user);
-      void this.router.navigate([invite.user.roles.includes('MANUFACTURER_ADMIN') ? '/manufacturer/dashboard' : '/distributor/dashboard']);
+      this.authService.activateAccount({
+        email: this.email,
+        activationToken: this.activationToken,
+        password,
+        confirmPassword
+      });
+      void this.router.navigate(['/auth/login'], { queryParams: { email: this.email } });
     } catch (error) {
       this.errorMessage.set(error instanceof Error ? error.message : 'Unable to activate your account.');
     }

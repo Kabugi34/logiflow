@@ -1,61 +1,39 @@
 <section class="mx-auto max-w-2xl py-10">
   <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
     <div class="border-b border-slate-200 bg-slate-50 px-6 py-5">
-      <p class="text-xs font-medium uppercase tracking-[0.18em] text-blue-600">Activate account</p>
-      <h1 class="mt-2 text-2xl font-semibold text-slate-900">Complete your onboarding</h1>
-      <p class="mt-2 text-sm text-slate-500">Use your invitation OTP and create your password to finish activation.</p>
+      <p class="text-xs font-medium uppercase tracking-[0.18em] text-blue-600">LogiFlow invitation</p>
+      <h1 class="mt-2 text-2xl font-semibold text-slate-900">Create your password</h1>
+      @if (email) {
+        <p class="mt-2 text-sm text-slate-500">Set a password for <span class="font-medium text-slate-700">{{ email }}</span> to activate your account.</p>
+      } @else {
+        <p class="mt-2 text-sm text-slate-500">This invitation link is incomplete. Open the activation link from your email.</p>
+      }
     </div>
 
     <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-5 p-6">
       @if (errorMessage()) {
-        <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{{ errorMessage() }}</div>
+        <div role="alert" class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{{ errorMessage() }}</div>
       }
 
-      <div class="grid gap-4 md:grid-cols-2">
-        <label class="block text-xs font-medium text-slate-700">
-          <span class="mb-1.5 block">Email</span>
-          <input formControlName="email" type="email" class="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" readonly />
-          @if (form.controls.email.touched && form.controls.email.invalid) {
-            <span class="mt-1 block text-xs text-red-600">A valid email is required. Return to request access if this field is blank.</span>
-          }
-        </label>
+      <label class="block text-xs font-medium text-slate-700">
+        <span class="mb-1.5 block">New password</span>
+        <input formControlName="password" type="password" autocomplete="new-password" class="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="At least 8 characters" />
+        @if (form.controls.password.touched && form.controls.password.invalid) {
+          <span class="mt-1 block text-xs text-red-600">Password must be at least 8 characters.</span>
+        }
+      </label>
 
-        <label class="block text-xs font-medium text-slate-700">
-          <span class="mb-1.5 block">Organization email</span>
-          <input formControlName="organizationEmail" type="email" class="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" readonly />
-          @if (form.controls.organizationEmail.touched && form.controls.organizationEmail.invalid) {
-            <span class="mt-1 block text-xs text-red-600">A valid organization email is required. Return to request access if this field is blank.</span>
-          }
-        </label>
-
-        <label class="block text-xs font-medium text-slate-700 md:col-span-2">
-          <span class="mb-1.5 block">Invitation OTP</span>
-          <input formControlName="invitationOtp" class="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="123456" />
-          @if (form.controls.invitationOtp.touched && form.controls.invitationOtp.invalid) {
-            <span class="mt-1 block text-xs text-red-600">Enter the invitation OTP (at least 4 characters).</span>
-          }
-        </label>
-
-        <label class="block text-xs font-medium text-slate-700">
-          <span class="mb-1.5 block">New password</span>
-          <input formControlName="password" type="password" class="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="Minimum 8 characters" />
-          @if (form.controls.password.touched && form.controls.password.invalid) {
-            <span class="mt-1 block text-xs text-red-600">Password must be at least 8 characters.</span>
-          }
-        </label>
-
-        <label class="block text-xs font-medium text-slate-700">
-          <span class="mb-1.5 block">Confirm password</span>
-          <input formControlName="confirmPassword" type="password" class="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="Repeat your password" />
-          @if (form.controls.confirmPassword.touched && form.controls.confirmPassword.invalid) {
-            <span class="mt-1 block text-xs text-red-600">Confirm with a password of at least 8 characters.</span>
-          }
-        </label>
-      </div>
+      <label class="block text-xs font-medium text-slate-700">
+        <span class="mb-1.5 block">Confirm password</span>
+        <input formControlName="confirmPassword" type="password" autocomplete="new-password" class="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="Enter the same password again" />
+        @if (form.controls.confirmPassword.touched && form.controls.confirmPassword.invalid) {
+          <span class="mt-1 block text-xs text-red-600">Confirm with a password of at least 8 characters.</span>
+        }
+      </label>
 
       <div class="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-between">
-        <a routerLink="/auth/login" class="inline-flex items-center justify-center text-sm font-medium text-slate-600 hover:text-slate-800">Back to login</a>
-        <button type="submit" class="inline-flex h-11 items-center justify-center rounded-md bg-blue-600 px-5 text-sm font-medium text-white hover:bg-blue-700">
+        <a routerLink="/auth/login" class="inline-flex items-center justify-center text-sm font-medium text-slate-600 hover:text-slate-800">Back to sign in</a>
+        <button type="submit" [disabled]="!email || !activationToken" class="inline-flex h-11 items-center justify-center rounded-md bg-blue-600 px-5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300">
           Activate account
         </button>
       </div>

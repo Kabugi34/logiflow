@@ -11,9 +11,9 @@ export interface AccessRequest {
   contactEmail: string;
   organizationEmail: string;
   phoneNumber: string;
-  invitationOtp: string;
+  activationToken: string | null;
   createdAt: string;
-  status: 'PENDING' | 'ACTIVATED';
+  status: 'PENDING' | 'INVITED' | 'ACTIVATED';
 }
 
 interface StoredAccount {
@@ -66,11 +66,11 @@ export class AuthService {
     return this.currentUser()?.roles.includes(role as UserRole) ?? false;
   }
 
-  requestAccess(payload: Omit<AccessRequest, 'id' | 'invitationOtp' | 'createdAt' | 'status'>): AccessRequest {
+  requestAccess(payload: Omit<AccessRequest, 'id' | 'activationToken' | 'createdAt' | 'status'>): AccessRequest {
     const request: AccessRequest = {
       ...payload,
       id: `REQ-${Date.now()}`,
-      invitationOtp: this.generateOtp(),
+      activationToken: null,
       createdAt: new Date().toISOString(),
       status: 'PENDING'
     };
@@ -87,25 +87,18 @@ export class AuthService {
 
   activateAccount(payload: {
     email: string;
-    organizationEmail: string;
-    invitationOtp: string;
+    activationToken: string;
     password: string;
     confirmPassword: string;
-  }): { user: User; request: AccessRequest } {
-    const pendingRequests = this.readAccessRequests().filter((item) =>
+  }): User {
+    const request = this.readAccessRequests().find((item) =>
       item.contactEmail.toLowerCase() === payload.email.toLowerCase() &&
-      item.organizationEmail.toLowerCase() === payload.organizationEmail.toLowerCase() &&
-      item.status === 'PENDING'
+      item.status === 'INVITED' &&
+      item.activationToken === payload.activationToken
     );
 
-    if (pendingRequests.length === 0) {
-      throw new Error('No pending access request was found for this email.');
-    }
-
-    const request = pendingRequests.find((item) => item.invitationOtp === payload.invitationOtp.trim());
-
     if (!request) {
-      throw new Error('The invitation OTP is invalid.');
+      throw new Error('This activation link is invalid, expired, or has already been used.');
     }
 
     if (payload.password.length < 8) {
@@ -143,9 +136,7 @@ export class AuthService {
     this.writeAccounts(accounts);
 
     const updatedRequests: AccessRequest[] = this.readAccessRequests().map((item) =>
-      item.contactEmail.toLowerCase() === request.contactEmail.toLowerCase() &&
-      item.organizationEmail.toLowerCase() === request.organizationEmail.toLowerCase() &&
-      item.status === 'PENDING'
+      item.id === request.id
         ? { ...item, status: 'ACTIVATED' }
         : item
     );
@@ -160,7 +151,7 @@ export class AuthService {
       organization: account.organization
     };
 
-    return { user, request: { ...request, status: 'ACTIVATED' } };
+    return user;
   }
 
   login(email: string, password: string): User | null {
@@ -218,10 +209,6 @@ export class AuthService {
         }
       }
     ]);
-  }
-
-  private generateOtp(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
   private readStoredUser(): User | null {

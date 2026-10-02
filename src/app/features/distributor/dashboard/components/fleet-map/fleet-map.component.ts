@@ -1,5 +1,6 @@
 import { AfterViewInit, Component, ElementRef, OnDestroy, computed, input, viewChild } from '@angular/core';
 import * as Leaflet from 'leaflet';
+import { addCurrentLocationControl, addMapBaseLayer, KENYA_MAP_CENTER } from '../../../../../core/maps/map.utils';
 import { DashboardVehicle } from '../../dashboard.models';
 
 @Component({
@@ -19,10 +20,8 @@ export class FleetMapComponent implements AfterViewInit, OnDestroy {
     this.resizeObserver = new ResizeObserver(() => this.map?.invalidateSize());
     this.resizeObserver.observe(this.mapElement().nativeElement);
     Leaflet.control.zoom({ position: 'topright' }).addTo(this.map);
-    Leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(this.map);
+    addMapBaseLayer(this.map);
+    addCurrentLocationControl(this.map);
 
     const markers = this.vehicles().map(vehicle => Leaflet.circleMarker([vehicle.latitude, vehicle.longitude], {
       radius: 7,
@@ -39,7 +38,7 @@ export class FleetMapComponent implements AfterViewInit, OnDestroy {
     } else if (markers.length > 1) {
       this.map.fitBounds(Leaflet.featureGroup(markers).getBounds(), { padding: [32, 32], maxZoom: 11 });
     } else {
-      this.map.setView([41.8781, -87.6298], 10);
+      this.map.setView(KENYA_MAP_CENTER, 10);
     }
   }
 

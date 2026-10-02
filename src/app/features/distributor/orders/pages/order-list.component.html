@@ -38,7 +38,7 @@
             <td class="whitespace-nowrap px-3 py-3 font-medium text-slate-900">{{ order.customerName }}</td>
             <td class="whitespace-nowrap px-3 py-3">{{ order.orderDate | date:'MMM d, y' }}</td>
             <td class="max-w-56 truncate px-3 py-3" [title]="orderService.itemSummary(order)">{{ orderService.itemSummary(order) }}</td>
-            <td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-900">{{ orderService.total(order) | currency:'USD':'symbol':'1.0-0' }}</td>
+            <td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-900">{{ orderService.total(order) | currency:'KES':'symbol':'1.0-0' }}</td>
             <td class="px-3 py-3"><app-order-badge [value]="order.paymentStatus" /></td>
             <td class="px-3 py-3"><app-order-badge [value]="order.status" /></td>
             <td class="px-3 py-3"><app-order-badge [value]="order.deliveryStatus" /></td>

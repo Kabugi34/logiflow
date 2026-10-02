@@ -4,10 +4,10 @@ import { ManufacturerFleetService } from '../fleet/fleet.service';
 import { LogisticsTrip, LogisticsTripStatus } from './logistics.models';
 
 const tripProgress: Record<string, { totalStops: number; completedStops: number; currentLocation: string }> = {
-  'TRP-8012': { totalStops: 4, completedStops: 1, currentLocation: 'Springfield, IL' },
-  'TRP-8010': { totalStops: 2, completedStops: 2, currentLocation: 'Yard Gate Chicago' },
-  'TRP-8015': { totalStops: 6, completedStops: 2, currentLocation: 'Sweetgrass Checkpoint' },
-  'TRP-8016': { totalStops: 3, completedStops: 0, currentLocation: 'Bloomington, IN' }
+  'TRP-8012': { totalStops: 4, completedStops: 1, currentLocation: 'Voi, Taita-Taveta' },
+  'TRP-8010': { totalStops: 2, completedStops: 2, currentLocation: 'Nairobi Industrial Area' },
+  'TRP-8015': { totalStops: 6, completedStops: 2, currentLocation: 'Nakuru Highway Checkpoint' },
+  'TRP-8016': { totalStops: 3, completedStops: 0, currentLocation: 'Naivasha, Nakuru County' }
 };
 
 @Injectable({ providedIn: 'root' })
