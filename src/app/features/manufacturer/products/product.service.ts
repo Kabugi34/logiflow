@@ -16,9 +16,9 @@ export class ManufacturerProductService {
       image: 'assets/images/products/hydraulic-motor.jpg',
       description: 'High-displacement hydraulic motor designed for continuous duty in marine and heavy logistics applications.',
       inventory: [
-        { terminal: 'Terminal Gate A-1 (Chicago)', reserved: 40, available: 240 },
-        { terminal: 'Terminal Gate C-4 (Houston)', reserved: 12, available: 190 },
-        { terminal: 'Terminal Gate W-2 (L.A.)', reserved: 0, available: 20 }
+        { terminal: 'Nairobi Distribution Hub A-1', reserved: 40, available: 240 },
+        { terminal: 'Mombasa Freight Terminal C-4', reserved: 12, available: 190 },
+        { terminal: 'Nakuru Regional Warehouse W-2', reserved: 0, available: 20 }
       ],
       movements: [
         { title: 'Standard Dispatch Complete', detail: '40 units sent to Terminal B-1', date: 'Today, 15:45' },
@@ -38,8 +38,8 @@ export class ManufacturerProductService {
       image: 'assets/images/products/gear-box.jpg',
       description: 'Precision-machined gear assembly for industrial drive systems.',
       inventory: [
-        { terminal: 'Terminal Gate A-1 (Chicago)', reserved: 100, available: 20 },
-        { terminal: 'Terminal Gate C-4 (Houston)', reserved: 0, available: 100 }
+        { terminal: 'Nairobi Distribution Hub A-1', reserved: 100, available: 20 },
+        { terminal: 'Mombasa Freight Terminal C-4', reserved: 0, available: 100 }
       ],
       movements: [
         { title: 'Stock threshold reached', detail: 'Inventory below the recommended level', date: 'Today, 09:20' }
@@ -57,7 +57,7 @@ export class ManufacturerProductService {
       image: 'assets/images/products/voltage-regulator.jpg',
       description: 'Industrial voltage regulation module for heavy equipment and control systems.',
       inventory: [
-        { terminal: 'Terminal Gate A-1 (Chicago)', reserved: 0, available: 1240 }
+        { terminal: 'Nairobi Distribution Hub A-1', reserved: 0, available: 1240 }
       ],
       movements: [
         { title: 'Inventory received', detail: '1,240 units added to available stock', date: 'Yesterday' }
@@ -75,12 +75,43 @@ export class ManufacturerProductService {
       image: 'assets/images/products/control-valve.jpg',
       description: 'Pneumatic flow-control valve for automated warehouse and transport equipment.',
       inventory: [
-        { terminal: 'Terminal Gate A-1 (Chicago)', reserved: 12, available: 2 },
-        { terminal: 'Terminal Gate C-4 (Houston)', reserved: 2, available: 12 }
+        { terminal: 'Nairobi Distribution Hub A-1', reserved: 12, available: 2 },
+        { terminal: 'Mombasa Freight Terminal C-4', reserved: 2, available: 12 }
       ],
       movements: [
-        { title: 'Critical stock hold', detail: 'Only 2 units available at Chicago terminal', date: 'Today, 08:10' }
+        { title: 'Critical stock hold', detail: 'Only 2 units available at Nairobi hub', date: 'Today, 08:10' }
       ]
+    },
+    {
+      id: 5,
+      name: 'Gear Assembly Unit',
+      sku: 'GA-210-C',
+      brand: 'Kifaru Industrial Works',
+      category: 'Transmission',
+      unit: 'Pcs',
+      stock: 860,
+      status: 'ACTIVE',
+      image: 'assets/images/products/gear-box.jpg',
+      description: 'Heavy-duty gear assembly manufactured for regional transport and processing equipment.',
+      inventory: [
+        { terminal: 'Nairobi Distribution Hub A-1', reserved: 50, available: 810 },
+        { terminal: 'Kisumu Distribution Warehouse', reserved: 0, available: 50 }
+      ],
+      movements: [{ title: 'Stock received', detail: 'New assembly stock recorded in Nairobi.', date: 'Yesterday' }]
+    },
+    {
+      id: 6,
+      name: 'Compact Servo Motor',
+      sku: 'CSM-118-B',
+      brand: 'Rift Valley Motion Systems',
+      category: 'Motors',
+      unit: 'Pcs',
+      stock: 96,
+      status: 'ACTIVE',
+      image: 'assets/images/products/hydraulic-motor.jpg',
+      description: 'Compact servo motor for automated warehouse and light industrial systems.',
+      inventory: [{ terminal: 'Nakuru Regional Warehouse W-2', reserved: 8, available: 88 }],
+      movements: [{ title: 'Stock received', detail: 'Servo motor inventory checked into Nakuru.', date: 'Today, 10:20' }]
     }
   ]);
 

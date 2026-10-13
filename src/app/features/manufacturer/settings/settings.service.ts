@@ -6,9 +6,9 @@ const NOTIFICATION_STORAGE_KEY = 'logiflow.manufacturer.notificationPreferences'
 
 const defaultProfile: OrganizationProfile = {
   registeredName: 'LogiCore Manufacturing Ltd.',
-  taxRegistrationId: 'US-VAT-8910492B',
-  timezone: 'America/Chicago',
-  defaultWarehouseId: 'CHI-A1'
+  taxRegistrationId: 'P051234567X',
+  timezone: 'Africa/Nairobi',
+  defaultWarehouseId: 'NBO-A1'
 };
 
 const defaultNotifications: NotificationPreferences = {
@@ -46,7 +46,17 @@ export class ManufacturerSettingsService {
       if (typeof localStorage === 'undefined') return fallback;
       const stored = localStorage.getItem(key);
       if (!stored) return fallback;
-      return { ...fallback, ...JSON.parse(stored) as Partial<T> };
+      const value = { ...fallback, ...JSON.parse(stored) as Partial<T> };
+
+      if (key === PROFILE_STORAGE_KEY) {
+        const profile = value as unknown as OrganizationProfile;
+        if (profile.defaultWarehouseId === 'CHI-A1') profile.defaultWarehouseId = 'NBO-A1';
+        if (profile.defaultWarehouseId === 'HOU-C4') profile.defaultWarehouseId = 'MBA-C4';
+        if (profile.timezone.startsWith('America/')) profile.timezone = 'Africa/Nairobi';
+        if (profile.taxRegistrationId.startsWith('US-')) profile.taxRegistrationId = 'P051234567X';
+      }
+
+      return value;
     } catch {
       return fallback;
     }

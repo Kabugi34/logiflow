@@ -13,7 +13,7 @@ import { ManufacturerWarehouseService } from '../warehouse.service';
 export class WarehouseOverviewComponent {
   private readonly warehouseService = inject(ManufacturerWarehouseService);
   protected readonly warehouses = this.warehouseService.warehouses;
-  protected readonly selectedWarehouseId = signal<string | null>('CHI-A1');
+  protected readonly selectedWarehouseId = signal<string | null>('NBO-A1');
   protected readonly selectedWarehouse = computed(() => {
     const id = this.selectedWarehouseId();
     return id ? this.warehouseService.findById(id) ?? null : null;

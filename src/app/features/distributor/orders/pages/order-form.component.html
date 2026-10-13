@@ -31,7 +31,7 @@
                 <span class="block text-[10px] font-medium text-slate-600">Catalog Item</span>
                 <select formControlName="sku" class="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-700 outline-none focus:border-blue-400">
                   <option value="">Select item...</option>
-                  @for (item of inventoryService.items(); track item.sku) { <option [value]="item.sku">{{ item.name }} · {{ item.sku }} · {{ item.unitPrice | currency:'USD':'symbol':'1.0-0' }}</option> }
+                  @for (item of inventoryService.items(); track item.sku) { <option [value]="item.sku">{{ item.name }} · {{ item.sku }} · {{ item.unitPrice | currency:'KES':'symbol':'1.0-0' }}</option> }
                 </select>
                 @if (inventoryService.findBySku(line.controls.sku.value); as item) {
                   <span class="block text-[10px]" [class.text-slate-500]="item.onHand >= line.controls.quantity.value" [class.text-red-600]="item.onHand < line.controls.quantity.value">{{ item.onHand | number }} {{ item.unit }} in local stock</span>
@@ -57,7 +57,7 @@
           <label class="flex cursor-pointer items-center gap-2 rounded-md border border-slate-200 px-3 py-2.5 text-xs text-slate-700 has-checked:border-blue-500 has-checked:bg-blue-50"><input type="radio" formControlName="paymentStatus" value="PENDING" class="accent-blue-600">Invoice (pending)</label>
           <label class="flex cursor-pointer items-center gap-2 rounded-md border border-slate-200 px-3 py-2.5 text-xs text-slate-700 has-checked:border-blue-500 has-checked:bg-blue-50"><input type="radio" formControlName="paymentStatus" value="PAID" class="accent-blue-600">Paid upfront</label>
         </fieldset>
-        <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3"><span class="text-xs font-semibold text-slate-700">Order Total:</span><span class="text-lg font-semibold text-blue-600">{{ orderTotal() | currency:'USD':'symbol':'1.0-0' }}</span></div>
+        <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3"><span class="text-xs font-semibold text-slate-700">Order Total:</span><span class="text-lg font-semibold text-blue-600">{{ orderTotal() | currency:'KES':'symbol':'1.0-0' }}</span></div>
         <p class="mt-2 text-[10px] text-slate-500">Stock is deducted when the order is dispatched.</p>
       </section>
       @if (errorMessage()) { <p role="alert" class="text-xs text-red-600">{{ errorMessage() }}</p> }

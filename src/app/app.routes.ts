@@ -4,6 +4,7 @@ import { manufacturerGuard } from './core/guards/manufacturer.guard';
 import { distributorGuard } from './core/guards/distributor.guard';
 import { AppShellComponent } from './layout/app-shell/app-shell.component';
 import { distributorWorkspace, manufacturerWorkspace } from './layout/navigation/navigation.config';
+import { AUTH_ROUTES } from './features/auth/auth.routes';
 
 
 
@@ -11,7 +12,12 @@ export const routes: Routes = [
     {
     path: '',
     pathMatch: 'full',
-    redirectTo: '/manufacturer/dashboard?preview=manufacturer'
+    redirectTo: '/auth/request-access'
+  },
+
+  {
+    path: 'auth',
+    children: AUTH_ROUTES
   },
 
   {
@@ -108,6 +114,36 @@ export const routes: Routes = [
             .then(m => m.DASHBOARD_ROUTES)
       },
       {
+        path: 'catalog',
+        loadChildren: () =>
+          import('./features/distributor/catalog/catalog.routes')
+            .then(m => m.CATALOG_ROUTES)
+      },
+      {
+        path: 'inventory',
+        loadChildren: () =>
+          import('./features/distributor/inventory/inventory.routes')
+            .then(m => m.INVENTORY_ROUTES)
+      },
+      {
+        path: 'procurement',
+        loadChildren: () =>
+          import('./features/distributor/procurement/procurement.routes')
+            .then(m => m.PROCUREMENT_ROUTES)
+      },
+      {
+        path: 'logistics',
+        loadChildren: () =>
+          import('./features/distributor/logistics/logistics.routes')
+            .then(m => m.LOGISTICS_ROUTES)
+      },
+      {
+        path: 'customers',
+        loadChildren: () =>
+          import('./features/distributor/customers/customers.routes')
+            .then(m => m.CUSTOMER_ROUTES)
+      },
+      {
         path: 'orders',
         loadChildren: () =>
           import('./features/distributor/orders/orders.routes')
@@ -122,6 +158,6 @@ export const routes: Routes = [
 
   {
     path: '**',
-    redirectTo: 'manufacturer/dashboard'
+    redirectTo: 'auth/request-access'
   }
 ];

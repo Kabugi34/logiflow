@@ -2,7 +2,7 @@ import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { FleetDriver, VehicleStatus } from '../../fleet/fleet.models';
+import { FleetDriver, FleetVehicle, VehicleStatus } from '../../fleet/fleet.models';
 import { ManufacturerFleetService } from '../../fleet/fleet.service';
 
 @Component({
@@ -14,13 +14,17 @@ import { ManufacturerFleetService } from '../../fleet/fleet.service';
 export class VehicleCenterComponent {
   private readonly fleetService = inject(ManufacturerFleetService);
   private readonly formBuilder = inject(FormBuilder);
-  protected readonly vehicles = this.fleetService.vehicles;
+  protected readonly vehicles = computed(() => this.fleetService.vehicles().map(vehicle => ({
+    ...vehicle,
+    serviceStatus: this.fleetService.vehicleStatus(vehicle)
+  })));
   protected readonly drivers = this.fleetService.drivers;
   protected readonly metrics = this.fleetService.vehicleMetrics;
   protected readonly selectedStatus = signal('ALL');
   protected readonly isRegisterOpen = signal(false);
   protected readonly formError = signal('');
-  protected readonly filteredVehicles = computed(() => this.vehicles().filter(vehicle => this.selectedStatus() === 'ALL' || vehicle.serviceStatus === this.selectedStatus()));
+  protected readonly assignmentMessage = signal('');
+  protected readonly filteredVehicles = computed(() => this.vehicles().filter(vehicle => this.selectedStatus() === 'ALL' || this.fleetService.vehicleStatus(vehicle) === this.selectedStatus()));
   protected readonly form = this.formBuilder.nonNullable.group({
     plate: ['', [Validators.required, Validators.maxLength(20)]],
     type: ['', [Validators.required, Validators.maxLength(80)]],
@@ -56,16 +60,34 @@ export class VehicleCenterComponent {
   }
 
   protected availableDrivers(vehicleId: string): FleetDriver[] {
+    const vehicle = this.vehicles().find(record => record.id === vehicleId);
+    if (!vehicle) return [];
+    if (vehicle.assignedDriverId) {
+      const assignedDriver = this.drivers().find(driver => driver.id === vehicle.assignedDriverId);
+      return assignedDriver ? [assignedDriver] : [];
+    }
+    if (this.fleetService.vehicleStatus(vehicle) !== 'IDLE') return [];
     return this.drivers().filter(driver =>
-      driver.status !== 'INVITED' &&
-      driver.status !== 'OFF_DUTY' &&
-      (!driver.currentTripId || driver.vehicleId === vehicleId)
+      driver.vehicleId === null &&
+      driver.currentTripId === null &&
+      ['INVITED', 'STANDBY'].includes(driver.status)
     );
+  }
+
+  protected assignedDriverName(driverId: string | null): string {
+    return this.drivers().find(driver => driver.id === driverId)?.name ?? 'Unassigned';
+  }
+
+  protected vehicleStatus(vehicle: FleetVehicle): VehicleStatus {
+    return this.fleetService.vehicleStatus(vehicle);
   }
 
   protected assignDriver(vehicleId: string, event: Event): void {
     const driverId = (event.target as HTMLSelectElement).value;
-    this.fleetService.assignDriver(vehicleId, driverId || null);
+    const assigned = this.fleetService.assignDriver(vehicleId, driverId || null);
+    this.assignmentMessage.set(assigned
+      ? 'Vehicle assignment updated.'
+      : 'Choose an unassigned driver and an idle vehicle.');
   }
 
   protected statusLabel(status: VehicleStatus): string {
@@ -75,6 +97,7 @@ export class VehicleCenterComponent {
   protected statusClass(status: VehicleStatus): string {
     switch (status) {
       case 'ACTIVE': return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      case 'STANDBY': return 'border-blue-200 bg-blue-50 text-blue-700';
       case 'MAINTENANCE': return 'border-amber-200 bg-amber-50 text-amber-700';
       case 'IDLE': return 'border-blue-200 bg-blue-50 text-blue-700';
       case 'OUT_OF_SERVICE': return 'border-red-200 bg-red-50 text-red-700';

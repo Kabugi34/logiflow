@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { DriverStatus } from '../../fleet/fleet.models';
 import { ManufacturerStaffService } from '../staff.service';
 import { ManufacturerStaffMember, StaffCategory, StaffStatus } from '../staff.models';
 
@@ -22,6 +23,7 @@ export class StaffDirectoryComponent {
   protected readonly selectedMemberId = signal<string | null>(null);
   protected readonly isInviteOpen = signal(false);
   protected readonly inviteError = signal('');
+  protected readonly driverActionMessage = signal('');
   protected readonly selectedMember = computed(() => this.staff().find(member => member.id === this.selectedMemberId()) ?? null);
   protected readonly summary = computed(() => ({
     employees: this.staff().filter(member => member.category === 'EMPLOYEE').length,
@@ -91,6 +93,26 @@ export class StaffDirectoryComponent {
     const member = this.selectedMember();
     if (!member || member.category === 'DRIVER') return;
     this.staffService.updateEmployeeStatus(member.id, (event.target as HTMLSelectElement).value as StaffStatus);
+  }
+
+  protected approveDriver(id: string): void {
+    this.updateDriverStatus(id, 'STANDBY');
+  }
+
+  protected suspendDriver(id: string): void {
+    this.updateDriverStatus(id, 'SUSPENDED');
+  }
+
+  protected reinstateDriver(id: string): void {
+    this.updateDriverStatus(id, 'STANDBY');
+  }
+
+  private updateDriverStatus(id: string, status: DriverStatus): void {
+    this.driverActionMessage.set('');
+    const updated = this.staffService.updateDriverStatus(id, status);
+    this.driverActionMessage.set(updated
+      ? `Driver status updated to ${status === 'STANDBY' ? 'standby' : 'suspended'}.`
+      : 'This driver has an active trip. Complete or reassign it before changing to this status.');
   }
 
   protected statusClass(status: StaffStatus): string {

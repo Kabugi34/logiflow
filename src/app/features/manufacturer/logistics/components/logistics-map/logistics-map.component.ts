@@ -1,5 +1,6 @@
 import { AfterViewInit, Component, ElementRef, OnDestroy, input, output, viewChild } from '@angular/core';
 import * as Leaflet from 'leaflet';
+import { addCurrentLocationControl, addMapBaseLayer, KENYA_MAP_CENTER } from '../../../../../core/maps/map.utils';
 import { LogisticsTrip } from '../../logistics.models';
 
 @Component({
@@ -20,10 +21,8 @@ export class LogisticsMapComponent implements AfterViewInit, OnDestroy {
     this.resizeObserver = new ResizeObserver(() => this.map?.invalidateSize());
     this.resizeObserver.observe(this.mapElement().nativeElement);
     Leaflet.control.zoom({ position: 'topright' }).addTo(this.map);
-    Leaflet.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(this.map);
+    addMapBaseLayer(this.map);
+    addCurrentLocationControl(this.map);
 
     const allPoints: Leaflet.LatLngTuple[] = [];
     for (const trip of this.trips()) {
@@ -47,10 +46,10 @@ export class LogisticsMapComponent implements AfterViewInit, OnDestroy {
     }
 
     const hubs = [
-      { point: [41.8781, -87.6298] as Leaflet.LatLngTuple, label: 'Chicago Hub' },
-      { point: [34.0522, -118.2437] as Leaflet.LatLngTuple, label: 'Los Angeles Hub' },
-      { point: [51.9244, 4.4777] as Leaflet.LatLngTuple, label: 'Rotterdam Hub' },
-      { point: [1.3521, 103.8198] as Leaflet.LatLngTuple, label: 'Singapore Hub' }
+      { point: [-1.286389, 36.817223] as Leaflet.LatLngTuple, label: 'Nairobi Hub' },
+      { point: [-4.043477, 39.668206] as Leaflet.LatLngTuple, label: 'Mombasa Hub' },
+      { point: [-0.091702, 34.767956] as Leaflet.LatLngTuple, label: 'Kisumu Hub' },
+      { point: [-0.303099, 36.080025] as Leaflet.LatLngTuple, label: 'Nakuru Hub' }
     ];
     for (const hub of hubs) {
       Leaflet.circleMarker(hub.point, { radius: 4, color: '#ffffff', weight: 1.5, fillColor: '#64748b', fillOpacity: 1 })
@@ -58,7 +57,7 @@ export class LogisticsMapComponent implements AfterViewInit, OnDestroy {
         .addTo(this.map);
     }
 
-    this.map.setView([28, -22], 2);
+    this.map.setView(KENYA_MAP_CENTER, 7);
     if (allPoints.length > 0 && this.trips().length < 2) {
       this.map.fitBounds(Leaflet.latLngBounds(allPoints), { padding: [30, 30], maxZoom: 5 });
     }

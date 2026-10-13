@@ -60,8 +60,8 @@ export class ManufacturerDashboardService {
       {
         id: 1,
         shipmentNumber: 'TRK-09214',
-        destination: 'Chicago Hub → New York Port',
-        driverName: 'Alex Mercer',
+        destination: 'Nairobi Hub → Mombasa Port',
+        driverName: 'Daniel Kamau',
         tripNumber: 'TR-442',
         status: 'DELIVERED',
         eta: '14:00'
@@ -69,8 +69,8 @@ export class ManufacturerDashboardService {
       {
         id: 2,
         shipmentNumber: 'TRK-88104',
-        destination: 'L.A. Terminal → Houston Depot',
-        driverName: 'Sarah Connor',
+        destination: 'Nakuru Terminal → Kisumu Depot',
+        driverName: 'Faith Njeri',
         tripNumber: 'Delayed at Border Check',
         status: 'DELAYED',
         eta: '16:30'
@@ -78,8 +78,8 @@ export class ManufacturerDashboardService {
       {
         id: 3,
         shipmentNumber: 'TRK-3291',
-        destination: 'Vancouver Port → Calgary Terminal',
-        driverName: 'David Jenkins',
+        destination: 'Mombasa Port → Eldoret Terminal',
+        driverName: 'Peter Otieno',
         tripNumber: 'Customs Hold Exception',
         status: 'EXCEPTION'
       }
@@ -90,30 +90,30 @@ export class ManufacturerDashboardService {
     return [
       {
         id: 1,
-        name: 'Alex Mercer',
-        vehicle: 'Kenworth T680 (Plate: 409-TDX)',
+        name: 'Daniel Kamau',
+        vehicle: 'Isuzu FVR (Plate: KDA 123A)',
         status: 'ACTIVE',
         route: 'Route #A42',
-        latitude: 41.8781,
-        longitude: -87.6298
+        latitude: -1.2864,
+        longitude: 36.8172
       },
       {
         id: 2,
-        name: 'Sarah Connor',
-        vehicle: 'Peterbilt 579 (Plate: 812-OKL)',
+        name: 'Faith Njeri',
+        vehicle: 'Mitsubishi Fuso (Plate: KDB 456B)',
         status: 'ACTIVE',
         route: 'Route #B09',
-        latitude: 29.7604,
-        longitude: -95.3698
+        latitude: -0.0917,
+        longitude: 34.768
       },
       {
         id: 3,
-        name: 'David Jenkins',
-        vehicle: 'Freightliner (Plate: 556-WQE)',
+        name: 'Peter Otieno',
+        vehicle: 'Hino 500 (Plate: KDC 789C)',
         status: 'STANDBY',
-        route: 'Yard #Chicago',
-        latitude: 41.9012,
-        longitude: -87.6585
+        route: 'Nairobi Yard',
+        latitude: -1.2921,
+        longitude: 36.8219
       }
     ];
   }

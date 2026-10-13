@@ -4,11 +4,11 @@ import { DistributorCustomer } from './customer.models';
 @Injectable({ providedIn: 'root' })
 export class DistributorCustomerService {
   private readonly customerRecords = signal<DistributorCustomer[]>([
-    { id: 'CL-MET-991', storeName: 'Metro Retail Chicago', destinationName: 'West-Side Retail Hub Gate #4', destinationAddress: '2400 Madison St, Chicago, IL' },
-    { id: 'CL-PAC-204', storeName: 'Pacific Logistics SFO', destinationName: 'Bayview Distribution Dock 2', destinationAddress: '1800 Evans Ave, San Francisco, CA' },
-    { id: 'CL-VLT-310', storeName: 'VoltLine Solutions Corp', destinationName: 'VoltLine Receiving Yard', destinationAddress: '455 Industrial Pkwy, Gary, IN' },
-    { id: 'CL-IST-118', storeName: 'InterState Supply Ltd', destinationName: 'InterState Warehouse B', destinationAddress: '900 Commerce Dr, Milwaukee, WI' },
-    { id: 'CL-NTM-452', storeName: 'North Tech Machinery', destinationName: 'North Tech Plant Gate 1', destinationAddress: '72 Foundry Rd, Detroit, MI' }
+    { id: 'CL-MET-991', storeName: 'Metro Retail Nairobi', destinationName: 'Westlands Distribution Hub', destinationAddress: 'Waiyaki Way, Westlands, Nairobi' },
+    { id: 'CL-PAC-204', storeName: 'Coastline Retail Mombasa', destinationName: 'Shimanzi Receiving Dock 2', destinationAddress: 'Shimanzi Road, Mombasa' },
+    { id: 'CL-VLT-310', storeName: 'VoltLine Solutions Kenya', destinationName: 'VoltLine Receiving Yard', destinationAddress: 'Mombasa Road, Athi River' },
+    { id: 'CL-IST-118', storeName: 'Lake Region Supply Ltd', destinationName: 'Kisumu Distribution Warehouse', destinationAddress: 'Kisumu-Kakamega Road, Kisumu' },
+    { id: 'CL-NTM-452', storeName: 'Rift Valley Machinery', destinationName: 'Rift Valley Plant Gate 1', destinationAddress: 'Uganda Road, Eldoret' }
   ]);
 
   readonly customers = this.customerRecords.asReadonly();

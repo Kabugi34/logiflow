@@ -2,12 +2,12 @@ import { computed, Injectable, signal } from '@angular/core';
 import { DistributorInventoryItem, StockDeduction, StockLevel } from './inventory.models';
 
 const initialInventory: DistributorInventoryItem[] = [
-  { sku: 'HDM-092-X', name: 'Heavy Duty Hydraulic Motor', category: 'Motors', unit: 'Pcs', onHand: 14, unitPrice: 750, lowStockThreshold: 60, criticalStockThreshold: 20 },
-  { sku: 'HPG-881-A', name: 'High-Precision Gear Box', category: 'Transmission', unit: 'Pcs', onHand: 42, unitPrice: 650, lowStockThreshold: 50, criticalStockThreshold: 15 },
-  { sku: 'PCV-404-Z', name: 'Pneumatic Control Valve', category: 'Valves', unit: 'Pcs', onHand: 320, unitPrice: 500, lowStockThreshold: 80, criticalStockThreshold: 30 },
-  { sku: 'VRB-332-Y', name: 'Voltage Regulator Block', category: 'Electronics', unit: 'Pcs', onHand: 1240, unitPrice: 600, lowStockThreshold: 200, criticalStockThreshold: 80 },
-  { sku: 'GA-210-C', name: 'Gear Assembly Unit', category: 'Transmission', unit: 'Pcs', onHand: 860, unitPrice: 182, lowStockThreshold: 150, criticalStockThreshold: 60 },
-  { sku: 'CSM-118-B', name: 'Compact Servo Motor', category: 'Motors', unit: 'Pcs', onHand: 96, unitPrice: 850, lowStockThreshold: 40, criticalStockThreshold: 15 }
+  { sku: 'HDM-092-X', name: 'Heavy Duty Hydraulic Motor', category: 'Motors', unit: 'Pcs', onHand: 14, unitPrice: 97500, lowStockThreshold: 60, criticalStockThreshold: 20 },
+  { sku: 'HPG-881-A', name: 'High-Precision Gear Box', category: 'Transmission', unit: 'Pcs', onHand: 42, unitPrice: 84500, lowStockThreshold: 50, criticalStockThreshold: 15 },
+  { sku: 'PCV-404-Z', name: 'Pneumatic Control Valve', category: 'Valves', unit: 'Pcs', onHand: 320, unitPrice: 65000, lowStockThreshold: 80, criticalStockThreshold: 30 },
+  { sku: 'VRB-332-Y', name: 'Voltage Regulator Block', category: 'Electronics', unit: 'Pcs', onHand: 1240, unitPrice: 78000, lowStockThreshold: 200, criticalStockThreshold: 80 },
+  { sku: 'GA-210-C', name: 'Gear Assembly Unit', category: 'Transmission', unit: 'Pcs', onHand: 860, unitPrice: 23660, lowStockThreshold: 150, criticalStockThreshold: 60 },
+  { sku: 'CSM-118-B', name: 'Compact Servo Motor', category: 'Motors', unit: 'Pcs', onHand: 96, unitPrice: 110500, lowStockThreshold: 40, criticalStockThreshold: 15 }
 ];
 
 @Injectable({ providedIn: 'root' })
