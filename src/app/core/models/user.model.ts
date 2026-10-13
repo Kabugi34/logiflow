@@ -2,12 +2,12 @@ import { OrganizationType } from './organization.model';
 import { UserRole } from './role.model';
 
 export interface User {
-  id: number;
+  id: string | number;
   name: string;
   email: string;
   roles: UserRole[];
   organization: {
-    id: number;
+    id: string | number;
     name: string;
     type: OrganizationType;
   };

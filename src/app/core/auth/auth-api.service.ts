@@ -2,16 +2,27 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API_CONFIG } from '../api/api.config';
-import { User } from '../models/user.model';
+import { OrganizationType } from '../models/organization.model';
+
+export interface AuthUserResponse {
+  id: string;
+  fullName: string;
+  email: string;
+  role: string;
+  organizationId: string | null;
+  organizationName: string | null;
+  organizationtype: OrganizationType | null;
+}
 
 export interface AuthSession {
   accessToken: string;
-  user: User;
-  orgType?: User['organization']['type'];
+  refreshToken: string;
+  redirectPath: string | null;
+  user: AuthUserResponse;
 }
 
 export interface AccessRequestPayload {
-  organizationType: User['organization']['type'];
+  organizationType: OrganizationType;
   organizationName: string;
   contactName: string;
   contactEmail: string;
@@ -44,7 +55,7 @@ export class AuthApiService {
   }
 
   requestActivationLink(email: string): Observable<void> {
-    return this.http.post<void>(this.url(API_CONFIG.auth.activationResend), { email });
+    return this.http.post<void>(this.url(API_CONFIG.auth.activationResend), { identifier: email });
   }
 
   login(identifier: string, password: string): Observable<AuthSession> {
@@ -54,20 +65,28 @@ export class AuthApiService {
     );
   }
 
-  logout(): Observable<void> {
-    return this.http.post<void>(this.url(API_CONFIG.auth.logout), {});
+  refresh(refreshToken: string): Observable<AuthSession> {
+    return this.http.post<AuthSession>(this.url(API_CONFIG.auth.refresh), { refreshToken });
   }
 
-  me(): Observable<User> {
-    return this.http.get<User>(this.url(API_CONFIG.auth.me));
+  logout(refreshToken: string): Observable<void> {
+    return this.http.post<void>(this.url(API_CONFIG.auth.logout), { refreshToken });
+  }
+
+  me(): Observable<AuthUserResponse> {
+    return this.http.get<AuthUserResponse>(this.url(API_CONFIG.auth.me));
   }
 
   requestPasswordReset(email: string): Observable<void> {
-    return this.http.post<void>(this.url(API_CONFIG.auth.passwordResetRequest), { email });
+    return this.http.post<void>(this.url(API_CONFIG.auth.passwordResetRequest), { identifier: email });
   }
 
   resetPassword(payload: { email: string; token: string; password: string }): Observable<void> {
-    return this.http.post<void>(this.url(API_CONFIG.auth.passwordReset), payload);
+    return this.http.post<void>(this.url(API_CONFIG.auth.passwordReset), {
+      identifier: payload.email,
+      otp: payload.token,
+      newPassword: payload.password
+    });
   }
 
   private url(path: string, baseUrl = API_CONFIG.baseUrl): string {

@@ -1,14 +1,15 @@
 export const API_CONFIG = {
   apiRoot: 'http://localhost:8080/api',
-  baseUrl: 'http://localhost:8080/api/v1',
+  baseUrl: 'http://localhost:8080/api',
   auth: {
     accessRequest: '/access-requests',
     activate: '/access-requests/activate',
-    activationResend: '/auth/activation/resend',
+    activationResend: '/auth/resend-verification',
     login: '/auth/login',
+    refresh: '/auth/refresh',
     logout: '/auth/logout',
-    me: '/auth/me',
-    passwordResetRequest: '/auth/password/forgot',
-    passwordReset: '/auth/password/reset'
+    me: '/users/me',
+    passwordResetRequest: '/auth/forgot-password',
+    passwordReset: '/auth/reset-password'
   }
 };
