@@ -21,7 +21,7 @@ export function addMapBaseLayer(map: L.Map): void {
   }).addTo(map);
 }
 
-export function addCurrentLocationControl(map: L.Map): void {
+export function addCurrentLocationControl(map: L.Map, autoLocate = true): void {
   let locationMarker: L.CircleMarker | undefined;
   let accuracyCircle: L.Circle | undefined;
   let locateButton: HTMLButtonElement | undefined;
@@ -74,5 +74,5 @@ export function addCurrentLocationControl(map: L.Map): void {
     if (locateButton) locateButton.title = 'Location unavailable. Allow location access, then try again.';
   });
 
-  locate();
+  if (autoLocate) locate();
 }

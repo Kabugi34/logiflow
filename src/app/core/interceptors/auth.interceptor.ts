@@ -1,9 +1,9 @@
 import { HttpInterceptorFn } from '@angular/common/http';
-
-const ACCESS_TOKEN_KEY = 'logiflow.accessToken';
+import { inject } from '@angular/core';
+import { AuthService } from '../auth/auth.service';
 
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
-  const token = sessionStorage.getItem(ACCESS_TOKEN_KEY);
+  const token = inject(AuthService).accessToken;
   if (!token) return next(request);
 
   return next(request.clone({

@@ -1,4 +1,5 @@
 import { inject, Injectable, signal } from '@angular/core';
+import { LogisticsService } from '../../../core/logistics/logistics.service';
 import { ManufacturerFleetService } from '../fleet/fleet.service';
 import { ManufacturerShipment, ShipmentStatus } from './shipment.models';
 
@@ -49,6 +50,7 @@ export type NewShipment = Pick<ManufacturerShipment, 'poReference' | 'destinatio
 @Injectable({ providedIn: 'root' })
 export class ManufacturerShipmentService {
   private readonly fleetService = inject(ManufacturerFleetService);
+  private readonly logisticsService = inject(LogisticsService);
   private readonly shipmentRecords = signal(initialShipments);
   readonly shipments = this.shipmentRecords.asReadonly();
 
@@ -59,6 +61,15 @@ export class ManufacturerShipmentService {
   create(shipment: NewShipment): string {
     const nextNumber = Math.max(94, ...this.shipmentRecords().map(record => Number(record.id.replace('SHP-', '')))) + 1;
     const id = `SHP-${String(nextNumber).padStart(3, '0')}`;
+    const dispatched = this.logisticsService.dispatchInboundOrder(shipment.poReference, {
+      shipmentId: id,
+      tripId: shipment.tripId,
+      driverName: shipment.assignedDriver,
+      vehicleLabel: shipment.vehicle,
+      route: nairobiToMombasa
+    });
+    if (!dispatched) throw new Error('This purchase order is no longer accepted for dispatch.');
+
     const createdShipment: ManufacturerShipment = {
       ...shipment,
       id,
@@ -79,6 +90,7 @@ export class ManufacturerShipmentService {
     const shipment = this.findById(id);
     if (status === 'DELIVERED' && shipment) {
       this.fleetService.completeTrip(shipment.tripId);
+      this.logisticsService.receiveInboundOrder(shipment.poReference);
     }
 
     this.shipmentRecords.update(records => records.map(shipment => {

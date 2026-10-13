@@ -38,3 +38,15 @@ export interface NewCustomerOrder {
   paymentStatus: PaymentStatus;
   lines: { sku: string; quantity: number }[];
 }
+
+export interface DistributorShipmentGroup {
+  id: string;
+  routeKey: string;
+  routeLabel: string;
+  status: CustomerOrderStatus;
+  orderIds: string[];
+  orders: CustomerOrder[];
+  driverId?: string;
+  vehicleId?: string;
+  totalValue: number;
+}

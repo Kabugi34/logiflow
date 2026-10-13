@@ -27,7 +27,7 @@ export class PurchaseOrderReviewComponent {
   protected acceptAndGenerateManifest(): void {
     const order = this.order();
     if (!order || order.status !== 'PENDING') return;
-    this.orderService.updateStatus(order.id, 'FULFILLED');
+    this.orderService.updateStatus(order.id, 'ACCEPTED');
     void this.router.navigate(['/manufacturer/purchase-orders'], { queryParamsHandling: 'preserve' });
   }
 

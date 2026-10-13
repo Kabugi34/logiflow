@@ -1,42 +1,22 @@
-import { AfterViewInit, Component, ElementRef, OnDestroy, input, viewChild } from '@angular/core';
-import * as Leaflet from 'leaflet';
-import { addCurrentLocationControl, addMapBaseLayer, KENYA_MAP_CENTER } from '../../../../../core/maps/map.utils';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { LogisticsService } from '../../../../../core/logistics/logistics.service';
+import { LogisticsRouteMapComponent } from '../../../../../shared/maps/logistics-route-map.component';
 import { ManufacturerShipment } from '../../shipment.models';
 
 @Component({
   selector: 'app-shipment-route-map',
-  standalone: true,
+  imports: [LogisticsRouteMapComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './shipment-route-map.component.html'
 })
-export class ShipmentRouteMapComponent implements AfterViewInit, OnDestroy {
+export class ShipmentRouteMapComponent {
   readonly shipment = input.required<ManufacturerShipment>();
-  private readonly mapElement = viewChild.required<ElementRef<HTMLDivElement>>('mapElement');
-  private map?: Leaflet.Map;
-  private resizeObserver?: ResizeObserver;
-
-  ngAfterViewInit(): void {
-    const route = this.shipment().route.map(point => [point.latitude, point.longitude] as Leaflet.LatLngTuple);
-    this.map = Leaflet.map(this.mapElement().nativeElement, { zoomControl: false, scrollWheelZoom: false });
-    this.resizeObserver = new ResizeObserver(() => this.map?.invalidateSize());
-    this.resizeObserver.observe(this.mapElement().nativeElement);
-    Leaflet.control.zoom({ position: 'topright' }).addTo(this.map);
-    addMapBaseLayer(this.map);
-    addCurrentLocationControl(this.map);
-
-    if (route.length > 1) {
-      Leaflet.polyline(route, { color: '#2563eb', weight: 4, opacity: 0.9 }).addTo(this.map);
-      const start = this.shipment().route[0];
-      const end = this.shipment().route.at(-1)!;
-      Leaflet.circleMarker(route[0], { radius: 6, color: '#ffffff', weight: 2, fillColor: '#10b981', fillOpacity: 1 }).bindPopup(start.label).addTo(this.map);
-      Leaflet.circleMarker(route[route.length - 1], { radius: 6, color: '#ffffff', weight: 2, fillColor: '#f97316', fillOpacity: 1 }).bindPopup(end.label).addTo(this.map);
-      this.map.fitBounds(Leaflet.latLngBounds(route), { padding: [24, 24] });
-    } else {
-      this.map.setView(KENYA_MAP_CENTER, 8);
-    }
-  }
-
-  ngOnDestroy(): void {
-    this.resizeObserver?.disconnect();
-    this.map?.remove();
-  }
+  private readonly logisticsService = inject(LogisticsService);
+  protected readonly inboundOrder = computed(() => this.logisticsService.findInboundOrder(this.shipment().poReference));
+  protected readonly route = computed(() => this.inboundOrder()?.route ?? this.shipment().route);
+  protected readonly currentIndex = computed(() => {
+    const sharedIndex = this.inboundOrder()?.currentRouteIndex;
+    if (sharedIndex !== undefined) return sharedIndex;
+    return this.shipment().status === 'DELIVERED' ? this.route().length - 1 : Math.min(1, this.route().length - 1);
+  });
 }

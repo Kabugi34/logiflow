@@ -1,0 +1,16 @@
+<section class="space-y-5">
+  <header class="flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-4">
+    <div><nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-xs text-slate-400"><a routerLink="/distributor/dashboard" class="hover:text-blue-600">LogiFlow</a><span aria-hidden="true">›</span><a routerLink="/distributor/procurement" class="hover:text-blue-600">Procurement</a><span aria-hidden="true">›</span><a routerLink="/distributor/procurement/manufacturers" class="hover:text-blue-600">Manufacturers</a><span aria-hidden="true">›</span><span>Catalog</span></nav><h1 class="text-xl font-semibold text-slate-900">{{ manufacturer?.name ?? 'Manufacturer Catalog' }}</h1><p class="mt-1 text-sm text-slate-500">{{ manufacturer?.location }} · {{ products().length }} products available for procurement.</p></div>
+    @if (manufacturer) { <a [routerLink]="['/distributor/procurement/new']" [queryParams]="{ manufacturer: manufacturer.id }" class="inline-flex h-9 items-center justify-center rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700">Draft Purchase Order</a> }
+  </header>
+
+  @if (manufacturer) {
+    <div class="overflow-hidden rounded-lg border border-slate-200 bg-white"><div class="overflow-x-auto"><table class="w-full min-w-[760px] text-xs"><thead class="bg-slate-50 text-left font-medium text-slate-600"><tr><th scope="col" class="px-4 py-3">Product</th><th scope="col" class="px-3 py-3">SKU</th><th scope="col" class="px-3 py-3">Category</th><th scope="col" class="px-3 py-3 text-right">Available Stock</th><th scope="col" class="px-3 py-3 text-right">Indicative Unit Cost</th><th scope="col" class="px-3 py-3">Availability</th></tr></thead><tbody class="divide-y divide-slate-100">
+      @for (product of products(); track product.sku) {
+        <tr class="text-slate-700 hover:bg-slate-50"><td class="px-4 py-3"><p class="font-medium text-slate-900">{{ product.name }}</p><p class="mt-0.5 text-[10px] text-slate-500">{{ product.description }}</p></td><td class="whitespace-nowrap px-3 py-3">{{ product.sku }}</td><td class="whitespace-nowrap px-3 py-3">{{ product.category }}</td><td class="whitespace-nowrap px-3 py-3 text-right">{{ product.stock | number }} {{ product.unit }}</td><td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-900">{{ unitCost(product.sku) | currency:'KES':'symbol':'1.0-0' }}</td><td class="px-3 py-3"><span class="rounded border px-2 py-1 text-[9px] font-medium" [class.border-emerald-200]="product.stock > 0" [class.bg-emerald-50]="product.stock > 0" [class.text-emerald-700]="product.stock > 0" [class.border-slate-200]="product.stock === 0" [class.bg-slate-50]="product.stock === 0" [class.text-slate-600]="product.stock === 0">{{ product.stock > 0 ? 'AVAILABLE' : 'OUT OF STOCK' }}</span></td></tr>
+      } @empty { <tr><td colspan="6" class="px-4 py-12 text-center text-sm text-slate-500">No products are currently listed for this manufacturer.</td></tr> }
+    </tbody></table></div></div>
+  } @else {
+    <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Manufacturer not found. Return to the manufacturers directory and select a partner.</div>
+  }
+</section>

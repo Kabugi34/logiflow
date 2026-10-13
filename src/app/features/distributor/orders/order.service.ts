@@ -2,7 +2,7 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { DistributorCustomerService } from '../customers/customer.service';
 import { DistributorFleetService } from '../fleet/fleet.service';
 import { DistributorInventoryService } from '../inventory/inventory.service';
-import { CustomerOrder, CustomerOrderLine, NewCustomerOrder, OrderLogEvent } from './order.models';
+import { CustomerOrder, CustomerOrderLine, DistributorShipmentGroup, NewCustomerOrder, OrderLogEvent } from './order.models';
 
 const initialOrders: CustomerOrder[] = [
   {
@@ -72,9 +72,49 @@ export class DistributorOrderService {
 
   readonly orders = this.orderRecords.asReadonly();
   readonly activeOrders = computed(() => this.orderRecords().filter(order => order.status !== 'COMPLETED'));
+  readonly groupedShipments = computed<DistributorShipmentGroup[]>(() => this.groupOrdersByRoute());
 
   findById(id: string): CustomerOrder | undefined {
     return this.orderRecords().find(order => order.id === id);
+  }
+
+  groupOrdersByRoute(): DistributorShipmentGroup[] {
+    const groups = new Map<string, DistributorShipmentGroup>();
+    const activeOrders = this.orderRecords().filter(order => order.status !== 'COMPLETED');
+
+    for (const order of activeOrders) {
+      const routeKey = this.routeKeyForOrder(order);
+      const existing = groups.get(routeKey);
+
+      if (existing) {
+        existing.orderIds.push(order.id);
+        existing.orders.push(order);
+        existing.totalValue += this.total(order);
+        existing.driverId ??= order.driverId;
+        existing.vehicleId ??= order.vehicleId;
+        existing.status = this.resolveShipmentStatus(existing.status, order.status);
+        existing.routeLabel = existing.routeLabel || order.destinationName;
+        continue;
+      }
+
+      groups.set(routeKey, {
+        id: `SHP-${String(groups.size + 1).padStart(3, '0')}`,
+        routeKey,
+        routeLabel: order.destinationName,
+        status: order.status,
+        orderIds: [order.id],
+        orders: [order],
+        driverId: order.driverId,
+        vehicleId: order.vehicleId,
+        totalValue: this.total(order)
+      });
+    }
+
+    return [...groups.values()].sort((left, right) => right.totalValue - left.totalValue);
+  }
+
+  findShipmentForOrder(orderId: string): DistributorShipmentGroup | undefined {
+    return this.groupOrdersByRoute().find(group => group.orderIds.includes(orderId));
   }
 
   total(order: { lines: CustomerOrderLine[] }): number {
@@ -149,6 +189,17 @@ export class DistributorOrderService {
           log: [...order.log.map(entry => ({ ...entry, state: 'COMPLETE' as const })), { ...event, state }]
         }
       : order));
+  }
+
+  private routeKeyForOrder(order: CustomerOrder): string {
+    return order.destinationName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'general-route';
+  }
+
+  private resolveShipmentStatus(current: CustomerOrder['status'], next: CustomerOrder['status']): CustomerOrder['status'] {
+    if (next === 'REROUTED' || current === 'REROUTED') return 'REROUTED';
+    if (next === 'IN_TRANSIT' || current === 'IN_TRANSIT') return 'IN_TRANSIT';
+    if (next === 'PREPARING' || current === 'PREPARING') return 'PREPARING';
+    return 'COMPLETED';
   }
 }
 

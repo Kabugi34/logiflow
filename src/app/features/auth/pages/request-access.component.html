@@ -13,7 +13,7 @@
     @if (submitted()) {
       <div class="space-y-4 p-6">
         <div class="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-800" role="status">{{ successMessage() }}</div>
-        <p class="text-sm text-slate-600">If approved, you’ll receive an activation link by email. Use it to create your password, then sign in.</p>
+        <p class="text-sm text-slate-600">We’ll review your application and email the activation link to your personal email, <span class="font-medium text-slate-800">{{ submittedEmail() }}</span>. Use the link to create your password, then sign in.</p>
         <a routerLink="/auth/login" class="inline-flex h-10 items-center justify-center rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700">Sign in</a>
       </div>
     } @else {
@@ -43,24 +43,30 @@
 
         <label class="block text-xs font-medium text-slate-700">
           <span class="mb-1.5 block">Phone number</span>
-          <input formControlName="phoneNumber" class="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="0738987234" />
+          <input formControlName="phoneNumber" class="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="+254738987234" />
         </label>
 
         <label class="block text-xs font-medium text-slate-700">
-          <span class="mb-1.5 block">Your email</span>
+          <span class="mb-1.5 block">Personal email for your invitation</span>
           <input formControlName="contactEmail" type="email" class="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="boogie@company.com" />
+          @if (duplicateContactEmail()) {
+            <span class="mt-1 block text-xs text-red-600" role="alert">This personal email already has an account or access request. Sign in or use another email.</span>
+          }
         </label>
 
         <label class="block text-xs font-medium text-slate-700">
           <span class="mb-1.5 block">Organization email</span>
           <input formControlName="organizationEmail" type="email" class="h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="ops@company.com" />
+          @if (duplicateOrganizationEmail()) {
+            <span class="mt-1 block text-xs text-red-600" role="alert">This organization email is already associated with an application.</span>
+          }
         </label>
       </div>
 
       <div class="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-between">
         <a routerLink="/auth/login" class="inline-flex h-10 items-center justify-center rounded-md border border-slate-200 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Already have access? Sign in</a>
-        <button type="submit" class="inline-flex h-11 items-center justify-center rounded-md bg-blue-600 px-5 text-sm font-medium text-white hover:bg-blue-700">
-          Submit request
+        <button type="submit" [disabled]="isSubmitting() || submitted()" class="inline-flex h-11 items-center justify-center rounded-md bg-blue-600 px-5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60">
+          {{ isSubmitting() ? 'Submitting…' : 'Submit request' }}
         </button>
       </div>
     </form>

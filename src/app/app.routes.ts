@@ -120,6 +120,30 @@ export const routes: Routes = [
             .then(m => m.CATALOG_ROUTES)
       },
       {
+        path: 'inventory',
+        loadChildren: () =>
+          import('./features/distributor/inventory/inventory.routes')
+            .then(m => m.INVENTORY_ROUTES)
+      },
+      {
+        path: 'procurement',
+        loadChildren: () =>
+          import('./features/distributor/procurement/procurement.routes')
+            .then(m => m.PROCUREMENT_ROUTES)
+      },
+      {
+        path: 'logistics',
+        loadChildren: () =>
+          import('./features/distributor/logistics/logistics.routes')
+            .then(m => m.LOGISTICS_ROUTES)
+      },
+      {
+        path: 'customers',
+        loadChildren: () =>
+          import('./features/distributor/customers/customers.routes')
+            .then(m => m.CUSTOMER_ROUTES)
+      },
+      {
         path: 'orders',
         loadChildren: () =>
           import('./features/distributor/orders/orders.routes')

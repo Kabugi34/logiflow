@@ -22,9 +22,12 @@
       </label>
 
       <div class="flex items-center justify-between gap-3 pt-2">
-        <a routerLink="/auth/request-access" class="text-sm font-medium text-blue-600 hover:text-blue-700">Request access</a>
-        <button type="submit" class="inline-flex h-11 items-center justify-center rounded-md bg-blue-600 px-5 text-sm font-medium text-white hover:bg-blue-700">
-          Sign in
+        <div class="flex flex-col gap-2">
+          <a routerLink="/auth/request-access" class="text-sm font-medium text-blue-600 hover:text-blue-700">Request access</a>
+          <a routerLink="/auth/reset-password" class="text-sm font-medium text-slate-600 hover:text-slate-800">Forgot password?</a>
+        </div>
+        <button type="submit" [disabled]="isSubmitting()" class="inline-flex h-11 items-center justify-center rounded-md bg-blue-600 px-5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60">
+          {{ isSubmitting() ? 'Signing in…' : 'Sign in' }}
         </button>
       </div>
     </form>

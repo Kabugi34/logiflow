@@ -22,7 +22,7 @@ export class ShipmentListComponent {
   protected readonly selectedStatus = signal('ACTIVE');
   protected readonly isAllocationOpen = signal(false);
   protected readonly allocationError = signal('');
-  protected readonly orders = this.purchaseOrderService.orders;
+  protected readonly dispatchableOrders = computed(() => this.purchaseOrderService.orders().filter(order => order.status === 'ACCEPTED'));
   protected readonly availableDrivers = computed(() => this.fleetService.drivers().filter(driver => {
     const vehicle = driver.vehicleId ? this.fleetService.findVehicle(driver.vehicleId) : undefined;
     return driver.status === 'STANDBY' && driver.currentTripId === null &&
@@ -33,7 +33,7 @@ export class ShipmentListComponent {
     return status === 'ALL' || (status === 'ACTIVE' ? shipment.status !== 'DELIVERED' : shipment.status === status);
   }));
   protected readonly form = this.formBuilder.nonNullable.group({
-    poReference: ['PO-2026-981', Validators.required],
+    poReference: ['', Validators.required],
     destination: ['', [Validators.required, Validators.maxLength(100)]],
     freightDetails: ['', [Validators.required, Validators.maxLength(100)]],
     quantity: [1, [Validators.required, Validators.min(1)]],
@@ -47,7 +47,8 @@ export class ShipmentListComponent {
 
   protected openAllocation(): void {
     this.allocationError.set('');
-    this.form.reset({ poReference: 'PO-2026-981', destination: '', freightDetails: '', quantity: 1, driverId: '', tripId: 'TRP-8017' });
+    const firstOrderId = this.dispatchableOrders()[0]?.id ?? '';
+    this.form.reset({ poReference: firstOrderId, destination: '', freightDetails: '', quantity: 1, driverId: '', tripId: 'TRP-8017' });
     this.updateOrderDefaults();
     this.isAllocationOpen.set(true);
   }

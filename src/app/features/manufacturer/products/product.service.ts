@@ -81,6 +81,37 @@ export class ManufacturerProductService {
       movements: [
         { title: 'Critical stock hold', detail: 'Only 2 units available at Nairobi hub', date: 'Today, 08:10' }
       ]
+    },
+    {
+      id: 5,
+      name: 'Gear Assembly Unit',
+      sku: 'GA-210-C',
+      brand: 'Kifaru Industrial Works',
+      category: 'Transmission',
+      unit: 'Pcs',
+      stock: 860,
+      status: 'ACTIVE',
+      image: 'assets/images/products/gear-box.jpg',
+      description: 'Heavy-duty gear assembly manufactured for regional transport and processing equipment.',
+      inventory: [
+        { terminal: 'Nairobi Distribution Hub A-1', reserved: 50, available: 810 },
+        { terminal: 'Kisumu Distribution Warehouse', reserved: 0, available: 50 }
+      ],
+      movements: [{ title: 'Stock received', detail: 'New assembly stock recorded in Nairobi.', date: 'Yesterday' }]
+    },
+    {
+      id: 6,
+      name: 'Compact Servo Motor',
+      sku: 'CSM-118-B',
+      brand: 'Rift Valley Motion Systems',
+      category: 'Motors',
+      unit: 'Pcs',
+      stock: 96,
+      status: 'ACTIVE',
+      image: 'assets/images/products/hydraulic-motor.jpg',
+      description: 'Compact servo motor for automated warehouse and light industrial systems.',
+      inventory: [{ terminal: 'Nakuru Regional Warehouse W-2', reserved: 8, available: 88 }],
+      movements: [{ title: 'Stock received', detail: 'Servo motor inventory checked into Nakuru.', date: 'Today, 10:20' }]
     }
   ]);
 
