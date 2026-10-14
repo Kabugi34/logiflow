@@ -13,7 +13,7 @@ export class InventoryCenterComponent {
   protected readonly inventoryService = inject(ManufacturerInventoryService);
   protected readonly selectedCategory = signal('All categories');
   protected readonly selectedTerminalId = signal(this.inventoryService.getTerminalId());
-  protected readonly categories = this.inventoryService.getCategories();
+  protected readonly categories = computed(() => this.inventoryService.getCategories());
   protected readonly rows = computed(() => this.inventoryService.getRows(this.selectedCategory()));
   protected readonly auditRequested = this.inventoryService.auditRequestSubmitted.asReadonly();
 

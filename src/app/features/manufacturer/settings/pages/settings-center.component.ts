@@ -40,8 +40,12 @@ export class SettingsCenterComponent {
       this.form.markAllAsTouched();
       return;
     }
-    this.settingsService.updateProfile({ ...this.profile(), ...this.form.getRawValue() });
-    this.savedMessage.set('Organization settings saved.');
+    try {
+      this.settingsService.updateProfile({ ...this.profile(), ...this.form.getRawValue() });
+      this.savedMessage.set('Organization settings saved.');
+    } catch (error) {
+      this.savedMessage.set(error instanceof Error ? error.message : 'Organization settings could not be saved.');
+    }
   }
 
   protected updateNotification(key: NotificationPreferenceKey, event: Event): void {
@@ -54,9 +58,13 @@ export class SettingsCenterComponent {
       this.regionalForm.markAllAsTouched();
       return;
     }
-    this.settingsService.updateProfile({ ...this.profile(), ...this.regionalForm.getRawValue() });
-    this.form.patchValue(this.profile());
-    this.savedMessage.set('Regional defaults saved.');
+    try {
+      this.settingsService.updateProfile({ ...this.profile(), ...this.regionalForm.getRawValue() });
+      this.form.patchValue(this.profile());
+      this.savedMessage.set('Regional defaults saved.');
+    } catch (error) {
+      this.savedMessage.set(error instanceof Error ? error.message : 'Regional defaults could not be saved.');
+    }
   }
 
   protected toggleTheme(): void {

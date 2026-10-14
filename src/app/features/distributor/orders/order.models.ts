@@ -1,6 +1,6 @@
-export type CustomerOrderStatus = 'PREPARING' | 'IN_TRANSIT' | 'REROUTED' | 'COMPLETED';
-export type PaymentStatus = 'PAID' | 'PENDING';
-export type DeliveryStatus = 'UNASSIGNED' | 'ON_ROUTE' | 'HOLD' | 'DELIVERED';
+export type CustomerOrderStatus = 'PREPARING' | 'IN_TRANSIT' | 'REROUTED' | 'COMPLETED' | 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'AWAITING_DISPATCH' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED' | 'FAILED';
+export type PaymentStatus = 'PAID' | 'PENDING' | 'UNKNOWN';
+export type DeliveryStatus = 'UNASSIGNED' | 'ON_ROUTE' | 'HOLD' | 'DELIVERED' | 'UNKNOWN';
 export type OrderBadgeValue = CustomerOrderStatus | PaymentStatus | DeliveryStatus;
 
 export interface CustomerOrderLine {

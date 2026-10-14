@@ -7,8 +7,6 @@ export interface ProcurementManufacturer {
   name: string;
   productBrand: string;
   location: string;
-  verification: 'CERTIFIED' | 'VERIFIED';
-  rating: number;
 }
 
 export interface ProcurementOrderLine {

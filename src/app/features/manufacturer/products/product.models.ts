@@ -1,7 +1,7 @@
 export type ProductStatus = 'ACTIVE' | 'LOW STOCK' | 'CRITICAL STOCK';
 
 export interface ManufacturerProduct {
-  id: number;
+  id: number | string;
   name: string;
   sku: string;
   brand: string;

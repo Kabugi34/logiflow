@@ -56,19 +56,19 @@ export class DistributorDashboardService {
 
   getDashboard(): DistributorDashboard {
     return {
-      customerOrdersToday: 382,
-      pendingOrders: 12,
-      shippedOrders: 320,
-      paidOrders: 50,
-      inventoryValue: 2840000,
-      inventoryUnits: 45910,
-      inventoryCategories: 14,
-      incomingPurchaseOrders: 12,
-      incomingPurchaseOrderValue: 312400,
-      supplyingManufacturers: 4,
-      activeDeliveryTrips: 84,
-      standbyDrivers: 19,
-      completedTrips: 1240
+      customerOrdersToday: 0,
+      pendingOrders: this.orderService.orders().filter(order => ['PENDING', 'CONFIRMED', 'PROCESSING', 'AWAITING_DISPATCH'].includes(order.status)).length,
+      shippedOrders: this.orderService.orders().filter(order => order.status === 'IN_TRANSIT').length,
+      paidOrders: 0,
+      inventoryValue: this.inventoryService.items().reduce((total, item) => total + item.onHand * item.unitPrice, 0),
+      inventoryUnits: this.inventoryService.items().reduce((total, item) => total + item.onHand, 0),
+      inventoryCategories: new Set(this.inventoryService.items().map(item => item.category)).size,
+      incomingPurchaseOrders: this.orderService.orders().filter(order => order.status === 'PENDING').length,
+      incomingPurchaseOrderValue: 0,
+      supplyingManufacturers: 0,
+      activeDeliveryTrips: 0,
+      standbyDrivers: 0,
+      completedTrips: 0
     };
   }
 }

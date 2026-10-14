@@ -1,22 +1,9 @@
 import { computed, Injectable, signal } from '@angular/core';
 import { DistributorDriver, DistributorVehicle } from './fleet.models';
 
-const HOME_WAREHOUSE = 'Nairobi Distribution Centre';
-
-const initialVehicles: DistributorVehicle[] = [
-  { id: 'TRK-40912', model: 'Isuzu FVR', plate: 'KDA 123A', status: 'AVAILABLE', locationLabel: HOME_WAREHOUSE, latitude: -1.2864, longitude: 36.8172 },
-  { id: 'TRK-09214', model: 'Mitsubishi Fuso Fighter', plate: 'KDB 456B', status: 'ON_TRIP', locationLabel: 'Mombasa Road outbound', latitude: -1.3451, longitude: 36.8502, currentOrderId: 'ORD-88104' },
-  { id: 'TRK-33190', model: 'Hino 500 Series', plate: 'KDC 789C', status: 'ON_TRIP', locationLabel: 'Athi River logistics corridor', latitude: -1.4563, longitude: 36.9783, currentOrderId: 'ORD-33291' },
-  { id: 'TRK-51420', model: 'Isuzu Giga', plate: 'KDD 234D', status: 'AVAILABLE', locationLabel: HOME_WAREHOUSE, latitude: -1.2921, longitude: 36.8219 },
-  { id: 'TRK-61033', model: 'Toyota Dyna', plate: 'KDE 567E', status: 'MAINTENANCE', locationLabel: 'Service bay 2 · Industrial Area, Nairobi', latitude: -1.3167, longitude: 36.8500 }
-];
-
-const initialDrivers: DistributorDriver[] = [
-  { id: 'DRV-101', name: 'Daniel Kamau', status: 'STANDBY', locationLabel: 'Mobile standby · Nairobi' },
-  { id: 'DRV-102', name: 'Faith Njeri', status: 'ON_TRIP', locationLabel: 'Mombasa Road outbound', vehicleId: 'TRK-09214', currentOrderId: 'ORD-88104' },
-  { id: 'DRV-103', name: 'Peter Otieno', status: 'ON_TRIP', locationLabel: 'Athi River logistics corridor', vehicleId: 'TRK-33190', currentOrderId: 'ORD-33291' },
-  { id: 'DRV-104', name: 'Mary Wanjiku', status: 'STANDBY', locationLabel: HOME_WAREHOUSE }
-];
+const HOME_WAREHOUSE = '';
+const initialVehicles: DistributorVehicle[] = [];
+const initialDrivers: DistributorDriver[] = [];
 
 @Injectable({ providedIn: 'root' })
 export class DistributorFleetService {

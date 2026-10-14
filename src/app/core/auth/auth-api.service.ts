@@ -55,7 +55,7 @@ export class AuthApiService {
   }
 
   requestActivationLink(email: string): Observable<void> {
-    return this.http.post<void>(this.url(API_CONFIG.auth.activationResend), { identifier: email });
+    return this.http.post<void>(this.url(API_CONFIG.auth.activationResend, API_CONFIG.apiRoot), { identifier: email });
   }
 
   login(identifier: string, password: string): Observable<AuthSession> {
@@ -66,23 +66,23 @@ export class AuthApiService {
   }
 
   refresh(refreshToken: string): Observable<AuthSession> {
-    return this.http.post<AuthSession>(this.url(API_CONFIG.auth.refresh), { refreshToken });
+    return this.http.post<AuthSession>(this.url(API_CONFIG.auth.refresh, API_CONFIG.apiRoot), { refreshToken });
   }
 
   logout(refreshToken: string): Observable<void> {
-    return this.http.post<void>(this.url(API_CONFIG.auth.logout), { refreshToken });
+    return this.http.post<void>(this.url(API_CONFIG.auth.logout, API_CONFIG.apiRoot), { refreshToken });
   }
 
   me(): Observable<AuthUserResponse> {
-    return this.http.get<AuthUserResponse>(this.url(API_CONFIG.auth.me));
+    return this.http.get<AuthUserResponse>(this.url(API_CONFIG.auth.me, API_CONFIG.apiRoot));
   }
 
   requestPasswordReset(email: string): Observable<void> {
-    return this.http.post<void>(this.url(API_CONFIG.auth.passwordResetRequest), { identifier: email });
+    return this.http.post<void>(this.url(API_CONFIG.auth.passwordResetRequest, API_CONFIG.apiRoot), { identifier: email });
   }
 
   resetPassword(payload: { email: string; token: string; password: string }): Observable<void> {
-    return this.http.post<void>(this.url(API_CONFIG.auth.passwordReset), {
+    return this.http.post<void>(this.url(API_CONFIG.auth.passwordReset, API_CONFIG.apiRoot), {
       identifier: payload.email,
       otp: payload.token,
       newPassword: payload.password

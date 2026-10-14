@@ -27,7 +27,7 @@ export class DistributorLogisticsComponent {
 
   readonly outboundShipments = computed(() => this.orderService.groupOrdersByRoute());
 
-  readonly selectedInboundId = signal('PO-2026-081');
+  readonly selectedInboundId = signal('');
   readonly selectedOutboundId = signal('SHP-001');
 
   readonly selectedInbound = computed(

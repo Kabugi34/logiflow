@@ -1,46 +1,46 @@
-import { computed, Injectable, signal } from '@angular/core';
-import { DistributorInventoryItem, StockDeduction, StockLevel } from './inventory.models';
+import { HttpClient } from '@angular/common/http';
+import { computed, inject, Injectable, signal } from '@angular/core';
+import { API_CONFIG } from '../../../core/api/api.config';
+import { DistributorInventoryItem, StockLevel } from './inventory.models';
 
-const initialInventory: DistributorInventoryItem[] = [
-  { sku: 'HDM-092-X', name: 'Heavy Duty Hydraulic Motor', category: 'Motors', unit: 'Pcs', onHand: 14, unitPrice: 97500, lowStockThreshold: 60, criticalStockThreshold: 20 },
-  { sku: 'HPG-881-A', name: 'High-Precision Gear Box', category: 'Transmission', unit: 'Pcs', onHand: 42, unitPrice: 84500, lowStockThreshold: 50, criticalStockThreshold: 15 },
-  { sku: 'PCV-404-Z', name: 'Pneumatic Control Valve', category: 'Valves', unit: 'Pcs', onHand: 320, unitPrice: 65000, lowStockThreshold: 80, criticalStockThreshold: 30 },
-  { sku: 'VRB-332-Y', name: 'Voltage Regulator Block', category: 'Electronics', unit: 'Pcs', onHand: 1240, unitPrice: 78000, lowStockThreshold: 200, criticalStockThreshold: 80 },
-  { sku: 'GA-210-C', name: 'Gear Assembly Unit', category: 'Transmission', unit: 'Pcs', onHand: 860, unitPrice: 23660, lowStockThreshold: 150, criticalStockThreshold: 60 },
-  { sku: 'CSM-118-B', name: 'Compact Servo Motor', category: 'Motors', unit: 'Pcs', onHand: 96, unitPrice: 110500, lowStockThreshold: 40, criticalStockThreshold: 15 }
-];
+interface StockItemResponse {
+  id: string; sku: string; name: string; category: string | null; unitPrice: number;
+  quantityOnHand: number; reorderThreshold: number; active: boolean;
+}
+interface ApiPage<T> { content?: T[]; }
 
 @Injectable({ providedIn: 'root' })
 export class DistributorInventoryService {
-  private readonly inventoryRecords = signal(initialInventory);
-
+  private readonly http = inject(HttpClient);
+  private readonly inventoryRecords = signal<DistributorInventoryItem[]>([]);
   readonly items = this.inventoryRecords.asReadonly();
+  readonly loading = signal(false);
+  readonly error = signal('');
   readonly thresholdAlerts = computed(() => this.inventoryRecords()
     .filter(item => this.stockLevel(item) !== 'HEALTHY')
-    .sort((first, second) => first.onHand / first.lowStockThreshold - second.onHand / second.lowStockThreshold));
+    .sort((a, b) => a.onHand / Math.max(a.lowStockThreshold, 1) - b.onHand / Math.max(b.lowStockThreshold, 1)));
 
-  findBySku(sku: string): DistributorInventoryItem | undefined {
-    return this.inventoryRecords().find(item => item.sku === sku);
+  constructor() { this.refresh(); }
+
+  refresh(): void {
+    this.loading.set(true);
+    this.http.get<ApiPage<StockItemResponse> | StockItemResponse[]>(`${API_CONFIG.apiRoot}/stock/items?size=100`).subscribe({
+      next: result => {
+        const rows = Array.isArray(result) ? result : result.content ?? [];
+        this.inventoryRecords.set(rows.filter(row => row.active).map(row => ({
+          sku: row.sku, name: row.name, category: row.category ?? 'Uncategorized', unit: '—', onHand: row.quantityOnHand,
+          unitPrice: row.unitPrice, lowStockThreshold: row.reorderThreshold, criticalStockThreshold: Math.floor(row.reorderThreshold / 2)
+        })));
+        this.error.set(''); this.loading.set(false);
+      },
+      error: () => { this.error.set('Inventory could not be loaded from the API.'); this.loading.set(false); }
+    });
   }
 
+  findBySku(sku: string): DistributorInventoryItem | undefined { return this.inventoryRecords().find(item => item.sku === sku); }
   stockLevel(item: DistributorInventoryItem): StockLevel {
     if (item.onHand <= item.criticalStockThreshold) return 'CRITICAL';
     if (item.onHand <= item.lowStockThreshold) return 'LOW';
     return 'HEALTHY';
-  }
-
-  deduct(deductions: StockDeduction[]): void {
-    for (const deduction of deductions) {
-      const item = this.findBySku(deduction.sku);
-      if (!item || item.onHand < deduction.quantity) {
-        throw new Error(`Not enough stock for ${item?.name ?? deduction.sku}.`);
-      }
-    }
-    this.inventoryRecords.update(items => items.map(item => {
-      const quantity = deductions
-        .filter(deduction => deduction.sku === item.sku)
-        .reduce((sum, deduction) => sum + deduction.quantity, 0);
-      return quantity ? { ...item, onHand: item.onHand - quantity } : item;
-    }));
   }
 }

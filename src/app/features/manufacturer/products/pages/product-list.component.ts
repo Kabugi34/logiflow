@@ -14,7 +14,7 @@ export class ProductListComponent {
   protected readonly searchTerm = signal('');
   protected readonly selectedCategory = signal('All categories');
   protected readonly selectedStatus = signal('All statuses');
-  protected readonly categories = [...new Set(this.productService.products().map(product => product.category))];
+  protected readonly categories = computed(() => [...new Set(this.productService.products().map(product => product.category))]);
   protected readonly filteredProducts = computed(() => {
     const query = this.searchTerm().trim().toLowerCase();
     return this.productService.products().filter(product => {

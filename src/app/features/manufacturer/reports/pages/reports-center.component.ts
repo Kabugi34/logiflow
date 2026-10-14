@@ -11,8 +11,8 @@ import { ManufacturerReportService } from '../report.service';
 })
 export class ReportsCenterComponent {
   protected readonly reportService = inject(ManufacturerReportService);
-  protected readonly startDate = signal('2024-09-01');
-  protected readonly endDate = signal('2024-09-30');
+  protected readonly startDate = signal(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10));
+  protected readonly endDate = signal(new Date().toISOString().slice(0, 10));
   protected readonly selectedWarehouseId = signal('ALL');
   protected readonly snapshot = computed(() => this.reportService.getSnapshot(this.selectedWarehouseId()));
   protected readonly maximumLoads = computed(() => this.reportService.getMaximumWeeklyLoads(this.selectedWarehouseId()));

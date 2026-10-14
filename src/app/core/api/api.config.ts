@@ -1,6 +1,6 @@
 export const API_CONFIG = {
   apiRoot: 'http://localhost:8080/api',
-  baseUrl: 'http://localhost:8080/api',
+  baseUrl: 'http://localhost:8080/api/v1',
   auth: {
     accessRequest: '/access-requests',
     activate: '/access-requests/activate',

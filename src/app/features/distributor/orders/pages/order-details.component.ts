@@ -47,7 +47,10 @@ export class OrderDetailsComponent {
     if (!order) return;
     this.errorMessage.set('');
     try {
-      this.orderService.dispatch(order.id, this.selectedVehicleId(), this.selectedDriverId());
+      this.orderService.updateStatus(order.id, 'IN_TRANSIT').subscribe({
+        next: () => this.orderService.refresh(),
+        error: error => this.errorMessage.set(error?.error?.message ?? 'The order status could not be updated.')
+      });
     } catch (error) {
       this.errorMessage.set(error instanceof Error ? error.message : 'Unable to dispatch this order.');
     }
@@ -55,11 +58,13 @@ export class OrderDetailsComponent {
 
   protected confirmDelivery(): void {
     const order = this.order();
-    if (order) this.orderService.confirmDelivery(order.id);
+    if (order) this.orderService.updateStatus(order.id, 'DELIVERED').subscribe({
+      next: () => this.orderService.refresh(),
+      error: error => this.errorMessage.set(error?.error?.message ?? 'The order status could not be updated.')
+    });
   }
 
   protected markPaid(): void {
-    const order = this.order();
-    if (order) this.orderService.markPaid(order.id);
+    this.errorMessage.set('Use the payment flow to record payment; manual local status changes are disabled.');
   }
 }

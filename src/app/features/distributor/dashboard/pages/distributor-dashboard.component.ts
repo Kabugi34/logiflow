@@ -25,7 +25,7 @@ export class DistributorDashboardComponent {
   private readonly dashboardService =
     inject(DistributorDashboardService);
 
-  dashboard = this.dashboardService.getDashboard();
+  get dashboard() { return this.dashboardService.getDashboard(); }
 
   activeOrders = this.dashboardService.activeOrders;
 

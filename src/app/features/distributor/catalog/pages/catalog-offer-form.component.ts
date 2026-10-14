@@ -75,7 +75,6 @@ export class CatalogOfferFormComponent {
     try {
       this.catalogService.addOffer({
         ...this.form.getRawValue(),
-        manufacturerId: 'MFG-UNKNOWN',
         notes: this.form.getRawValue().notes ?? ''
       });
       void this.router.navigate(['/distributor/catalog']);

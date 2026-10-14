@@ -1,51 +1,63 @@
-import { computed, inject, Injectable } from '@angular/core';
-import { LogisticsService } from '../../../core/logistics/logistics.service';
-import { ManufacturerProductService } from '../products/product.service';
+import { HttpClient } from '@angular/common/http';
+import { computed, inject, Injectable, signal } from '@angular/core';
+import { API_CONFIG } from '../../../core/api/api.config';
 import { ManufacturerPurchaseOrder, PurchaseOrderStatus } from './purchase-order.models';
+
+interface ApiPo {
+  id: string; purchaseOrderNumber: string; buyerOrganizationId: string; status: string; submittedAt: string;
+  items: { sku: string; name: string; quantity: number; unitPrice: number }[];
+}
+interface ApiPage<T> { content?: T[]; }
 
 @Injectable({ providedIn: 'root' })
 export class ManufacturerPurchaseOrderService {
-  private readonly logisticsService = inject(LogisticsService);
-  private readonly productService = inject(ManufacturerProductService);
-  readonly orders = computed<ManufacturerPurchaseOrder[]>(() => this.logisticsService.inboundOrders().map(order => ({
-    id: order.id,
-    distributorName: order.distributorName,
-    destinationHub: order.destination,
-    issueDate: order.orderDate,
-    status: this.purchaseOrderStatus(order.status),
-    lines: order.lines.map(line => ({
-      productName: line.productName,
-      sku: line.sku,
-      requestedQuantity: line.quantity,
-      availableStock: this.productService.findBySku(line.sku)?.stock ?? 0,
-      unitPrice: line.unitCost,
-      unit: line.unit
-    })),
-    timeline: order.timeline.map(event => ({ ...event, occurredAt: order.orderDate }))
-  })));
-
+  private readonly http = inject(HttpClient);
+  private readonly records = signal<ManufacturerPurchaseOrder[]>([]);
+  readonly orders = this.records.asReadonly();
+  readonly loading = signal(false);
+  readonly error = signal('');
   readonly counts = computed(() => {
-    const orders = this.orders();
+    const rows = this.records();
     return {
-      PENDING: orders.filter(order => order.status === 'PENDING').length,
-      ACCEPTED: orders.filter(order => order.status === 'ACCEPTED').length,
-      REJECTED: orders.filter(order => order.status === 'REJECTED').length,
-      FULFILLED: orders.filter(order => order.status === 'FULFILLED').length
+      PENDING: rows.filter(row => row.status === 'PENDING').length,
+      ACCEPTED: rows.filter(row => row.status === 'ACCEPTED').length,
+      REJECTED: rows.filter(row => row.status === 'REJECTED').length,
+      FULFILLED: rows.filter(row => row.status === 'FULFILLED').length
     } satisfies Record<PurchaseOrderStatus, number>;
   });
 
-  findById(id: string): ManufacturerPurchaseOrder | undefined {
-    return this.orders().find(order => order.id === id);
+  constructor() { this.refresh(); }
+
+  refresh(): void {
+    this.loading.set(true);
+    this.http.get<ApiPage<ApiPo>>(`${API_CONFIG.baseUrl}/manufacturer/purchase-orders`).subscribe({
+      next: page => { this.records.set((page.content ?? []).map(row => this.mapOrder(row))); this.error.set(''); this.loading.set(false); },
+      error: () => { this.error.set('Purchase orders could not be loaded from the API.'); this.loading.set(false); }
+    });
   }
 
-  updateStatus(id: string, status: PurchaseOrderStatus): void {
-    if (status === 'ACCEPTED') this.logisticsService.updateInboundStatus(id, 'PROCESSING');
-    if (status === 'REJECTED') this.logisticsService.updateInboundStatus(id, 'REJECTED');
+  findById(id: string): ManufacturerPurchaseOrder | undefined { return this.records().find(order => order.id === id); }
+
+  updateStatus(id: string, status: PurchaseOrderStatus, note = '') {
+    const apiStatus = status === 'ACCEPTED' ? 'APPROVED' : status === 'PENDING' ? 'SUBMITTED' : status;
+    this.http.patch<ApiPo>(`${API_CONFIG.baseUrl}/manufacturer/purchase-orders/${encodeURIComponent(id)}/decision`, { status: apiStatus, note }).subscribe({
+      next: () => this.refresh(),
+      error: () => this.error.set('The purchase order decision could not be saved.')
+    });
   }
 
-  private purchaseOrderStatus(status: 'PENDING' | 'PROCESSING' | 'REJECTED' | 'IN_TRANSIT' | 'DELIVERED'): PurchaseOrderStatus {
-    if (status === 'PROCESSING') return 'ACCEPTED';
-    if (status === 'IN_TRANSIT' || status === 'DELIVERED') return 'FULFILLED';
-    return status;
+  private mapOrder(row: ApiPo): ManufacturerPurchaseOrder {
+    const status: PurchaseOrderStatus = row.status === 'APPROVED' ? 'ACCEPTED'
+      : row.status === 'FULFILLED' ? 'FULFILLED'
+      : row.status === 'REJECTED' ? 'REJECTED' : 'PENDING';
+    return {
+      id: row.id,
+      distributorName: row.buyerOrganizationId,
+      destinationHub: '—',
+      issueDate: row.submittedAt,
+      status,
+      lines: (row.items ?? []).map(item => ({ productName: item.name, sku: item.sku, requestedQuantity: item.quantity, availableStock: 0, unitPrice: item.unitPrice, unit: 'Pcs' })),
+      timeline: []
+    };
   }
 }

@@ -16,7 +16,7 @@ export class DriverDirectoryComponent {
   private readonly formBuilder = inject(FormBuilder);
   protected readonly drivers = this.fleetService.drivers;
   protected readonly metrics = this.fleetService.driverMetrics;
-  protected readonly selectedDriverId = signal('DRV-001');
+  protected readonly selectedDriverId = signal('');
   protected readonly statusActionMessage = signal('');
   protected readonly selectedAssignmentVehicleId = signal('');
   protected readonly assignmentMessage = signal('');

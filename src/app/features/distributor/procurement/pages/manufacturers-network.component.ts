@@ -12,7 +12,7 @@ export class ManufacturersNetworkComponent {
   protected readonly searchTerm = signal('');
   protected readonly manufacturers = computed(() => {
     const query = this.searchTerm().trim().toLowerCase();
-    return this.procurement.manufacturers.filter(manufacturer =>
+    return this.procurement.manufacturers().filter(manufacturer =>
       !query || [manufacturer.name, manufacturer.location].some(value => value.toLowerCase().includes(query))
     );
   });

@@ -5,34 +5,29 @@ const PROFILE_STORAGE_KEY = 'logiflow.manufacturer.organizationProfile';
 const NOTIFICATION_STORAGE_KEY = 'logiflow.manufacturer.notificationPreferences';
 
 const defaultProfile: OrganizationProfile = {
-  registeredName: 'LogiCore Manufacturing Ltd.',
-  taxRegistrationId: 'P051234567X',
-  timezone: 'Africa/Nairobi',
-  defaultWarehouseId: 'NBO-A1'
+  registeredName: '',
+  taxRegistrationId: '',
+  timezone: '',
+  defaultWarehouseId: ''
 };
 
 const defaultNotifications: NotificationPreferences = {
-  dispatchExceptionsSms: true,
-  purchaseOrderApprovalsEmail: true,
+  dispatchExceptionsSms: false,
+  purchaseOrderApprovalsEmail: false,
   weeklyCapacityForecasts: false
 };
 
 @Injectable({ providedIn: 'root' })
 export class ManufacturerSettingsService {
-  private readonly organizationProfile = signal(this.readStored(PROFILE_STORAGE_KEY, defaultProfile));
+  private readonly organizationProfile = signal(defaultProfile);
   private readonly notificationPreferences = signal(this.readStored(NOTIFICATION_STORAGE_KEY, defaultNotifications));
 
   readonly profile = this.organizationProfile.asReadonly();
   readonly notifications = this.notificationPreferences.asReadonly();
 
   updateProfile(profile: OrganizationProfile): void {
-    const normalizedProfile = {
-      ...profile,
-      registeredName: profile.registeredName.trim(),
-      taxRegistrationId: profile.taxRegistrationId.trim().toUpperCase()
-    };
-    this.organizationProfile.set(normalizedProfile);
-    this.writeStored(PROFILE_STORAGE_KEY, normalizedProfile);
+    void profile;
+    throw new Error('Organization settings cannot be saved because the backend has no organization-settings endpoint yet.');
   }
 
   updateNotification<K extends keyof NotificationPreferences>(key: K, enabled: boolean): void {
