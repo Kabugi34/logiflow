@@ -39,8 +39,8 @@
 
     <article class="rounded-lg border border-slate-200 bg-white p-4">
       <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">Inbound SLA</p>
-      <p class="mt-2 text-2xl font-semibold text-emerald-600">{{ onTimeInboundRate() }}%</p>
-      <p class="mt-1 text-[10px] text-slate-500">On-time receipt target</p>
+      <p class="mt-2 text-2xl font-semibold text-emerald-600">{{ onTimeInboundRate() === null ? 'Awaiting ETA data' : onTimeInboundRate() + '%' }}</p>
+      <p class="mt-1 text-[10px] text-slate-500">Requires shipment and expected-delivery API data</p>
     </article>
   </section>
 
@@ -101,11 +101,7 @@
         </div>
 
         <div class="mt-3 h-52 overflow-hidden rounded-md border border-slate-200 bg-slate-100">
-          <app-logistics-route-map
-            [route]="inboundRoute()"
-            [currentIndex]="activeInbound.currentRouteIndex"
-            routeLabel="Manufacturer shipment route"
-          />
+          @if (inboundRoute().length) { <app-logistics-route-map [route]="inboundRoute()" [currentIndex]="activeInbound.currentRouteIndex" routeLabel="Manufacturer shipment route" /> } @else { <div class="grid h-full place-items-center p-6 text-center text-xs text-slate-500">Purchase order status is live. Route tracking requires a shipment or trip linked to this purchase order.</div> }
         </div>
 
         <dl class="mt-4 space-y-2 border-t border-slate-100 pt-3 text-xs text-slate-600">
@@ -187,11 +183,7 @@
         </div>
 
         <div class="mt-3 h-52 overflow-hidden rounded-md border border-slate-200 bg-slate-100">
-          <app-logistics-route-map
-            [route]="outboundRoute()"
-            [currentIndex]="activeOutbound.status === 'IN_TRANSIT' ? 2 : activeOutbound.status === 'REROUTED' ? 1 : 0"
-            routeLabel="Outbound customer route"
-          />
+          @if (outboundRoute().length) { <app-logistics-route-map [route]="outboundRoute()" [currentIndex]="selectedOutboundShipment().currentRouteIndex" routeLabel="Outbound customer route" /> } @else { <div class="grid h-full place-items-center p-6 text-center text-xs text-slate-500">No delivery trip is linked to these customer orders.</div> }
         </div>
 
         <dl class="mt-4 space-y-2 border-t border-slate-100 pt-3 text-xs text-slate-600">
@@ -215,4 +207,18 @@
       }
     </aside>
   </div>
-</section>
+
+  <section class="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
+    <div class="flex flex-wrap items-center justify-between gap-2"><div><h2 class="text-sm font-semibold text-slate-900">Live organization trips</h2><p class="mt-1 text-xs text-slate-500">Trips returned for this distributor organization.</p></div><button type="button" (click)="tripService.refresh()" class="text-xs font-medium text-blue-600">Refresh trips</button></div>
+    @if (tripService.error()) { <p role="alert" class="text-xs text-red-600">{{ tripService.error() }}</p> }
+    <div class="grid gap-4 lg:grid-cols-2">
+      <div class="overflow-x-auto"><table class="w-full min-w-[420px] text-xs"><thead class="bg-slate-50 text-left text-slate-600"><tr><th class="px-3 py-2">Trip</th><th class="px-3 py-2">Type</th><th class="px-3 py-2">Status</th><th class="px-3 py-2">Stops</th><th class="px-3 py-2">Actions</th></tr></thead><tbody class="divide-y divide-slate-100">
+        @for (trip of tripService.trips(); track trip.id) {
+          <tr><td class="px-3 py-2"><button type="button" (click)="loadTripTracking(trip.id)" class="font-medium text-blue-600">{{ trip.tripNumber }}</button></td><td class="px-3 py-2">{{ trip.type }}</td><td class="px-3 py-2">{{ trip.status }}</td><td class="px-3 py-2">{{ trip.stops.length }}</td><td class="px-3 py-2">@if (trip.status === 'SCHEDULED') { <button type="button" (click)="updateTripStatus(trip.id, 'ONGOING')" class="text-blue-600">Start</button> } @else if (trip.status === 'ONGOING') { <button type="button" (click)="updateTripStatus(trip.id, 'COMPLETED')" class="text-blue-600">Complete</button> }</td></tr>
+        } @empty { <tr><td colspan="5" class="px-3 py-6 text-center text-slate-500">No trips found.</td></tr> }
+      </tbody></table></div>
+      @if (selectedTrip(); as trip) {
+        <div><h3 class="mb-2 text-xs font-semibold text-slate-800">{{ trip.tripNumber }} tracking</h3><div class="h-56 overflow-hidden rounded border border-slate-200"><app-logistics-route-map [route]="selectedTripRoute()" [currentIndex]="selectedTripRoute().length ? selectedTripRoute().length - 1 : 0" routeLabel="Backend trip route" /></div>@if (selectedTripPings().length) { <p class="mt-2 text-[10px] text-slate-500">Last location: {{ selectedTripPings()[selectedTripPings().length - 1].recordedAt | date:'short' }}</p> } @else { <p class="mt-2 text-[10px] text-slate-500">No tracking pings have been recorded yet.</p> }</div>
+      } @else { <p class="self-center text-xs text-slate-500">Select a trip number to load its tracking history.</p> }
+    </div>
+  </section></section>

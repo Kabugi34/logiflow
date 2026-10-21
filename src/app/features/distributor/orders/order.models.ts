@@ -18,6 +18,7 @@ export interface OrderLogEvent {
 }
 
 export interface CustomerOrder {
+  orderNumber?: string;
   id: string;
   customerId: string;
   customerName: string;
@@ -49,4 +50,6 @@ export interface DistributorShipmentGroup {
   driverId?: string;
   vehicleId?: string;
   totalValue: number;
+  route: { latitude: number; longitude: number; label: string }[];
+  currentRouteIndex: number;
 }

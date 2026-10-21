@@ -6,10 +6,13 @@ import { API_CONFIG } from '../api/api.config';
 
 export const errorInterceptor: HttpInterceptorFn = (request, next) => {
   const authService = inject(AuthService);
+  const sessionLookupUrl = `${API_CONFIG.apiRoot}${API_CONFIG.auth.me}`;
 
   return next(request).pipe(
     catchError((error: unknown) => {
-      const isSessionLookup = request.url === `${API_CONFIG.baseUrl}${API_CONFIG.auth.me}`;
+      // AuthApiService sends /users/me through apiRoot. Use the same root here
+      // so a 401 can reach AuthService.restoreSession(), which owns refresh.
+      const isSessionLookup = request.url === sessionLookupUrl;
       if (error instanceof HttpErrorResponse && error.status === 401 && !isSessionLookup) {
         authService.clearUser();
       }

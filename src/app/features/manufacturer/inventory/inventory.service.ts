@@ -3,7 +3,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { API_CONFIG } from '../../../core/api/api.config';
 import { InventoryRow, InventoryTerminal, TerminalInventoryRecord } from './inventory.models';
 
-interface StockItem { sku: string; name: string; category: string | null; quantityOnHand: number; reorderThreshold: number; }
+interface StockItem { sku: string; name: string; category: string | null; quantityOnHand: number; reservedQuantity?: number; availableQuantity?: number; reorderThreshold: number; }
 interface ApiPage<T> { content?: T[]; }
 
 @Injectable({ providedIn: 'root' })
@@ -23,7 +23,7 @@ export class ManufacturerInventoryService {
       next: page => {
         this.records.set((page.content ?? []).map(item => ({
           productName: item.name, sku: item.sku, category: item.category ?? 'Uncategorized', terminalId: 'ORG',
-          totalStock: item.quantityOnHand, reservedHolds: 0
+          totalStock: item.quantityOnHand, reservedHolds: item.reservedQuantity ?? Math.max(0, item.quantityOnHand - (item.availableQuantity ?? item.quantityOnHand))
         })));
         this.error.set(''); this.loading.set(false);
       },

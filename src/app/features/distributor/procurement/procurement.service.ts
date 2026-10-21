@@ -4,11 +4,8 @@ import { Observable, map } from 'rxjs';
 import { API_CONFIG } from '../../../core/api/api.config';
 import { DistributorPurchaseOrder, DraftProcurementLine, ProcurementManufacturer, ProcurementOrderLine } from './procurement.models';
 
-interface ApiProduct { id: string; organizationId: string | null; sku: string; name: string; category: string | null; unitPrice: number; active: boolean; }
-interface ApiPo {
-  id: string; purchaseOrderNumber: string; buyerOrganizationId: string; supplierOrganizationId: string; status: string;
-  totalAmount: number; submittedAt: string; items: { stockItemId: string; sku: string; name: string; quantity: number; unitPrice: number }[];
-}
+interface ApiProduct { id: string; organizationId: string | null; manufacturerOrganizationId?: string | null; sourceStockItemId?: string | null; sku: string; name: string; category: string | null; unitPrice: number; active: boolean; inStock?: boolean; }
+interface ApiPo { id: string; purchaseOrderNumber: string; buyerOrganizationId: string; supplierOrganizationId: string; status: string; totalAmount: number; submittedAt: string; items: { stockItemId: string; sku: string; name: string; quantity: number; unitPrice: number }[]; }
 interface ApiPage<T> { content?: T[]; }
 interface ProcurementProduct { id: string; organizationId: string; sku: string; name: string; description: string; category: string; unitPrice: number; stock: number; unit: string; }
 
@@ -27,29 +24,51 @@ export class DistributorProcurementService {
   constructor() { this.refreshProducts(); this.refreshOrders(); }
 
   refreshProducts(): void {
-    this.http.get<ApiPage<ApiProduct>>(`${API_CONFIG.apiRoot}/products?size=100`).subscribe({
-      next: page => this.productRecords.set((page.content ?? []).filter((product): product is ApiProduct & { organizationId: string } => product.active && typeof product.organizationId === 'string').map(product => ({
-        id: product.id, organizationId: product.organizationId, sku: product.sku, name: product.name,
-        description: '', category: product.category ?? 'Uncategorized', unitPrice: product.unitPrice, stock: 0, unit: '—'
-      }))),
+    this.http.get<ApiPage<ApiProduct> | ApiProduct[]>(`${API_CONFIG.baseUrl}/products?size=100`).subscribe({
+      next: result => {
+        const page = Array.isArray(result) ? result : result.content ?? [];
+        this.productRecords.set(page.filter(product => product.active && typeof (product.manufacturerOrganizationId ?? product.organizationId) === 'string').map(product => ({
+          id: product.sourceStockItemId ?? product.id,
+          organizationId: product.manufacturerOrganizationId ?? product.organizationId!,
+          sku: product.sku, name: product.name, description: '', category: product.category ?? 'Uncategorized',
+          unitPrice: product.unitPrice, stock: product.inStock ? 1 : 0, unit: '\u2014'
+        })));
+      },
       error: () => this.error.set('Supplier products could not be loaded from the API.')
     });
   }
 
   refreshOrders(): void {
     this.loading.set(true);
-    this.http.get<ApiPage<ApiPo>>(`${API_CONFIG.baseUrl}/purchase-orders`).subscribe({
-      next: page => { this.orderRecords.set((page.content ?? []).map(po => this.toPurchaseOrder(po))); this.loading.set(false); },
+    this.http.get<ApiPage<ApiPo> | ApiPo[]>(`${API_CONFIG.baseUrl}/purchase-orders`).subscribe({
+      next: result => {
+        const page = Array.isArray(result) ? result : result.content ?? [];
+        this.orderRecords.set(page.map(po => this.toPurchaseOrder(po)));
+        this.loading.set(false);
+      },
       error: () => { this.error.set('Purchase orders could not be loaded from the API.'); this.loading.set(false); }
     });
   }
 
+  loadOrder(id: string): void {
+    this.http.get<ApiPo>(`${API_CONFIG.baseUrl}/purchase-orders/${encodeURIComponent(id)}`).subscribe({
+      next: row => {
+        const order = this.toPurchaseOrder(row);
+        this.orderRecords.update(rows => rows.some(existing => existing.id === id)
+          ? rows.map(existing => existing.id === id ? order : existing)
+          : [order, ...rows]);
+      },
+      error: error => this.error.set(error?.error?.message ?? 'Purchase order details could not be loaded.')
+    });
+  }
+
+  loadSettlements(id: string) {
+    return this.http.get<{ id: string; status: string; amount: number; currency: string; note: string | null; settledAt: string | null }[]>(`${API_CONFIG.baseUrl}/purchase-orders/${encodeURIComponent(id)}/settlements`);
+  }
   findManufacturer(id: string): ProcurementManufacturer | undefined { return this.manufacturers().find(manufacturer => manufacturer.id === id); }
   manufacturerForBrand(_brand: string): ProcurementManufacturer | undefined { return undefined; }
   indicativeUnitCost(sku: string): number { return this.productRecords().find(product => product.sku === sku)?.unitPrice ?? 0; }
-  productsForManufacturer(manufacturerId: string): ProcurementProduct[] {
-    return this.productRecords().filter(product => product.organizationId === manufacturerId);
-  }
+  productsForManufacturer(manufacturerId: string): ProcurementProduct[] { return this.productRecords().filter(product => product.organizationId === manufacturerId); }
   findOrder(id: string): DistributorPurchaseOrder | undefined { return this.orderRecords().find(order => order.id === id); }
   total(order: Pick<DistributorPurchaseOrder, 'lines' | 'logisticsCost'>): number {
     return order.lines.reduce((sum, line) => sum + line.quantity * line.unitCost, 0) + order.logisticsCost;
@@ -73,12 +92,12 @@ export class DistributorProcurementService {
     const status = po.status === 'APPROVED' ? 'PROCESSING' : po.status === 'FULFILLED' ? 'DELIVERED'
       : po.status === 'REJECTED' ? 'REJECTED' : 'PENDING';
     const lines: ProcurementOrderLine[] = (po.items ?? []).map(item => ({
-      sku: item.sku, productName: item.name, quantity: item.quantity, unit: '—', unitCost: item.unitPrice
+      sku: item.sku, productName: item.name, quantity: item.quantity, unit: '\u2014', unitCost: item.unitPrice
     }));
     return {
       id: po.id, manufacturerId: po.supplierOrganizationId, manufacturerName: po.supplierOrganizationId,
-      manufacturerLocation: po.supplierOrganizationId, orderDate: po.submittedAt, expectedDelivery: '',
-      status, destination: '', logisticsCost: 0, lines, timeline: [], route: [], currentRouteIndex: 0
+      manufacturerLocation: '', orderDate: po.submittedAt, expectedDelivery: '', status, destination: '', logisticsCost: 0,
+      lines, timeline: [], route: [], currentRouteIndex: 0
     };
   }
 }
