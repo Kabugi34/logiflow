@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { API_CONFIG } from '../../../core/api/api.config';
+import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import { ManufacturerProduct } from './product.models';
 
 interface StockItemResponse {
@@ -36,7 +36,7 @@ export class ManufacturerProductService {
 
   refresh(): void {
     this.loading.set(true);
-    this.http.get<ApiPage<StockItemResponse> | StockItemResponse[]>(`${API_CONFIG.apiRoot}/stock/items?size=100`).subscribe({
+    this.http.get<ApiPage<StockItemResponse> | StockItemResponse[]>(`${API_ENDPOINTS.manufacturer.stockItems}?size=100`).subscribe({
       next: result => {
         const items = Array.isArray(result) ? result : result.content ?? [];
         this.productRecords.set(items.map(item => this.toProduct(item)));
@@ -52,7 +52,7 @@ export class ManufacturerProductService {
   }
 
   save(product: CreateStockItemRequest) {
-    return this.http.post<StockItemResponse>(`${API_CONFIG.apiRoot}/stock/items`, product);
+    return this.http.post<StockItemResponse>(API_ENDPOINTS.manufacturer.stockItems, product);
   }
 
   private toProduct(item: StockItemResponse): ManufacturerProduct {

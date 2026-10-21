@@ -2,6 +2,7 @@ import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { AuthService } from '../auth/auth.service';
 import { API_CONFIG } from '../api/api.config';
+import { API_ENDPOINTS } from '../api/api-endpoints';
 
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const token = inject(AuthService).accessToken;
@@ -33,7 +34,7 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   // Refresh uses its refresh-token body to renew an expired access token.
   // Sending that expired bearer token as well can cause some backends to
   // reject the refresh request before they inspect the refresh token.
-  const refreshPath = `${apiPath}${API_CONFIG.auth.refresh}`;
+  const refreshPath = new URL(API_ENDPOINTS.auth.refresh).pathname;
   if (requestUrl.pathname === refreshPath) return next(request);
 
   return token
