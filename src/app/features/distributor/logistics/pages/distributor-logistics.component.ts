@@ -2,10 +2,11 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { LogisticsRoutePoint } from '../../../../core/logistics/logistics.models';
-import { LogisticsService } from '../../../../core/logistics/logistics.service';
+import { InboundLogisticsOrder } from '../../../../core/logistics/logistics.models';
+import { DistributorProcurementService } from '../../procurement/procurement.service';
 import { LogisticsRouteMapComponent } from '../../../../shared/maps/logistics-route-map.component';
 import { DistributorOrderService } from '../../orders/order.service';
+import { DistributorTripService } from '../trip.service';
 
 @Component({
   selector: 'app-distributor-logistics',
@@ -14,12 +15,28 @@ import { DistributorOrderService } from '../../orders/order.service';
   templateUrl: './distributor-logistics.component.html'
 })
 export class DistributorLogisticsComponent {
-  private readonly logisticsService = inject(LogisticsService);
+  private readonly procurementService = inject(DistributorProcurementService);
   private readonly orderService = inject(DistributorOrderService);
+  protected readonly tripService = inject(DistributorTripService);
+  protected readonly selectedTripId = signal('');
+  protected readonly selectedTrip = computed(() => this.tripService.findById(this.selectedTripId()));
+  protected readonly selectedTripPings = computed(() => this.tripService.tracking()[this.selectedTripId()] ?? []);
+  protected readonly selectedTripRoute = computed(() => {
+    const trip = this.selectedTrip();
+    if (!trip) return [];
+    const route = [trip.origin, ...trip.stops.map(stop => stop.location)].map(point => ({ latitude: point.latitude, longitude: point.longitude, label: point.name }));
+    const latest = this.selectedTripPings().at(-1);
+    return latest ? [...route, { latitude: latest.lat, longitude: latest.lng, label: 'Live location' }] : route;
+  });
 
-  readonly inboundOrders = computed(() =>
-    this.logisticsService.inboundOrders().filter(order => order.status !== 'DELIVERED')
-  );
+  readonly inboundOrders = computed<InboundLogisticsOrder[]>(() => this.procurementService.orders().map(order => ({
+    id: order.id, manufacturerId: order.manufacturerId, manufacturerName: order.manufacturerName,
+    manufacturerLocation: '', distributorName: '', orderDate: order.orderDate, expectedDelivery: '',
+    status: (order.status === 'PROCESSING' ? 'PROCESSING' : order.status === 'DELIVERED' ? 'DELIVERED' : order.status === 'REJECTED' ? 'REJECTED' : 'PENDING') as InboundLogisticsOrder['status'],
+    destination: '', logisticsCost: order.logisticsCost,
+    lines: order.lines.map(line => ({ sku: line.sku, productName: line.productName, quantity: line.quantity, unit: line.unit, unitCost: line.unitCost })),
+    timeline: [], route: [], currentRouteIndex: 0
+  })).filter(order => order.status !== 'DELIVERED' && order.status !== 'REJECTED'));
 
   readonly outboundOrders = computed(() =>
     this.orderService.activeOrders().filter(order => order.status !== 'COMPLETED').slice(0, 4)
@@ -27,7 +44,7 @@ export class DistributorLogisticsComponent {
 
   readonly outboundShipments = computed(() => this.orderService.groupOrdersByRoute());
 
-  readonly selectedInboundId = signal('PO-2026-081');
+  readonly selectedInboundId = signal('');
   readonly selectedOutboundId = signal('SHP-001');
 
   readonly selectedInbound = computed(
@@ -43,26 +60,25 @@ export class DistributorLogisticsComponent {
     () => this.selectedOutboundShipment()?.orders[0] ?? this.outboundOrders().find(order => order.id === this.selectedOutboundId()) ?? this.outboundOrders()[0]
   );
 
-  readonly inboundRoute = computed(() => this.selectedInbound()?.route?.length
-    ? this.selectedInbound()!.route
-    : this.routeForLocation('Nairobi Distribution Centre'));
+  readonly inboundRoute = computed(() => this.selectedInbound()?.route ?? []);
 
-  readonly outboundRoute = computed(() => this.routeForLocation(this.selectedOutbound()?.destinationName ?? 'Westlands Distribution Hub'));
+  readonly outboundRoute = computed(() => this.selectedOutboundShipment()?.route ?? []);
 
   readonly inboundShipmentsInMotion = computed(
-    () => this.inboundOrders().filter(order => order.status === 'IN_TRANSIT' || order.status === 'PROCESSING').length
+    () => this.inboundOrders().filter(order => order.status === 'IN_TRANSIT').length
   );
 
   readonly outboundDeliveriesInMotion = computed(
     () => this.outboundShipments().filter(shipment => shipment.status === 'IN_TRANSIT' || shipment.status === 'REROUTED').length
   );
 
-  readonly onTimeInboundRate = computed(() => {
-    const orders = this.inboundOrders();
-    if (!orders.length) return 0;
-    const onTime = orders.filter(order => order.status === 'DELIVERED' || order.status === 'IN_TRANSIT').length;
-    return Math.round((onTime / orders.length) * 100);
-  });
+  readonly onTimeInboundRate = computed<number | null>(() => null);
+
+  protected loadTripTracking(id: string): void { this.selectedTripId.set(id); this.tripService.loadTracking(id); }
+
+  protected updateTripStatus(id: string, status: 'ONGOING' | 'COMPLETED'): void {
+    this.tripService.updateStatus(id, status).subscribe({ next: () => this.tripService.refresh(), error: error => this.tripService.error.set(error?.error?.message ?? 'Trip status could not be updated.') });
+  }
 
   selectInbound(id: string): void {
     this.selectedInboundId.set(id);
@@ -70,6 +86,7 @@ export class DistributorLogisticsComponent {
 
   selectOutbound(id: string): void {
     this.selectedOutboundId.set(id);
+    this.tripService.loadTracking(id);
   }
 
   inboundStatusClass(status: string): string {
@@ -102,30 +119,4 @@ export class DistributorLogisticsComponent {
     }
   }
 
-  private routeForLocation(location: string): LogisticsRoutePoint[] {
-    const text = location.toLowerCase();
-
-    if (text.includes('mombasa') || text.includes('coastline')) {
-      return [
-        { latitude: -1.2864, longitude: 36.8172, label: 'Nairobi Distribution Centre' },
-        { latitude: -0.7172, longitude: 36.431, label: 'Naivasha Checkpoint' },
-        { latitude: -3.396, longitude: 38.556, label: 'Voi Checkpoint' },
-        { latitude: -4.0435, longitude: 39.6682, label: 'Mombasa Bay' }
-      ];
-    }
-
-    if (text.includes('kisumu') || text.includes('eldoret')) {
-      return [
-        { latitude: -1.2864, longitude: 36.8172, label: 'Nairobi Distribution Centre' },
-        { latitude: -0.3031, longitude: 36.0800, label: 'Nakuru Cross Dock' },
-        { latitude: -0.0917, longitude: 34.7680, label: 'Kisumu Hub' }
-      ];
-    }
-
-    return [
-      { latitude: -1.2864, longitude: 36.8172, label: 'Nairobi Distribution Centre' },
-      { latitude: -1.278, longitude: 36.817, label: 'Westlands Hub' },
-      { latitude: -1.2864, longitude: 36.8172, label: 'Final delivery stop' }
-    ];
-  }
 }

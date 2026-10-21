@@ -24,8 +24,16 @@ export class OrderBadgeComponent {
       case 'PENDING':
       case 'PREPARING':
       case 'REROUTED':
+      case 'CONFIRMED':
+      case 'PROCESSING':
+      case 'AWAITING_DISPATCH':
       case 'UNASSIGNED':
         return 'border-amber-200 bg-amber-50 text-amber-700';
+      case 'UNKNOWN':
+      case 'CANCELLED':
+      case 'REFUNDED':
+      case 'FAILED':
+        return 'border-slate-200 bg-slate-50 text-slate-600';
     }
   }
 }

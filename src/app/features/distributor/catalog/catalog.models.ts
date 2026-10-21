@@ -8,19 +8,21 @@ export interface DistributorCatalogOffer {
   brand: string;
   unit: string;
   listPrice: number;
-  minimumOrderQty: number;
-  status: 'ACTIVE' | 'DRAFT' | 'PAUSED';
+  reorderThreshold: number;
+  status: 'ACTIVE' | 'PAUSED';
   addedAt: string;
   notes: string;
 }
 
 export interface DistributorCatalogProduct {
+  id: string;
+  manufacturerId: string;
   sku: string;
   name: string;
   manufacturerName: string;
   category: string;
   brand: string;
   unit: string;
-  stock: number;
+  stock: boolean;
   description: string;
 }

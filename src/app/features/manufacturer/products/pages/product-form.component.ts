@@ -18,11 +18,11 @@ export class ProductFormComponent {
   protected readonly categories = ['Motors', 'Transmission', 'Electronics', 'Valves', 'Other'];
   protected readonly form = this.formBuilder.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(120)]],
-    brand: ['', [Validators.required, Validators.maxLength(80)]],
     category: ['', Validators.required],
     sku: ['', [Validators.required, Validators.maxLength(40)]],
-    unit: ['Pcs', [Validators.required, Validators.maxLength(24)]],
-    description: ['', [Validators.required, Validators.maxLength(1000)]]
+    unitPrice: [0, [Validators.required, Validators.min(0.01)]],
+    initialQuantity: [0, [Validators.required, Validators.min(0)]],
+    reorderThreshold: [0, [Validators.required, Validators.min(0)]]
   });
 
   protected chooseImage(event: Event): void {
@@ -36,14 +36,9 @@ export class ProductFormComponent {
       this.form.markAllAsTouched();
       return;
     }
-    try {
-      this.productService.save({
-        ...this.form.getRawValue(),
-        image: this.selectedImage() || 'assets/images/products/product-placeholder.jpg'
-      });
-      void this.router.navigate(['/manufacturer/products']);
-    } catch (error) {
-      this.errorMessage.set(error instanceof Error ? error.message : 'Unable to save this product.');
-    }
+    this.productService.save(this.form.getRawValue()).subscribe({
+      next: () => { this.productService.refresh(); void this.router.navigate(['/manufacturer/products']); },
+      error: error => this.errorMessage.set(error?.error?.message ?? 'Unable to save this product to the API.')
+    });
   }
 }

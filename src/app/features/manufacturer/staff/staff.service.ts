@@ -4,13 +4,7 @@ import { ManufacturerWarehouseService } from '../warehouses/warehouse.service';
 import { DriverStatus } from '../fleet/fleet.models';
 import { ManufacturerStaffMember, NewManufacturerEmployee, StaffStatus } from './staff.models';
 
-const initialEmployees: ManufacturerStaffMember[] = [
-  { id: 'EMP-001', name: 'Joseph Mwangi', email: 'j.mwangi@logiflow.io', jobTitle: 'Global Operations Manager', accessRole: 'MANUFACTURER_ADMIN', warehouseId: 'NBO-A1', warehouseName: 'Nairobi Central Hub', status: 'ACTIVE', lastActive: 'Just now', category: 'EMPLOYEE' },
-  { id: 'EMP-002', name: 'Amina Hassan', email: 'a.hassan@logiflow.io', jobTitle: 'Warehouse Supervisor', accessRole: 'MANUFACTURER_STAFF', warehouseId: 'MBA-C4', warehouseName: 'Mombasa Freight Depot', status: 'ACTIVE', lastActive: '14 mins ago', category: 'EMPLOYEE' },
-  { id: 'EMP-003', name: 'Brian Kiptoo', email: 'b.kiptoo@logiflow.io', jobTitle: 'Logistics Coordinator', accessRole: 'MANUFACTURER_STAFF', warehouseId: 'NBO-A1', warehouseName: 'Nairobi Central Hub', status: 'PENDING', lastActive: 'Invited 2h ago', category: 'EMPLOYEE' },
-  { id: 'EMP-004', name: 'Mary Wanjiku', email: 'm.wanjiku@logiflow.io', jobTitle: 'Inventory Analyst', accessRole: 'MANUFACTURER_STAFF', warehouseId: 'NBO-A1', warehouseName: 'Nairobi Central Hub', status: 'ACTIVE', lastActive: '1 day ago', category: 'EMPLOYEE' },
-  { id: 'EMP-005', name: 'Peter Ochieng', email: 'p.ochieng@logiflow.io', jobTitle: 'Gate Dispatch Controller', accessRole: 'MANUFACTURER_STAFF', warehouseId: 'MBA-C4', warehouseName: 'Mombasa Freight Depot', status: 'SUSPENDED', lastActive: 'Sep 20, 2024', category: 'EMPLOYEE' }
-];
+const initialEmployees: ManufacturerStaffMember[] = [];
 
 @Injectable({ providedIn: 'root' })
 export class ManufacturerStaffService {

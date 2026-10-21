@@ -1,98 +1,70 @@
+import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { ManufacturerProductService } from '../../manufacturer/products/product.service';
+import { API_CONFIG } from '../../../core/api/api.config';
 import { DistributorCatalogOffer, DistributorCatalogProduct } from './catalog.models';
+
+interface ApiPage<T> { content?: T[]; }
+interface ApiProduct { id: string; organizationId: string | null; sourceStockItemId?: string | null; manufacturerOrganizationId?: string | null; sku: string; name: string; category: string | null; unitPrice: number; active: boolean; inStock?: boolean; }
+interface ApiStockItem { id: string; sourceStockItemId: string | null; manufacturerOrganizationId: string | null; warehouseId: string | null; sku: string; name: string; category: string | null; unitPrice: number; reorderThreshold: number; active: boolean; }
+interface ApiWarehouse { id: string; code: string; name: string; address: string; active: boolean; }
 
 @Injectable({ providedIn: 'root' })
 export class DistributorCatalogService {
-  private readonly manufacturerProductService = inject(ManufacturerProductService);
-  private readonly offerRecords = signal<DistributorCatalogOffer[]>([
-    {
-      id: 'OFF-1001',
-      manufacturerId: 'MFG-LOGICORE',
-      manufacturerName: 'LogiCore',
-      sku: 'HDM-092-X',
-      productName: 'Heavy Duty Hydraulic Motor',
-      category: 'Motors',
-      brand: 'LogiCore',
-      unit: 'Pcs',
-      listPrice: 97500,
-      minimumOrderQty: 2,
-      status: 'ACTIVE',
-      addedAt: '2026-09-25',
-      notes: 'Preferred contract pricing'
-    },
-    {
-      id: 'OFF-1002',
-      manufacturerId: 'MFG-AERODYN',
-      manufacturerName: 'AeroDyn',
-      sku: 'HPG-881-A',
-      productName: 'High-Precision Gear Box',
-      category: 'Transmission',
-      brand: 'AeroDyn',
-      unit: 'Pcs',
-      listPrice: 84500,
-      minimumOrderQty: 3,
-      status: 'ACTIVE',
-      addedAt: '2026-09-28',
-      notes: 'Fast fulfillment partner'
-    }
-  ]);
-
+  private readonly http = inject(HttpClient);
+  private readonly offerRecords = signal<DistributorCatalogOffer[]>([]);
+  private readonly productRecords = signal<DistributorCatalogProduct[]>([]);
+  private readonly warehouseRecords = signal<ApiWarehouse[]>([]);
   readonly offers = this.offerRecords.asReadonly();
+  readonly availableProducts = this.productRecords.asReadonly();
+  readonly warehouses = this.warehouseRecords.asReadonly();
+  readonly loading = signal(false);
+  readonly error = signal('');
 
-  readonly availableProducts = computed<DistributorCatalogProduct[]>(() =>
-    this.manufacturerProductService.products()
-      .filter(product => !this.offerRecords().some(offer => offer.sku === product.sku))
-      .map(product => ({
-        sku: product.sku,
-        name: product.name,
-        manufacturerName: product.brand,
-        category: product.category,
-        brand: product.brand,
-        unit: product.unit,
-        stock: product.stock,
-        description: product.description
-      }))
-  );
+  constructor() { this.refresh(); }
 
-  addOffer(draft: {
-    sku: string;
-    productName: string;
-    manufacturerName: string;
-    manufacturerId: string;
-    category: string;
-    brand: string;
-    unit: string;
-    listPrice: number;
-    minimumOrderQty: number;
-    notes: string;
-  }): string {
-    if (this.offerRecords().some(offer => offer.sku === draft.sku)) {
-      throw new Error('This product is already in your catalog.');
-    }
+  refresh(): void {
+    this.loading.set(true);
+    this.http.get<ApiPage<ApiProduct> | ApiProduct[]>(`${API_CONFIG.baseUrl}/products?size=100`).subscribe({
+      next: result => {
+        const rows = Array.isArray(result) ? result : result.content ?? [];
+        this.productRecords.set(rows.filter(row => row.active && !row.sourceStockItemId && typeof row.organizationId === 'string').map(row => ({
+          id: row.id, manufacturerId: row.organizationId!, sku: row.sku, name: row.name,
+          manufacturerName: row.manufacturerOrganizationId ?? row.organizationId!, category: row.category ?? 'Uncategorized',
+          brand: '', unit: '\u2014', stock: row.inStock ?? false, description: ''
+        })));
+      },
+      error: () => this.error.set('Manufacturer products could not be loaded.')
+    });
+    this.http.get<ApiPage<ApiStockItem> | ApiStockItem[]>(`${API_CONFIG.apiRoot}/stock/items?size=100`).subscribe({
+      next: result => {
+        const rows = Array.isArray(result) ? result : result.content ?? [];
+        this.offerRecords.set(rows.filter(row => !!row.sourceStockItemId).map(row => ({
+          id: row.id, manufacturerId: row.manufacturerOrganizationId ?? '', manufacturerName: row.manufacturerOrganizationId ?? 'Manufacturer',
+          sku: row.sku, productName: row.name, category: row.category ?? 'Uncategorized', brand: '', unit: '\u2014',
+          listPrice: row.unitPrice, reorderThreshold: row.reorderThreshold, status: row.active ? 'ACTIVE' : 'PAUSED',
+          addedAt: '', notes: ''
+        })));
+        this.loading.set(false);
+      },
+      error: () => { this.error.set('Your catalog offers could not be loaded.'); this.loading.set(false); }
+    });
+    this.http.get<ApiPage<ApiWarehouse> | ApiWarehouse[]>(`${API_CONFIG.baseUrl}/warehouses?size=100`).subscribe({
+      next: result => this.warehouseRecords.set((Array.isArray(result) ? result : result.content ?? []).filter(row => row.active)),
+      error: () => this.error.set('Warehouses could not be loaded. Create or select an active warehouse before publishing an offer.')
+    });
+  }
 
-    if (draft.listPrice <= 0) {
-      throw new Error('Enter a valid listing price.');
-    }
+  createWarehouse(request: { code: string; name: string; address: string }) {
+    return this.http.post<ApiWarehouse>(`${API_CONFIG.baseUrl}/warehouses`, request);
+  }
+  addOffer(draft: { sourceStockItemId: string; warehouseId: string; sku: string; listPrice: number; reorderThreshold: number }) {
+    return this.http.post<ApiStockItem>(`${API_CONFIG.apiRoot}/stock/offers`, {
+      sourceStockItemId: draft.sourceStockItemId, warehouseId: draft.warehouseId,
+      sku: draft.sku, sellingPrice: draft.listPrice, reorderThreshold: draft.reorderThreshold
+    });
+  }
 
-    const nextId = `OFF-${Math.max(0, ...this.offerRecords().map(offer => Number(offer.id.replace('OFF-', '')))) + 1}`;
-
-    this.offerRecords.update(offers => [{
-      id: nextId,
-      manufacturerId: draft.manufacturerId,
-      manufacturerName: draft.manufacturerName,
-      sku: draft.sku,
-      productName: draft.productName,
-      category: draft.category,
-      brand: draft.brand,
-      unit: draft.unit,
-      listPrice: draft.listPrice,
-      minimumOrderQty: draft.minimumOrderQty,
-      status: 'ACTIVE',
-      addedAt: new Date().toISOString().slice(0, 10),
-      notes: draft.notes
-    }, ...offers]);
-
-    return nextId;
+  updateOffer(id: string, update: { sellingPrice?: number; reorderThreshold?: number; active?: boolean }) {
+    return this.http.patch<ApiStockItem>(`${API_CONFIG.apiRoot}/stock/offers/${encodeURIComponent(id)}`, update);
   }
 }

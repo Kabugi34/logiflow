@@ -10,7 +10,7 @@ export interface ManufacturerDashboard {
   deliveriesOnTrackPercentage: number;
 }
 export interface DashboardPurchaseOrder {
-  id: number;
+  id: string;
   orderNumber: string;
   distributorName: string;
   itemSummary: string;
@@ -38,7 +38,7 @@ export interface DashboardDriver {
 }
 
 export interface DashboardAttentionItem {
-  id: number;
+  id: string | number;
   title: string;
   description: string;
   severity: 'WARNING' | 'CRITICAL';

@@ -1,6 +1,8 @@
 export type StockLevel = 'HEALTHY' | 'LOW' | 'CRITICAL';
 
 export interface DistributorInventoryItem {
+  id: string;
+  manufacturerOrganizationId: string | null;
   sku: string;
   name: string;
   category: string;
@@ -11,7 +13,4 @@ export interface DistributorInventoryItem {
   criticalStockThreshold: number;
 }
 
-export interface StockDeduction {
-  sku: string;
-  quantity: number;
-}
+export interface StockDeduction { sku: string; quantity: number; }
