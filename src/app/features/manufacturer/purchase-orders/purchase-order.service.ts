@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { API_CONFIG } from '../../../core/api/api.config';
+import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import { ManufacturerPurchaseOrder, PurchaseOrderStatus } from './purchase-order.models';
 
 interface ApiPo {
@@ -31,7 +31,7 @@ export class ManufacturerPurchaseOrderService {
 
   refresh(): void {
     this.loading.set(true);
-    this.http.get<ApiPage<ApiPo> | ApiPo[]>(`${API_CONFIG.baseUrl}/manufacturer/purchase-orders`).subscribe({
+    this.http.get<ApiPage<ApiPo> | ApiPo[]>(API_ENDPOINTS.manufacturer.purchaseOrders).subscribe({
       next: result => {
         const page = Array.isArray(result) ? result : result.content ?? [];
         this.records.set(page.map(row => this.mapOrder(row)));
@@ -46,7 +46,7 @@ export class ManufacturerPurchaseOrderService {
 
   updateStatus(id: string, status: PurchaseOrderStatus, note = ''): void {
     const apiStatus = status === 'ACCEPTED' ? 'APPROVED' : status === 'PENDING' ? 'SUBMITTED' : status;
-    this.http.patch<ApiPo>(`${API_CONFIG.baseUrl}/manufacturer/purchase-orders/${encodeURIComponent(id)}/decision`, { status: apiStatus, note }).subscribe({
+    this.http.patch<ApiPo>(API_ENDPOINTS.manufacturer.purchaseOrderDecision(id), { status: apiStatus, note }).subscribe({
       next: () => this.refresh(),
       error: () => this.error.set('The purchase order decision could not be saved.')
     });

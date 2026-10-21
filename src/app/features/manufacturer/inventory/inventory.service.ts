@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { API_CONFIG } from '../../../core/api/api.config';
+import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import { InventoryRow, InventoryTerminal, TerminalInventoryRecord } from './inventory.models';
 
 interface StockItem { sku: string; name: string; category: string | null; quantityOnHand: number; reservedQuantity?: number; availableQuantity?: number; reorderThreshold: number; }
@@ -19,7 +19,7 @@ export class ManufacturerInventoryService {
 
   refresh(): void {
     this.loading.set(true);
-    this.http.get<ApiPage<StockItem>>(`${API_CONFIG.apiRoot}/stock/items?size=100`).subscribe({
+    this.http.get<ApiPage<StockItem>>(`${API_ENDPOINTS.manufacturer.stockItems}?size=100`).subscribe({
       next: page => {
         this.records.set((page.content ?? []).map(item => ({
           productName: item.name, sku: item.sku, category: item.category ?? 'Uncategorized', terminalId: 'ORG',

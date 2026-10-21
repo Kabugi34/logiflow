@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Observable, map } from 'rxjs';
-import { API_CONFIG } from '../../../core/api/api.config';
+import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import { DistributorPurchaseOrder, DraftProcurementLine, ProcurementManufacturer, ProcurementOrderLine } from './procurement.models';
 
 interface ApiProduct { id: string; organizationId: string | null; manufacturerOrganizationId?: string | null; sourceStockItemId?: string | null; sku: string; name: string; category: string | null; unitPrice: number; active: boolean; inStock?: boolean; }
@@ -24,7 +24,7 @@ export class DistributorProcurementService {
   constructor() { this.refreshProducts(); this.refreshOrders(); }
 
   refreshProducts(): void {
-    this.http.get<ApiPage<ApiProduct> | ApiProduct[]>(`${API_CONFIG.baseUrl}/products?size=100`).subscribe({
+    this.http.get<ApiPage<ApiProduct> | ApiProduct[]>(`${API_ENDPOINTS.distributor.products}?size=100`).subscribe({
       next: result => {
         const page = Array.isArray(result) ? result : result.content ?? [];
         this.productRecords.set(page.filter(product => product.active && typeof (product.manufacturerOrganizationId ?? product.organizationId) === 'string').map(product => ({
@@ -40,7 +40,7 @@ export class DistributorProcurementService {
 
   refreshOrders(): void {
     this.loading.set(true);
-    this.http.get<ApiPage<ApiPo> | ApiPo[]>(`${API_CONFIG.baseUrl}/purchase-orders`).subscribe({
+    this.http.get<ApiPage<ApiPo> | ApiPo[]>(API_ENDPOINTS.distributor.purchaseOrders).subscribe({
       next: result => {
         const page = Array.isArray(result) ? result : result.content ?? [];
         this.orderRecords.set(page.map(po => this.toPurchaseOrder(po)));
@@ -51,7 +51,7 @@ export class DistributorProcurementService {
   }
 
   loadOrder(id: string): void {
-    this.http.get<ApiPo>(`${API_CONFIG.baseUrl}/purchase-orders/${encodeURIComponent(id)}`).subscribe({
+    this.http.get<ApiPo>(API_ENDPOINTS.distributor.purchaseOrder(id)).subscribe({
       next: row => {
         const order = this.toPurchaseOrder(row);
         this.orderRecords.update(rows => rows.some(existing => existing.id === id)
@@ -63,7 +63,7 @@ export class DistributorProcurementService {
   }
 
   loadSettlements(id: string) {
-    return this.http.get<{ id: string; status: string; amount: number; currency: string; note: string | null; settledAt: string | null }[]>(`${API_CONFIG.baseUrl}/purchase-orders/${encodeURIComponent(id)}/settlements`);
+    return this.http.get<{ id: string; status: string; amount: number; currency: string; note: string | null; settledAt: string | null }[]>(API_ENDPOINTS.distributor.purchaseOrderSettlements(id));
   }
   findManufacturer(id: string): ProcurementManufacturer | undefined { return this.manufacturers().find(manufacturer => manufacturer.id === id); }
   manufacturerForBrand(_brand: string): ProcurementManufacturer | undefined { return undefined; }
@@ -84,7 +84,7 @@ export class DistributorProcurementService {
       if (!Number.isInteger(line.quantity) || line.quantity < 1) throw new Error('Enter a valid quantity for every product.');
       return { stockItemId: product.id, quantity: line.quantity };
     });
-    return this.http.post<ApiPo>(`${API_CONFIG.baseUrl}/purchase-orders`, { supplierOrganizationId: manufacturerId, items })
+    return this.http.post<ApiPo>(API_ENDPOINTS.distributor.purchaseOrders, { supplierOrganizationId: manufacturerId, items })
       .pipe(map(result => { this.refreshOrders(); return result.id; }));
   }
 

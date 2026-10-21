@@ -3,6 +3,8 @@
 **Updated:** 2026-10-21  
 **Scope:** Angular manufacturer and distributor workspaces compared with the backend source in `src backend/main/java/com/example/distrobackend/controller`. Authentication is already integrated. This file records what the frontend calls today, what can be tested, and what remains to connect or request from the backend team.
 
+**Route organization:** `src/app/core/api/api.config.ts` contains only backend base URLs. `src/app/core/api/api-endpoints.ts` is the centralized route registry grouped by auth, manufacturer, and distributor. Feature services contain HTTP behavior and response mapping; they should use `API_ENDPOINTS` rather than construct route paths themselves.
+
 ## Summary
 
 The Angular app has live calls for manufacturer products and stock, manufacturer purchase-order review, distributor supplier catalog and procurement, distributor catalog offers, warehouse selection/creation, inventory restock requests, distributor inventory, customer orders and M-Pesa payment, and distributor trips/tracking. Purchase orders are shared through the backend: distributor creation persists under `/api/v1/purchase-orders`, and the manufacturer queue reads the same records under `/api/v1/manufacturer/purchase-orders`.

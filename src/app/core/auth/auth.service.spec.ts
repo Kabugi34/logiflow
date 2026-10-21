@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { API_CONFIG } from '../api/api.config';
+import { API_ENDPOINTS } from '../api/api-endpoints';
 import { AuthUserResponse } from './auth-api.service';
 import { AuthService } from './auth.service';
 
@@ -57,7 +57,7 @@ describe('AuthService', () => {
       expect(service.isAuthenticated()).toBe(true);
     });
 
-    const request = http.expectOne(`${API_CONFIG.apiRoot}${API_CONFIG.auth.login}`);
+    const request = http.expectOne(API_ENDPOINTS.auth.login);
     expect(request.request.body).toEqual({ identifier: 'admin@example.com', password: 'secret-password' });
     request.flush(session);
     expect(window.sessionStorage.getItem('logiflow.accessToken')).toBe('test-access-token');
@@ -71,7 +71,7 @@ describe('AuthService', () => {
       expect(window.sessionStorage.getItem('logiflow.accessToken')).toBeNull();
     });
 
-    http.expectOne(`${API_CONFIG.apiRoot}${API_CONFIG.auth.login}`).flush({
+    http.expectOne(API_ENDPOINTS.auth.login).flush({
       ...session,
       user: { ...backendUser, role: 'MANUFACTURER_ADMIN' }
     });
@@ -86,7 +86,7 @@ describe('AuthService', () => {
       expect(user?.organization.type).toBe('DISTRIBUTOR');
     });
 
-    const request = http.expectOne(`${API_CONFIG.baseUrl}${API_CONFIG.auth.me}`);
+    const request = http.expectOne(API_ENDPOINTS.auth.me);
     request.flush(backendUser);
     expect(service.hasRole('DISTRIBUTOR_ADMIN')).toBe(true);
   });
@@ -99,11 +99,11 @@ describe('AuthService', () => {
       expect(user?.email).toBe('admin@example.com');
     });
 
-    http.expectOne(`${API_CONFIG.baseUrl}${API_CONFIG.auth.me}`).flush(null, {
+    http.expectOne(API_ENDPOINTS.auth.me).flush(null, {
       status: 401,
       statusText: 'Unauthorized'
     });
-    const refreshRequest = http.expectOne(`${API_CONFIG.baseUrl}${API_CONFIG.auth.refresh}`);
+    const refreshRequest = http.expectOne(API_ENDPOINTS.auth.refresh);
     expect(refreshRequest.request.body).toEqual({ refreshToken: 'existing-refresh-token' });
     refreshRequest.flush(session);
 
@@ -116,7 +116,7 @@ describe('AuthService', () => {
     window.sessionStorage.setItem('logiflow.refreshToken', 'existing-refresh-token');
 
     service.restoreSession().subscribe({ error: () => undefined });
-    http.expectOne(`${API_CONFIG.baseUrl}${API_CONFIG.auth.me}`).flush(null, {
+    http.expectOne(API_ENDPOINTS.auth.me).flush(null, {
       status: 503,
       statusText: 'Service Unavailable'
     });
@@ -133,7 +133,7 @@ describe('AuthService', () => {
       confirmPassword: 'new-password'
     }).subscribe();
 
-    const request = http.expectOne(`${API_CONFIG.apiRoot}${API_CONFIG.auth.activate}`);
+    const request = http.expectOne(API_ENDPOINTS.auth.activate);
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({
       email: 'admin@example.com',
@@ -154,7 +154,7 @@ describe('AuthService', () => {
       phoneNumber: '+254700000000'
     }).subscribe();
 
-    const request = http.expectOne(`${API_CONFIG.apiRoot}${API_CONFIG.auth.accessRequest}`);
+    const request = http.expectOne(API_ENDPOINTS.auth.accessRequest);
     expect(request.request.body).toEqual({
       organizationType: 'DISTRIBUTOR',
       organizationName: 'Apex Distribution',
@@ -176,7 +176,7 @@ describe('AuthService', () => {
       expect(window.sessionStorage.getItem('logiflow.refreshToken')).toBeNull();
     });
 
-    const request = http.expectOne(`${API_CONFIG.baseUrl}${API_CONFIG.auth.logout}`);
+    const request = http.expectOne(API_ENDPOINTS.auth.logout);
     expect(request.request.body).toEqual({ refreshToken: 'existing-refresh-token' });
     request.flush(null);
   });

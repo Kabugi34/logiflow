@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { API_CONFIG } from '../../../core/api/api.config';
+import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import { DistributorInventoryItem, StockLevel } from './inventory.models';
 
 interface StockItemResponse { id: string; manufacturerOrganizationId: string | null; sku: string; name: string; category: string | null; unitPrice: number; quantityOnHand: number; reorderThreshold: number; active: boolean; }
@@ -24,7 +24,7 @@ export class DistributorInventoryService {
 
   refresh(): void {
     this.loading.set(true);
-    this.http.get<ApiPage<StockItemResponse> | StockItemResponse[]>(`${API_CONFIG.apiRoot}/stock/items?size=100`).subscribe({
+    this.http.get<ApiPage<StockItemResponse> | StockItemResponse[]>(`${API_ENDPOINTS.distributor.stockItems}?size=100`).subscribe({
       next: result => {
         const rows = Array.isArray(result) ? result : result.content ?? [];
         this.inventoryRecords.set(rows.filter(row => row.active).map(row => ({
@@ -39,7 +39,7 @@ export class DistributorInventoryService {
   }
 
   refreshRestockRequests(): void {
-    this.http.get<ApiPage<RestockRequestResponse> | RestockRequestResponse[]>(`${API_CONFIG.apiRoot}/stock/restock-request?size=100`).subscribe({
+    this.http.get<ApiPage<RestockRequestResponse> | RestockRequestResponse[]>(`${API_ENDPOINTS.distributor.restockRequests}?size=100`).subscribe({
       next: result => this.requestRecords.set(Array.isArray(result) ? result : result.content ?? []),
       error: () => this.error.set('Restock requests could not be loaded from the API.')
     });
@@ -50,12 +50,12 @@ export class DistributorInventoryService {
   pendingRestockId(itemId: string): string | undefined { return this.requestRecords().find(request => request.stockItemId === itemId && request.status === 'PENDING')?.id; }
   requestRestock(item: DistributorInventoryItem, quantity: number, note = '') {
     if (!item.manufacturerOrganizationId) throw new Error('This item is not a distributor offer linked to a manufacturer product.');
-    return this.http.post<RestockRequestResponse>(`${API_CONFIG.apiRoot}/stock/restock-request`, {
+    return this.http.post<RestockRequestResponse>(API_ENDPOINTS.distributor.restockRequests, {
       stockItemId: item.id, manufacturerOrganizationId: item.manufacturerOrganizationId, requestedQuantity: quantity, note
     });
   }
   cancelRestockRequest(id: string) {
-    return this.http.patch<RestockRequestResponse>(`${API_CONFIG.apiRoot}/stock/restock-request/${encodeURIComponent(id)}/status`, { status: 'CANCELLED' });
+    return this.http.patch<RestockRequestResponse>(API_ENDPOINTS.distributor.restockRequestStatus(id), { status: 'CANCELLED' });
   }
   stockLevel(item: DistributorInventoryItem): StockLevel {
     if (item.onHand <= item.criticalStockThreshold) return 'CRITICAL';
