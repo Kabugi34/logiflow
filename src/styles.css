@@ -5,52 +5,60 @@
 
 html.dark {
 	color-scheme: dark;
-	background: #0b1220;
+	background: #0b0c0f;
 }
 
 html.dark body {
-	background: #0b1220;
-	color: #e2e8f0;
+	background: #0b0c0f;
+	color: #f1f5f9;
 }
 
 html.dark .bg-white {
-	background-color: #111827;
+	background-color: #17191e;
 }
 
 html.dark .bg-slate-50 {
-	background-color: #0f172a;
+	background-color: #111318;
 }
 
 html.dark .bg-slate-100 {
-	background-color: #1e293b;
+	background-color: #1b1e24;
 }
 
 html.dark .bg-slate-200 {
-	background-color: #334155;
+	background-color: #292d35;
 }
 
 html.dark .bg-blue-50 {
-	background-color: #172554;
+	background-color: #172334;
+}
+
+html.dark .bg-blue-100 {
+	background-color: #1e2b3d;
 }
 
 html.dark .bg-emerald-50 {
-	background-color: #052e2b;
+	background-color: #14251f;
 }
 
 html.dark .bg-amber-50 {
-	background-color: #3b2507;
+	background-color: #2a2112;
 }
 
 html.dark .bg-orange-50 {
-	background-color: #431407;
+	background-color: #2b1d13;
 }
 
 html.dark .bg-red-50 {
-	background-color: #450a0a;
+	background-color: #2b1719;
 }
 
 html.dark .bg-indigo-50 {
-	background-color: #1e1b4b;
+	background-color: #211f32;
+}
+
+html.dark .bg-white\/95 {
+	background-color: rgb(23 25 30 / 95%);
 }
 
 html.dark .text-slate-900,
@@ -65,13 +73,91 @@ html.dark .text-slate-500 {
 }
 
 html.dark .text-slate-400 {
-	color: #8291a8;
+	color: #9ca3af;
+}
+
+/* Keep links, selected navigation, and colored status labels readable on charcoal surfaces. */
+html.dark .text-blue-600,
+html.dark .text-blue-700,
+html.dark .hover\:text-blue-700:hover {
+	color: #93c5fd;
+}
+
+html.dark .text-blue-800 {
+	color: #bfdbfe;
+}
+
+html.dark .text-emerald-600,
+html.dark .text-emerald-700 {
+	color: #6ee7b7;
+}
+
+html.dark .text-emerald-800 {
+	color: #a7f3d0;
+}
+
+html.dark .text-amber-600,
+html.dark .text-amber-700 {
+	color: #fcd34d;
+}
+
+html.dark .text-amber-800 {
+	color: #fde68a;
+}
+
+html.dark .text-orange-600,
+html.dark .text-orange-700 {
+	color: #fdba74;
+}
+
+html.dark .text-red-600,
+html.dark .text-red-700 {
+	color: #fca5a5;
+}
+
+html.dark .text-indigo-700 {
+	color: #c7d2fe;
 }
 
 html.dark .border-slate-100,
 html.dark .border-slate-200,
 html.dark .border-slate-300 {
 	border-color: #334155;
+}
+
+html.dark .border-blue-100,
+html.dark .border-blue-200 {
+	border-color: #344a66;
+}
+
+html.dark .border-blue-400,
+html.dark .border-blue-500 {
+	border-color: #60a5fa;
+}
+
+html.dark .border-blue-600 {
+	border-color: #3b82f6;
+}
+
+html.dark .border-emerald-200 {
+	border-color: #315c4a;
+}
+
+html.dark .border-amber-200 {
+	border-color: #6b542a;
+}
+
+html.dark .border-orange-200 {
+	border-color: #704424;
+}
+
+html.dark .border-red-200,
+html.dark .border-red-300 {
+	border-color: #71393d;
+}
+
+html.dark .border-indigo-200 {
+	border-color: #494267;
 }
 
 html.dark input,
