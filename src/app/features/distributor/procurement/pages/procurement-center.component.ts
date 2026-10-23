@@ -1,8 +1,9 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { printPurchaseOrderPdf } from '../purchase-order-pdf';
 import { DistributorProcurementService } from '../procurement.service';
-import { ProcurementStatus } from '../procurement.models';
+import { DistributorPurchaseOrder, ProcurementStatus } from '../procurement.models';
 
 @Component({
   selector: 'app-procurement-center',
@@ -13,6 +14,7 @@ export class ProcurementCenterComponent {
   protected readonly procurement = inject(DistributorProcurementService);
   protected readonly searchTerm = signal('');
   protected readonly selectedStatus = signal<'ALL' | ProcurementStatus>('ALL');
+  protected readonly exportError = signal('');
   protected readonly filteredOrders = computed(() => {
     const query = this.searchTerm().trim().toLowerCase();
     return this.procurement.orders().filter((order) => {
@@ -58,5 +60,12 @@ export class ProcurementCenterComponent {
     return order.lines.length === 1
       ? `${first.quantity} ${first.productName}`
       : `${first.quantity} ${first.productName} + ${order.lines.length - 1} more`;
+  }
+
+  protected exportPdf(order: DistributorPurchaseOrder): void {
+    this.exportError.set('');
+    if (!printPurchaseOrderPdf(order, this.procurement.total(order))) {
+      this.exportError.set('Allow pop-ups for LogiFlow to export this purchase order as a PDF.');
+    }
   }
 }
