@@ -1,7 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { ManufacturerFleetService } from '../fleet/fleet.service';
 import { ManufacturerWarehouseService } from '../warehouses/warehouse.service';
-import { DriverStatus } from '../fleet/fleet.models';
+import { DriverAccountStatus } from '../fleet/fleet.models';
 import { ManufacturerStaffMember, NewManufacturerEmployee, StaffStatus } from './staff.models';
 
 const initialEmployees: ManufacturerStaffMember[] = [];
@@ -23,15 +23,13 @@ export class ManufacturerStaffService {
       return {
         id: driver.id,
         name: driver.name,
-        email: `${emailName}@logiflow.io`,
+        email: driver.email,
         jobTitle: 'Driver',
         accessRole: 'MANUFACTURER_STAFF' as const,
         warehouseId,
         warehouseName: warehouse?.name ?? 'Unassigned',
-        status: driver.status === 'INVITED'
-          ? 'PENDING' as const
-          : driver.status === 'SUSPENDED' ? 'SUSPENDED' as const : 'ACTIVE' as const,
-        lastActive: driver.currentTripId ? 'Just now' : driver.status === 'INVITED' ? 'Invite sent' : '1 hour ago',
+        status: driver.accountStatus === 'SUSPENDED' ? 'SUSPENDED' as const : driver.accountStatus === 'ACTIVE' ? 'ACTIVE' as const : 'PENDING' as const,
+        lastActive: driver.currentTripId ? 'Just now' : driver.accountStatus === 'INVITED' ? 'Invite pending' : '—',
         category: 'DRIVER' as const
       };
     })
@@ -64,7 +62,10 @@ export class ManufacturerStaffService {
     this.employeeRecords.update(records => records.map(record => record.id === id ? { ...record, status, lastActive: status === 'ACTIVE' ? 'Just now' : record.lastActive } : record));
   }
 
-  updateDriverStatus(id: string, status: DriverStatus): boolean {
-    return this.fleetService.updateDriverStatus(id, status);
+  updateDriverStatus(id: string, status: 'ACTIVE' | 'SUSPENDED'): boolean {
+    const driver = this.fleetService.findDriver(id);
+    if (!driver) return false;
+    const action = status === 'SUSPENDED' ? 'SUSPEND' : driver.accountStatus === 'SUSPENDED' ? 'REACTIVATE' : 'APPROVE';
+    return this.fleetService.transitionDriverAccount(id, action);
   }
 }

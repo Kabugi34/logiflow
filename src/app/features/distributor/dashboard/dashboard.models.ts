@@ -45,7 +45,7 @@ export interface DashboardVehicle {
 export interface DashboardFleetDriver {
   id: string;
   name: string;
-  status: 'STANDBY' | 'ON_TRIP';
+  status: 'STANDBY' | 'ON_TRIP' | 'OFF_DUTY';
   vehicleModel?: string;
   orderId?: string;
   locationLabel: string;

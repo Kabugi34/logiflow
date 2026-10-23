@@ -1,0 +1,290 @@
+<section class="space-y-5">
+  <header class="flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-4">
+    <div>
+      <h1 class="text-xl font-semibold text-slate-900">Driver management</h1>
+      <p class="mt-1 text-sm text-slate-500">
+        Manage driver records, account access, and operational availability.
+      </p>
+    </div>
+    <button
+      type="button"
+      (click)="openOnboard()"
+      class="h-9 rounded-md bg-blue-600 px-3 text-xs font-medium text-white"
+    >
+      + Add driver
+    </button>
+  </header>
+  <div class="grid grid-cols-2 gap-3 md:grid-cols-5">
+    @for (
+      item of [
+        { label: 'Invited', count: counts().invited },
+        { label: 'Pending Approval', count: counts().pending },
+        { label: 'Active', count: counts().active },
+        { label: 'Suspended', count: counts().suspended },
+        { label: 'Invitation Expired', count: counts().expired },
+      ];
+      track item.label
+    ) {
+      <article class="rounded-lg border border-slate-200 bg-white p-3">
+        <p class="text-[10px] text-slate-500">{{ item.label }}</p>
+        <p class="mt-1 text-lg font-semibold">{{ item.count }}</p>
+      </article>
+    }
+  </div>
+  @if (notice()) {
+    <p role="status" class="rounded-md bg-blue-50 p-3 text-xs text-blue-800">{{ notice() }}</p>
+  }
+  <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <div class="flex flex-wrap gap-2 border-b p-3">
+      <input
+        aria-label="Search drivers"
+        (input)="updateQuery($event)"
+        placeholder="Search name, email, phone, licence"
+        class="h-9 min-w-56 flex-1 rounded border px-3 text-xs"
+      /><select
+        aria-label="Filter by account status"
+        (change)="updateFilter($event)"
+        class="h-9 rounded border px-2 text-xs"
+      >
+        <option value="ALL">All account statuses</option>
+        <option value="INVITED">Invited</option>
+        <option value="PENDING_APPROVAL">Pending Approval</option>
+        <option value="ACTIVE">Active</option>
+        <option value="SUSPENDED">Suspended</option>
+        <option value="INVITATION_EXPIRED">Invitation Expired</option>
+      </select>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[760px] text-xs">
+        <thead class="bg-slate-50 text-left text-slate-600">
+          <tr>
+            <th class="px-4 py-3">Driver</th>
+            <th class="px-3 py-3">Phone</th>
+            <th class="px-3 py-3">Licence</th>
+            <th class="px-3 py-3">Account</th>
+            <th class="px-3 py-3">Availability</th>
+            <th class="px-3 py-3">Base warehouse</th>
+            <th class="px-3 py-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          @for (driver of filteredDrivers(); track driver.id) {
+            <tr
+              (click)="select(driver)"
+              [class.bg-blue-50]="selectedId() === driver.id"
+              class="cursor-pointer hover:bg-slate-50"
+            >
+              <td class="px-4 py-3">
+                <b>{{ driver.name }}</b>
+                <p class="text-[10px] text-slate-500">{{ driver.email }}</p>
+              </td>
+              <td class="px-3 py-3">{{ driver.phone }}</td>
+              <td class="px-3 py-3">{{ driver.license }}</td>
+              <td class="px-3 py-3">
+                <span
+                  class="rounded border px-2 py-1 text-[10px]"
+                  [class]="accountClass(driver.accountStatus)"
+                  >{{ accountLabel(driver.accountStatus) }}</span
+                >
+              </td>
+              <td class="px-3 py-3">{{ driver.operationalStatus.replace('_', ' ') }}</td>
+              <td class="px-3 py-3">{{ warehouseName(driver.baseWarehouseId) }}</td>
+              <td class="px-3 py-3" (click)="$event.stopPropagation()">
+                <div class="flex flex-wrap gap-1">
+                  <button (click)="edit(driver)" class="rounded border px-2 py-1">Edit</button>
+                  @if (driver.accountStatus === 'PENDING_APPROVAL') {
+                    <button
+                      (click)="ask(driver, 'APPROVE')"
+                      class="rounded bg-emerald-600 px-2 py-1 text-white"
+                    >
+                      Approve</button
+                    ><button
+                      (click)="ask(driver, 'REJECT')"
+                      class="rounded border border-red-200 px-2 py-1 text-red-700"
+                    >
+                      Reject
+                    </button>
+                  }
+                  @if (
+                    driver.accountStatus === 'INVITED' ||
+                    driver.accountStatus === 'INVITATION_EXPIRED'
+                  ) {
+                    <button (click)="ask(driver, 'RESEND')" class="rounded border px-2 py-1">
+                      Resend</button
+                    ><button
+                      (click)="ask(driver, 'REVOKE')"
+                      class="rounded border border-red-200 px-2 py-1 text-red-700"
+                    >
+                      Revoke
+                    </button>
+                  }
+                  @if (driver.accountStatus === 'ACTIVE') {
+                    <button
+                      (click)="ask(driver, 'SUSPEND')"
+                      [disabled]="driver.operationalStatus === 'ON_TRIP'"
+                      class="rounded border border-red-200 px-2 py-1 text-red-700 disabled:opacity-40"
+                    >
+                      Suspend
+                    </button>
+                  }
+                  @if (driver.accountStatus === 'SUSPENDED') {
+                    <button (click)="ask(driver, 'REACTIVATE')" class="rounded border px-2 py-1">
+                      Reactivate
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="p-8 text-center text-slate-500">
+                No drivers match this filter.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+  @if (selectedDriver(); as driver) {
+    <section class="rounded-lg border bg-white p-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="font-semibold">{{ driver.name }}</h2>
+          <p class="text-xs text-slate-500">
+            {{ driver.email }} · {{ warehouseName(driver.baseWarehouseId) }}
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span
+            class="rounded border px-2 py-1 text-[10px]"
+            [class]="accountClass(driver.accountStatus)"
+            >{{ accountLabel(driver.accountStatus) }}</span
+          ><label class="text-xs"
+            >Availability
+            <select
+              [value]="driver.operationalStatus"
+              (change)="updateOperationalStatus(driver, $event)"
+              [disabled]="
+                driver.accountStatus !== 'ACTIVE' || driver.operationalStatus === 'ON_TRIP'
+              "
+              class="ml-1 rounded border p-1"
+            >
+              <option value="AVAILABLE">Available</option>
+              <option value="OFF_DUTY">Off Duty</option>
+            </select></label
+          >
+        </div>
+      </div>
+    </section>
+  }
+  @if (dialogOpen()) {
+    <div
+      class="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4"
+      (click)="closeDialog()"
+    >
+      <form
+        [formGroup]="form"
+        (ngSubmit)="saveDriver()"
+        (click)="$event.stopPropagation()"
+        class="w-full max-w-lg space-y-3 rounded-xl bg-white p-5 shadow-xl"
+      >
+        <app-form-validation-summary [form]="form" />
+        <h2 class="text-lg font-semibold">{{ editingId() ? 'Edit driver' : 'Add driver' }}</h2>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="text-xs"
+            >Full name<input
+              formControlName="name"
+              autocomplete="name"
+              maxlength="80"
+              class="mt-1 h-9 w-full rounded border px-3" /></label
+          ><label class="text-xs"
+            >Email<input
+              type="email"
+              formControlName="email"
+              autocomplete="email"
+              maxlength="120"
+              class="mt-1 h-9 w-full rounded border px-3" /></label
+          ><label class="text-xs"
+            >Phone<input
+              type="tel"
+              formControlName="phone"
+              autocomplete="tel"
+              inputmode="tel"
+              placeholder="+254712345678"
+              maxlength="32"
+              class="mt-1 h-9 w-full rounded border px-3" /></label
+          ><label class="text-xs"
+            >Licence details<input
+              formControlName="license"
+              maxlength="40"
+              class="mt-1 h-9 w-full rounded border px-3" /></label
+          ><label class="text-xs sm:col-span-2"
+            >Base warehouse (optional)<select
+              formControlName="baseWarehouseId"
+              class="mt-1 h-9 w-full rounded border px-3"
+            >
+              <option value="">No base warehouse</option>
+              @for (w of warehouses(); track w.id) {
+                <option [value]="w.id">{{ w.name }}</option>
+              }
+            </select></label
+          >
+        </div>
+        @if (fieldError('name')) {
+          <p role="alert" class="text-xs text-red-600">{{ fieldError('name') }}</p>
+        }
+        @if (fieldError('email')) {
+          <p role="alert" class="text-xs text-red-600">{{ fieldError('email') }}</p>
+        }
+        @if (fieldError('phone')) {
+          <p role="alert" class="text-xs text-red-600">{{ fieldError('phone') }}</p>
+        }
+        @if (fieldError('license')) {
+          <p role="alert" class="text-xs text-red-600">{{ fieldError('license') }}</p>
+        }
+        @if (!editingId()) {
+          <p class="rounded bg-slate-50 p-2 text-xs text-slate-600">
+            The mock service records the driver as Invited. No invitation is sent by this frontend.
+          </p>
+        }
+        @if (formError()) {
+          <p role="alert" class="text-xs text-red-600">{{ formError() }}</p>
+        }
+        <div class="flex justify-end gap-2">
+          <button type="button" (click)="closeDialog()" class="rounded border px-3 py-2 text-xs">
+            Cancel</button
+          ><button class="rounded bg-blue-600 px-3 py-2 text-xs text-white">Save</button>
+        </div>
+      </form>
+    </div>
+  }
+  @if (confirmation(); as pending) {
+    <div
+      class="fixed inset-0 z-[60] grid place-items-center bg-slate-900/40 p-4"
+      (click)="cancelConfirmation()"
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        class="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl"
+        (click)="$event.stopPropagation()"
+      >
+        <h2 class="font-semibold">{{ actionTitle(pending.action) }}</h2>
+        <p class="mt-2 text-sm text-slate-600">
+          {{ actionDescription(pending.action, pending.driver) }}
+        </p>
+        <div class="mt-5 flex justify-end gap-2">
+          <button (click)="cancelConfirmation()" class="rounded border px-3 py-2 text-xs">
+            Cancel</button
+          ><button
+            (click)="confirmAction()"
+            class="rounded bg-blue-600 px-3 py-2 text-xs text-white"
+          >
+            Confirm
+          </button>
+        </div>
+      </section>
+    </div>
+  }
+</section>

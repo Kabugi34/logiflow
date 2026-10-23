@@ -1,4 +1,7 @@
-export type DriverStatus = 'ACTIVE' | 'STANDBY' | 'DELAYED' | 'OFF_DUTY' | 'INVITED' | 'SUSPENDED';
+export type DriverAccountStatus = 'INVITED' | 'PENDING_APPROVAL' | 'ACTIVE' | 'SUSPENDED' | 'INVITATION_EXPIRED';
+export type DriverOperationalStatus = 'AVAILABLE' | 'ON_TRIP' | 'OFF_DUTY';
+/** Legacy operations status retained for existing fleet summaries. */
+export type DriverStatus = 'ACTIVE' | 'STANDBY' | 'DELAYED' | 'OFF_DUTY';
 export type VehicleStatus = 'ACTIVE' | 'STANDBY' | 'MAINTENANCE' | 'IDLE' | 'OUT_OF_SERVICE';
 export type VehicleCondition = 'READY' | 'MAINTENANCE' | 'OUT_OF_SERVICE';
 
@@ -12,9 +15,14 @@ export interface DriverActivity {
 export interface FleetDriver {
   id: string;
   name: string;
+  email: string;
   phone: string;
   license: string;
+  accountStatus: DriverAccountStatus;
+  operationalStatus: DriverOperationalStatus;
   status: DriverStatus;
+  baseWarehouseId: string | null;
+  invitationResends: number;
   vehicleId: string | null;
   currentTripId: string | null;
   currentLocation: string;
@@ -39,8 +47,10 @@ export interface FleetVehicle {
 
 export interface NewFleetDriver {
   name: string;
+  email: string;
   phone: string;
   license: string;
+  baseWarehouseId?: string;
   vehicleId?: string;
 }
 

@@ -1,5 +1,9 @@
-export type VehicleStatus = 'AVAILABLE' | 'ON_TRIP' | 'MAINTENANCE';
-export type DriverStatus = 'STANDBY' | 'ON_TRIP';
+export type VehicleStatus = 'AVAILABLE' | 'ON_TRIP' | 'MAINTENANCE' | 'OUT_OF_SERVICE';
+export type DriverAccountStatus =
+  'INVITED' | 'PENDING_APPROVAL' | 'ACTIVE' | 'SUSPENDED' | 'INVITATION_EXPIRED';
+export type DriverOperationalStatus = 'AVAILABLE' | 'ON_TRIP' | 'OFF_DUTY';
+/** Legacy alias used by dashboard summaries; onboarding state is accountStatus. */
+export type DriverStatus = 'STANDBY' | 'ON_TRIP' | 'OFF_DUTY';
 
 export interface DistributorVehicle {
   id: string;
@@ -15,8 +19,16 @@ export interface DistributorVehicle {
 export interface DistributorDriver {
   id: string;
   name: string;
+  email: string;
+  phone: string;
+  license: string;
+  accountStatus: DriverAccountStatus;
+  operationalStatus: DriverOperationalStatus;
   status: DriverStatus;
+  baseWarehouseId: string | null;
+  invitationResends: number;
   locationLabel: string;
+  createdAt: string;
   vehicleId?: string;
   currentOrderId?: string;
 }

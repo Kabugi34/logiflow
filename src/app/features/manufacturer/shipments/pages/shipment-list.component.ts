@@ -1,3 +1,4 @@
+import { FormValidationSummaryComponent } from '../../../../shared/forms/form-validation-summary.component';
 import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
@@ -6,12 +7,13 @@ import { ManufacturerPurchaseOrderService } from '../../purchase-orders/purchase
 import { ManufacturerFleetService } from '../../fleet/fleet.service';
 import { ManufacturerShipmentService, NewShipment } from '../shipment.service';
 import { ShipmentStatus } from '../shipment.models';
+import { trimmedRequired } from '../../../../core/forms/form-validators';
 
 @Component({
   selector: 'app-shipment-list',
   standalone: true,
-  imports: [DecimalPipe, ReactiveFormsModule, RouterLink],
-  templateUrl: './shipment-list.component.html'
+  imports: [FormValidationSummaryComponent, DecimalPipe, ReactiveFormsModule, RouterLink],
+  templateUrl: './shipment-list.component.html',
 })
 export class ShipmentListComponent {
   private readonly shipmentService = inject(ManufacturerShipmentService);
@@ -22,23 +24,43 @@ export class ShipmentListComponent {
   protected readonly selectedStatus = signal('ACTIVE');
   protected readonly isAllocationOpen = signal(false);
   protected readonly allocationError = signal('');
-  protected readonly dispatchableOrders = computed(() => this.purchaseOrderService.orders().filter(order => order.status === 'ACCEPTED'));
-  protected readonly availableDrivers = computed(() => this.fleetService.drivers().filter(driver => {
-    const vehicle = driver.vehicleId ? this.fleetService.findVehicle(driver.vehicleId) : undefined;
-    return driver.status === 'STANDBY' && driver.currentTripId === null &&
-      vehicle?.assignedDriverId === driver.id && this.fleetService.vehicleStatus(vehicle) === 'STANDBY' && vehicle.currentTripId === null;
-  }));
-  protected readonly shipments = computed(() => this.shipmentService.shipments().filter(shipment => {
-    const status = this.selectedStatus();
-    return status === 'ALL' || (status === 'ACTIVE' ? shipment.status !== 'DELIVERED' : shipment.status === status);
-  }));
+  protected readonly dispatchableOrders = computed(() =>
+    this.purchaseOrderService.orders().filter((order) => order.status === 'ACCEPTED'),
+  );
+  protected readonly availableDrivers = computed(() =>
+    this.fleetService.drivers().filter((driver) => {
+      const vehicle = driver.vehicleId
+        ? this.fleetService.findVehicle(driver.vehicleId)
+        : undefined;
+      return (
+        driver.accountStatus === 'ACTIVE' &&
+        driver.operationalStatus === 'AVAILABLE' &&
+        driver.currentTripId === null &&
+        vehicle?.assignedDriverId === driver.id &&
+        this.fleetService.vehicleStatus(vehicle) === 'STANDBY' &&
+        vehicle.currentTripId === null
+      );
+    }),
+  );
+  protected readonly shipments = computed(() =>
+    this.shipmentService.shipments().filter((shipment) => {
+      const status = this.selectedStatus();
+      return (
+        status === 'ALL' ||
+        (status === 'ACTIVE' ? shipment.status !== 'DELIVERED' : shipment.status === status)
+      );
+    }),
+  );
   protected readonly form = this.formBuilder.nonNullable.group({
-    poReference: ['', Validators.required],
-    destination: ['', [Validators.required, Validators.maxLength(100)]],
-    freightDetails: ['', [Validators.required, Validators.maxLength(100)]],
+    poReference: ['', trimmedRequired],
+    destination: ['', [trimmedRequired, Validators.maxLength(100)]],
+    freightDetails: ['', [trimmedRequired, Validators.maxLength(100)]],
     quantity: [1, [Validators.required, Validators.min(1)]],
-    driverId: ['', Validators.required],
-    tripId: ['TRP-8017', [Validators.required, Validators.maxLength(24)]]
+    driverId: ['', trimmedRequired],
+    tripId: [
+      'TRP-8017',
+      [trimmedRequired, Validators.maxLength(24), Validators.pattern(/^[A-Za-z0-9-]+$/)],
+    ],
   });
 
   protected setStatus(event: Event): void {
@@ -48,7 +70,14 @@ export class ShipmentListComponent {
   protected openAllocation(): void {
     this.allocationError.set('');
     const firstOrderId = this.dispatchableOrders()[0]?.id ?? '';
-    this.form.reset({ poReference: firstOrderId, destination: '', freightDetails: '', quantity: 1, driverId: '', tripId: 'TRP-8017' });
+    this.form.reset({
+      poReference: firstOrderId,
+      destination: '',
+      freightDetails: '',
+      quantity: 1,
+      driverId: '',
+      tripId: 'TRP-8017',
+    });
     this.updateOrderDefaults();
     this.isAllocationOpen.set(true);
   }
@@ -58,8 +87,8 @@ export class ShipmentListComponent {
     if (!order) return;
     this.form.patchValue({
       destination: order.destinationHub,
-      freightDetails: order.lines.map(line => line.productName).join(', '),
-      quantity: order.lines.reduce((total, line) => total + line.requestedQuantity, 0)
+      freightDetails: order.lines.map((line) => line.productName).join(', '),
+      quantity: order.lines.reduce((total, line) => total + line.requestedQuantity, 0),
     });
   }
 
@@ -98,10 +127,12 @@ export class ShipmentListComponent {
         quantity: this.form.controls.quantity.value,
         assignedDriver: driver.name,
         vehicle: `${vehicle.type} (Plate: ${vehicle.plate})`,
-        tripId
+        tripId,
       });
       this.isAllocationOpen.set(false);
-      void this.router.navigate(['/manufacturer/shipments', shipmentId], { queryParamsHandling: 'preserve' });
+      void this.router.navigate(['/manufacturer/shipments', shipmentId], {
+        queryParamsHandling: 'preserve',
+      });
     } catch {
       this.fleetService.completeTrip(tripId);
       this.allocationError.set('Shipment could not be allocated. Please try again.');
@@ -115,10 +146,18 @@ export class ShipmentListComponent {
   }
 
   protected statusLabel(status: ShipmentStatus): string {
-    return status === 'BORDER_HOLD' ? 'BORDER HOLD' : status === 'IN_TRANSIT' ? 'IN TRANSIT' : 'DELIVERED';
+    return status === 'BORDER_HOLD'
+      ? 'BORDER HOLD'
+      : status === 'IN_TRANSIT'
+        ? 'IN TRANSIT'
+        : 'DELIVERED';
   }
 
   protected statusClass(status: ShipmentStatus): string {
-    return status === 'BORDER_HOLD' ? 'border-red-200 bg-red-50 text-red-700' : status === 'IN_TRANSIT' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700';
+    return status === 'BORDER_HOLD'
+      ? 'border-red-200 bg-red-50 text-red-700'
+      : status === 'IN_TRANSIT'
+        ? 'border-amber-200 bg-amber-50 text-amber-700'
+        : 'border-emerald-200 bg-emerald-50 text-emerald-700';
   }
 }

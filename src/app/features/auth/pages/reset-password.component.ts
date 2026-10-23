@@ -1,12 +1,15 @@
+import { FormValidationSummaryComponent } from '../../../shared/forms/form-validation-summary.component';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
+import { matchingFields } from '../../../core/forms/form-validators';
+import { trimmedRequired } from '../../../core/forms/form-validators';
 
 @Component({
   selector: 'app-reset-password',
-  imports: [ReactiveFormsModule, RouterLink],
-  templateUrl: './reset-password.component.html'
+  imports: [FormValidationSummaryComponent, ReactiveFormsModule, RouterLink],
+  templateUrl: './reset-password.component.html',
 })
 export class ResetPasswordComponent {
   private readonly formBuilder = inject(FormBuilder);
@@ -19,14 +22,20 @@ export class ResetPasswordComponent {
   protected readonly isSubmitting = signal(false);
 
   protected readonly requestForm = this.formBuilder.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]]
+    email: ['', [trimmedRequired, Validators.email, Validators.maxLength(120)]],
   });
 
-  protected readonly resetForm = this.formBuilder.nonNullable.group({
-    email: [this.route.snapshot.queryParamMap.get('email') ?? '', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8)]],
-    confirmPassword: ['', [Validators.required, Validators.minLength(8)]]
-  });
+  protected readonly resetForm = this.formBuilder.nonNullable.group(
+    {
+      email: [
+        this.route.snapshot.queryParamMap.get('email') ?? '',
+        [trimmedRequired, Validators.email, Validators.maxLength(120)],
+      ],
+      password: ['', [Validators.required, Validators.minLength(8)]],
+      confirmPassword: ['', [Validators.required, Validators.minLength(8)]],
+    },
+    { validators: matchingFields('password', 'confirmPassword') },
+  );
 
   protected requestReset(): void {
     this.errorMessage.set('');
@@ -38,13 +47,15 @@ export class ResetPasswordComponent {
     this.isSubmitting.set(true);
     this.authService.requestPasswordReset(this.requestForm.controls.email.value).subscribe({
       next: () => {
-        this.successMessage.set('If an account exists for that email, a password reset link will be sent.');
+        this.successMessage.set(
+          'If an account exists for that email, a password reset link will be sent.',
+        );
         this.isSubmitting.set(false);
       },
       error: () => {
         this.errorMessage.set('Unable to request a password reset right now. Please try again.');
         this.isSubmitting.set(false);
-      }
+      },
     });
   }
 
@@ -73,7 +84,7 @@ export class ResetPasswordComponent {
       error: () => {
         this.errorMessage.set('Unable to reset your password. The link may be invalid or expired.');
         this.isSubmitting.set(false);
-      }
+      },
     });
   }
 }

@@ -4,7 +4,8 @@ import { OrderBadgeValue } from '../../order.models';
 @Component({
   selector: 'app-order-badge',
   standalone: true,
-  template: '<span class="inline-flex whitespace-nowrap rounded border px-2 py-1 text-[9px] font-medium" [class]="badgeClass()">{{ label() || value().replace(\'_\', \' \') }}</span>'
+  template:
+    '<span class="inline-flex whitespace-nowrap rounded border px-2 py-1 text-[9px] font-medium" [class]="badgeClass()">{{ label() || value().replace(\'_\', \' \') }}</span>',
 })
 export class OrderBadgeComponent {
   readonly value = input.required<OrderBadgeValue>();

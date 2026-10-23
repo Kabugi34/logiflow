@@ -1,4 +1,6 @@
 export const API_CONFIG = {
-  apiRoot: 'https://7787-129-222-187-129.ngrok-free.app/api',
-  baseUrl: 'https://7787-129-222-187-129.ngrok-free.app/api/v1'
+  apiRoot: 'https://distro-backend-09e7.onrender.com/api',
+  baseUrl: 'https://distro-backend-09e7.onrender.com/api/v1',
+  // Set to false when you want auth requests to reach the configured backend.
+  useMockAuth: true,
 };

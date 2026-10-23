@@ -1,15 +1,16 @@
+import { FormValidationSummaryComponent } from '../../../../shared/forms/form-validation-summary.component';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { DriverStatus } from '../../fleet/fleet.models';
 import { ManufacturerStaffService } from '../staff.service';
 import { ManufacturerStaffMember, StaffCategory, StaffStatus } from '../staff.models';
+import { personName, trimmedRequired } from '../../../../core/forms/form-validators';
 
 @Component({
   selector: 'app-staff-directory',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
-  templateUrl: './staff-directory.component.html'
+  imports: [FormValidationSummaryComponent, ReactiveFormsModule, RouterLink],
+  templateUrl: './staff-directory.component.html',
 })
 export class StaffDirectoryComponent {
   private readonly staffService = inject(ManufacturerStaffService);
@@ -24,25 +25,33 @@ export class StaffDirectoryComponent {
   protected readonly isInviteOpen = signal(false);
   protected readonly inviteError = signal('');
   protected readonly driverActionMessage = signal('');
-  protected readonly selectedMember = computed(() => this.staff().find(member => member.id === this.selectedMemberId()) ?? null);
+  protected readonly selectedMember = computed(
+    () => this.staff().find((member) => member.id === this.selectedMemberId()) ?? null,
+  );
   protected readonly summary = computed(() => ({
-    employees: this.staff().filter(member => member.category === 'EMPLOYEE').length,
-    drivers: this.staff().filter(member => member.category === 'DRIVER').length
+    employees: this.staff().filter((member) => member.category === 'EMPLOYEE').length,
+    drivers: this.staff().filter((member) => member.category === 'DRIVER').length,
   }));
   protected readonly filteredStaff = computed(() => {
     const query = this.searchTerm().trim().toLowerCase();
-    return this.staff().filter(member => {
-      const queryMatches = !query || [member.name, member.email, member.jobTitle, member.warehouseName].some(value => value.toLowerCase().includes(query));
-      const categoryMatches = this.selectedCategory() === 'ALL' || member.category === this.selectedCategory();
-      const statusMatches = this.selectedStatus() === 'ALL' || member.status === this.selectedStatus();
+    return this.staff().filter((member) => {
+      const queryMatches =
+        !query ||
+        [member.name, member.email, member.jobTitle, member.warehouseName].some((value) =>
+          value.toLowerCase().includes(query),
+        );
+      const categoryMatches =
+        this.selectedCategory() === 'ALL' || member.category === this.selectedCategory();
+      const statusMatches =
+        this.selectedStatus() === 'ALL' || member.status === this.selectedStatus();
       return queryMatches && categoryMatches && statusMatches;
     });
   });
   protected readonly form = this.formBuilder.nonNullable.group({
-    name: ['', [Validators.required, Validators.maxLength(80)]],
-    email: ['', [Validators.required, Validators.email, Validators.maxLength(120)]],
+    name: ['', [trimmedRequired, personName, Validators.maxLength(80)]],
+    email: ['', [trimmedRequired, Validators.email, Validators.maxLength(120)]],
     jobTitle: ['Warehouse Supervisor', Validators.required],
-    warehouseId: [this.warehouses()[0]?.id ?? '', Validators.required]
+    warehouseId: [this.warehouses()[0]?.id ?? '', Validators.required],
   });
 
   protected updateSearch(event: Event): void {
@@ -58,7 +67,12 @@ export class StaffDirectoryComponent {
   }
 
   protected openInvite(): void {
-    this.form.reset({ name: '', email: '', jobTitle: 'Warehouse Supervisor', warehouseId: this.warehouses()[0]?.id ?? '' });
+    this.form.reset({
+      name: '',
+      email: '',
+      jobTitle: 'Warehouse Supervisor',
+      warehouseId: this.warehouses()[0]?.id ?? '',
+    });
     this.inviteError.set('');
     this.isInviteOpen.set(true);
   }
@@ -81,7 +95,9 @@ export class StaffDirectoryComponent {
       this.selectedMemberId.set(invitedMember?.id ?? null);
       this.isInviteOpen.set(false);
     } catch (error) {
-      this.inviteError.set(error instanceof Error ? error.message : 'Unable to send this invitation.');
+      this.inviteError.set(
+        error instanceof Error ? error.message : 'Unable to send this invitation.',
+      );
     }
   }
 
@@ -92,11 +108,14 @@ export class StaffDirectoryComponent {
   protected updateSelectedStatus(event: Event): void {
     const member = this.selectedMember();
     if (!member || member.category === 'DRIVER') return;
-    this.staffService.updateEmployeeStatus(member.id, (event.target as HTMLSelectElement).value as StaffStatus);
+    this.staffService.updateEmployeeStatus(
+      member.id,
+      (event.target as HTMLSelectElement).value as StaffStatus,
+    );
   }
 
   protected approveDriver(id: string): void {
-    this.updateDriverStatus(id, 'STANDBY');
+    this.updateDriverStatus(id, 'ACTIVE');
   }
 
   protected suspendDriver(id: string): void {
@@ -104,22 +123,27 @@ export class StaffDirectoryComponent {
   }
 
   protected reinstateDriver(id: string): void {
-    this.updateDriverStatus(id, 'STANDBY');
+    this.updateDriverStatus(id, 'ACTIVE');
   }
 
-  private updateDriverStatus(id: string, status: DriverStatus): void {
+  private updateDriverStatus(id: string, status: 'ACTIVE' | 'SUSPENDED'): void {
     this.driverActionMessage.set('');
     const updated = this.staffService.updateDriverStatus(id, status);
-    this.driverActionMessage.set(updated
-      ? `Driver status updated to ${status === 'STANDBY' ? 'standby' : 'suspended'}.`
-      : 'This driver has an active trip. Complete or reassign it before changing to this status.');
+    this.driverActionMessage.set(
+      updated
+        ? `Driver status updated to ${status === 'ACTIVE' ? 'active' : 'suspended'}.`
+        : 'This driver has an active trip. Complete or reassign it before changing to this status.',
+    );
   }
 
   protected statusClass(status: StaffStatus): string {
     switch (status) {
-      case 'ACTIVE': return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-      case 'PENDING': return 'border-amber-200 bg-amber-50 text-amber-700';
-      case 'SUSPENDED': return 'border-red-200 bg-red-50 text-red-700';
+      case 'ACTIVE':
+        return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      case 'PENDING':
+        return 'border-amber-200 bg-amber-50 text-amber-700';
+      case 'SUSPENDED':
+        return 'border-red-200 bg-red-50 text-red-700';
     }
   }
 

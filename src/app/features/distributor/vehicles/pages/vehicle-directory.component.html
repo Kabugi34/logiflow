@@ -1,0 +1,156 @@
+<section class="space-y-5">
+  <header class="flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-4">
+    <div>
+      <nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-xs text-slate-400">
+        <a routerLink="/distributor/dashboard" queryParamsHandling="preserve">LogiFlow</a
+        ><span>›</span><span>Fleet</span><span>›</span
+        ><span class="font-medium text-slate-600">Vehicles</span>
+      </nav>
+      <h1 class="text-xl font-semibold text-slate-900">Vehicle fleet</h1>
+      <p class="mt-1 text-sm text-slate-500">
+        Register delivery vehicles and manage availability and maintenance status.
+      </p>
+    </div>
+    <button
+      type="button"
+      (click)="open()"
+      class="h-9 rounded-md bg-blue-600 px-3 text-xs font-medium text-white"
+    >
+      + Register vehicle
+    </button>
+  </header>
+  @if (message()) {
+    <p role="status" class="rounded-md bg-blue-50 px-3 py-2 text-xs text-blue-800">
+      {{ message() }}
+    </p>
+  }
+  <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <article class="rounded-lg border bg-white p-4">
+      <p class="text-[10px] uppercase text-slate-500">Fleet size</p>
+      <p class="mt-2 text-2xl font-semibold">{{ counts().total }}</p>
+    </article>
+    <article class="rounded-lg border bg-white p-4">
+      <p class="text-[10px] uppercase text-slate-500">Available</p>
+      <p class="mt-2 text-2xl font-semibold text-emerald-700">{{ counts().available }}</p>
+    </article>
+    <article class="rounded-lg border bg-white p-4">
+      <p class="text-[10px] uppercase text-slate-500">On trip</p>
+      <p class="mt-2 text-2xl font-semibold text-blue-700">{{ counts().onTrip }}</p>
+    </article>
+    <article class="rounded-lg border bg-white p-4">
+      <p class="text-[10px] uppercase text-slate-500">Service required</p>
+      <p class="mt-2 text-2xl font-semibold text-amber-700">{{ counts().maintenance }}</p>
+    </article>
+  </section>
+  <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <div class="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+      <h2 class="text-sm font-semibold">Vehicles ({{ filtered().length }})</h2>
+      <div class="flex gap-2">
+        <label class="sr-only" for="vehicle-filter">Vehicle status</label
+        ><select
+          id="vehicle-filter"
+          (change)="changeFilter($event)"
+          class="h-8 rounded border px-2 text-xs"
+        >
+          <option value="ALL">All statuses</option>
+          <option value="AVAILABLE">Available</option>
+          <option value="ON_TRIP">On trip</option>
+          <option value="MAINTENANCE">Maintenance</option>
+          <option value="OUT_OF_SERVICE">Out of service</option></select
+        ><label class="sr-only" for="vehicle-search">Search fleet</label
+        ><input
+          id="vehicle-search"
+          type="search"
+          placeholder="Search plate or model"
+          (input)="search($event)"
+          class="h-8 rounded border px-2 text-xs"
+        />
+      </div>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[560px] text-xs">
+        <thead class="bg-slate-50 text-left text-[10px] text-slate-600">
+          <tr>
+            <th class="px-4 py-3">Registration</th>
+            <th class="px-3 py-3">Vehicle</th>
+            <th class="px-3 py-3">Location</th>
+            <th class="px-3 py-3">Status</th>
+            <th class="px-3 py-3">Manage status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          @for (vehicle of filtered(); track vehicle.id) {
+            <tr>
+              <td class="px-4 py-3 font-semibold">{{ vehicle.plate }}</td>
+              <td class="px-3 py-3">{{ vehicle.model }}</td>
+              <td class="px-3 py-3 text-slate-500">{{ vehicle.locationLabel }}</td>
+              <td class="px-3 py-3">{{ vehicle.status.replace('_', ' ') }}</td>
+              <td class="px-3 py-3">
+                <label class="sr-only" [for]="'vehicle-status-' + vehicle.id"
+                  >Change status for {{ vehicle.plate }}</label
+                ><select
+                  [id]="'vehicle-status-' + vehicle.id"
+                  [value]="vehicle.status"
+                  (change)="update(vehicle.id, $event)"
+                  [disabled]="vehicle.status === 'ON_TRIP'"
+                  class="h-8 rounded border px-2 text-[10px] disabled:opacity-50"
+                >
+                  <option value="AVAILABLE">Available</option>
+                  <option value="MAINTENANCE">Maintenance</option>
+                  <option value="OUT_OF_SERVICE">Out of service</option>
+                </select>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5" class="px-4 py-10 text-center text-slate-500">
+                No vehicles match. Register a vehicle to build the fleet roster.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>
+@if (dialog()) {
+  <div
+    class="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4"
+    (click)="dialog.set(false)"
+  >
+    <section
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="new-vehicle-title"
+      class="w-full max-w-md rounded-lg bg-white p-5"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 id="new-vehicle-title" class="text-base font-semibold">Register a vehicle</h2>
+      <form [formGroup]="form" (ngSubmit)="add()" class="mt-4 space-y-3">
+        <app-form-validation-summary [form]="form" /><label class="block space-y-1"
+          ><span class="text-xs">Model / type</span
+          ><input
+            formControlName="model"
+            placeholder="e.g. Isuzu NQR 4T"
+            class="h-9 w-full rounded border px-3 text-xs" /></label
+        ><label class="block space-y-1"
+          ><span class="text-xs">Registration</span
+          ><input
+            formControlName="plate"
+            placeholder="KDA 123A"
+            class="h-9 w-full rounded border px-3 text-xs"
+        /></label>
+        @if (error()) {
+          <p role="alert" class="text-xs text-red-600">{{ error() }}</p>
+        }
+        <div class="flex justify-end gap-2">
+          <button type="button" (click)="dialog.set(false)" class="h-9 rounded border px-3 text-xs">
+            Cancel</button
+          ><button type="submit" class="h-9 rounded bg-blue-600 px-3 text-xs text-white">
+            Add vehicle
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

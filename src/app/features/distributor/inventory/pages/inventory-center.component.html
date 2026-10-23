@@ -1,29 +1,182 @@
 <section class="space-y-5">
   <header class="flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-4">
-    <div><nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-xs text-slate-400"><a routerLink="/distributor/dashboard" class="hover:text-blue-600">LogiFlow</a><span aria-hidden="true">›</span><span>Inventory</span></nav><h1 class="text-xl font-semibold text-slate-900">Inventory &amp; Listings</h1><p class="mt-1 text-sm text-slate-500">Track stock on hand, listing prices, and replenishment needs across your Kenyan distribution network.</p></div>
-    <a routerLink="/distributor/catalog" queryParamsHandling="preserve" class="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50">Browse Master Catalog</a>
+    <div>
+      <nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-xs text-slate-400">
+        <a routerLink="/distributor/dashboard" class="hover:text-blue-600">LogiFlow</a
+        ><span aria-hidden="true">›</span><span>Inventory</span>
+      </nav>
+      <h1 class="text-xl font-semibold text-slate-900">Inventory &amp; Listings</h1>
+      <p class="mt-1 text-sm text-slate-500">
+        Track stock on hand, listing prices, and replenishment needs across your Kenyan distribution
+        network.
+      </p>
+    </div>
+    <a
+      routerLink="/distributor/catalog"
+      queryParamsHandling="preserve"
+      class="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
+      >Browse Master Catalog</a
+    >
   </header>
 
   <section aria-label="Inventory summary" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-    <article class="rounded-lg border border-slate-200 bg-white p-4"><p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">Stocked SKUs</p><p class="mt-2 text-2xl font-semibold text-slate-900">{{ items().length }}</p><p class="mt-1 text-[10px] text-slate-500">{{ listedCount() }} currently listed in your catalog</p></article>
-    <article class="rounded-lg border border-slate-200 bg-white p-4"><p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">Units on hand</p><p class="mt-2 text-2xl font-semibold text-slate-900">{{ totalUnits() | number }}</p><p class="mt-1 text-[10px] text-slate-500">Across your Nairobi distribution centre</p></article>
-    <article class="rounded-lg border border-slate-200 bg-white p-4"><p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">Inventory value</p><p class="mt-2 text-2xl font-semibold text-slate-900">{{ inventoryValue() | currency:'KES':'symbol':'1.0-0' }}</p><p class="mt-1 text-[10px] text-slate-500">At current acquisition cost</p></article>
-    <article class="rounded-lg border border-slate-200 bg-white p-4"><p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">Replenishment alerts</p><p class="mt-2 text-2xl font-semibold" [class.text-red-700]="lowStockCount() > 0" [class.text-slate-900]="lowStockCount() === 0">{{ lowStockCount() }}</p><p class="mt-1 text-[10px] text-slate-500">Low or critical stock items</p></article>
+    <article class="rounded-lg border border-slate-200 bg-white p-4">
+      <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">Stocked SKUs</p>
+      <p class="mt-2 text-2xl font-semibold text-slate-900">{{ items().length }}</p>
+      <p class="mt-1 text-[10px] text-slate-500">
+        {{ listedCount() }} currently listed in your catalog
+      </p>
+    </article>
+    <article class="rounded-lg border border-slate-200 bg-white p-4">
+      <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">Units on hand</p>
+      <p class="mt-2 text-2xl font-semibold text-slate-900">{{ totalUnits() | number }}</p>
+      <p class="mt-1 text-[10px] text-slate-500">Across your Nairobi distribution centre</p>
+    </article>
+    <article class="rounded-lg border border-slate-200 bg-white p-4">
+      <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">Inventory value</p>
+      <p class="mt-2 text-2xl font-semibold text-slate-900">
+        {{ inventoryValue() | currency: 'KES' : 'symbol' : '1.0-0' }}
+      </p>
+      <p class="mt-1 text-[10px] text-slate-500">At current acquisition cost</p>
+    </article>
+    <article class="rounded-lg border border-slate-200 bg-white p-4">
+      <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+        Replenishment alerts
+      </p>
+      <p
+        class="mt-2 text-2xl font-semibold"
+        [class.text-red-700]="lowStockCount() > 0"
+        [class.text-slate-900]="lowStockCount() === 0"
+      >
+        {{ lowStockCount() }}
+      </p>
+      <p class="mt-1 text-[10px] text-slate-500">Low or critical stock items</p>
+    </article>
   </section>
 
   <div class="flex flex-wrap items-center gap-2">
     @for (filter of stockFilters; track filter.value) {
-      <button type="button" (click)="updateLevel(filter.value)" [attr.aria-pressed]="selectedLevel() === filter.value" class="h-8 rounded-md border px-3 text-xs font-medium" [class.border-blue-600]="selectedLevel() === filter.value" [class.bg-blue-50]="selectedLevel() === filter.value" [class.text-blue-700]="selectedLevel() === filter.value" [class.border-slate-200]="selectedLevel() !== filter.value" [class.bg-white]="selectedLevel() !== filter.value" [class.text-slate-600]="selectedLevel() !== filter.value">{{ filter.label }}</button>
+      <button
+        type="button"
+        (click)="updateLevel(filter.value)"
+        [attr.aria-pressed]="selectedLevel() === filter.value"
+        class="h-8 rounded-md border px-3 text-xs font-medium"
+        [class.border-blue-600]="selectedLevel() === filter.value"
+        [class.bg-blue-50]="selectedLevel() === filter.value"
+        [class.text-blue-700]="selectedLevel() === filter.value"
+        [class.border-slate-200]="selectedLevel() !== filter.value"
+        [class.bg-white]="selectedLevel() !== filter.value"
+        [class.text-slate-600]="selectedLevel() !== filter.value"
+      >
+        {{ filter.label }}
+      </button>
     }
-    <label class="sr-only" for="inventory-search">Search inventory</label><input id="inventory-search" type="search" placeholder="Search SKU, product, or manufacturer..." (input)="updateSearch($event)" class="ml-auto h-9 w-full max-w-80 rounded-md border border-slate-200 bg-white px-3 text-xs outline-none focus:border-blue-400">
+    <label class="sr-only" for="inventory-search">Search inventory</label
+    ><input
+      id="inventory-search"
+      type="search"
+      placeholder="Search SKU, product, or manufacturer..."
+      (input)="updateSearch($event)"
+      class="ml-auto h-9 w-full max-w-80 rounded-md border border-slate-200 bg-white px-3 text-xs outline-none focus:border-blue-400"
+    />
   </div>
 
   <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
-    <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3"><h2 class="text-sm font-semibold text-slate-900">Stock &amp; Catalog Listings</h2><span class="text-xs text-slate-500">{{ filteredItems().length }} items</span></div>
-    <div class="overflow-x-auto"><table class="w-full min-w-240 text-xs"><thead class="bg-slate-50 text-left font-medium text-slate-600"><tr><th scope="col" class="px-4 py-3">Product / SKU</th><th scope="col" class="px-3 py-3">Manufacturer</th><th scope="col" class="px-3 py-3">Category</th><th scope="col" class="px-3 py-3 text-right">On Hand</th><th scope="col" class="px-3 py-3 text-right">Reorder At</th><th scope="col" class="px-3 py-3 text-right">Listing Price</th><th scope="col" class="px-3 py-3">Catalog Status</th><th scope="col" class="px-3 py-3">Stock Status</th><th scope="col" class="px-3 py-3">Replenishment</th></tr></thead><tbody class="divide-y divide-slate-100">
-      @for (item of filteredItems(); track item.sku) {
-        <tr class="text-slate-700 hover:bg-slate-50"><td class="px-4 py-3"><p class="font-medium text-slate-900">{{ item.name }}</p><p class="mt-0.5 text-[10px] text-slate-500">{{ item.sku }} · {{ item.unit }}</p></td><td class="px-3 py-3">{{ item.manufacturerName }}</td><td class="px-3 py-3">{{ item.category }}</td><td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-900">{{ item.onHand | number }}</td><td class="whitespace-nowrap px-3 py-3 text-right text-slate-500">{{ item.lowStockThreshold | number }}</td><td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-900">{{ item.listPrice | currency:'KES':'symbol':'1.0-0' }}</td><td class="px-3 py-3"><span class="rounded border px-2 py-1 text-[9px] font-medium" [class.border-blue-200]="item.listed" [class.bg-blue-50]="item.listed" [class.text-blue-700]="item.listed" [class.border-slate-200]="!item.listed" [class.bg-slate-50]="!item.listed" [class.text-slate-600]="!item.listed">{{ item.listed ? 'LISTED' : 'NOT LISTED' }}</span></td><td class="px-3 py-3"><span class="rounded border px-2 py-1 text-[9px] font-medium" [class]="levelClass(item.level)">{{ item.level }}</span></td><td class="px-3 py-3">@if (item.manufacturerOrganizationId) { @if (hasPendingRestock(item.id)) { <span class="text-[10px] text-amber-700">Request pending</span><button type="button" (click)="cancelRestock(pendingRestockId(item.id)!, item.sku)" class="ml-2 text-[10px] text-slate-500">Cancel</button> } @else { <button type="button" (click)="requestRestock(item.sku)" class="text-[10px] font-medium text-blue-600 hover:text-blue-700">Request restock</button> } } @else { <span class="text-[10px] text-slate-400">No supplier link</span> } @if (restockFeedback()[item.sku]) { <p class="mt-1 max-w-40 text-[10px] text-slate-500">{{ restockFeedback()[item.sku] }}</p> }</td></tr>
-      } @empty { <tr><td colspan="9" class="px-4 py-12 text-center text-sm text-slate-500">No inventory items match these filters.</td></tr> }
-    </tbody></table></div>
+    <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+      <h2 class="text-sm font-semibold text-slate-900">Stock &amp; Catalog Listings</h2>
+      <span class="text-xs text-slate-500">{{ filteredItems().length }} items</span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-240 text-xs">
+        <thead class="bg-slate-50 text-left font-medium text-slate-600">
+          <tr>
+            <th scope="col" class="px-4 py-3">Product / SKU</th>
+            <th scope="col" class="px-3 py-3">Manufacturer</th>
+            <th scope="col" class="px-3 py-3">Category</th>
+            <th scope="col" class="px-3 py-3 text-right">On Hand</th>
+            <th scope="col" class="px-3 py-3 text-right">Reorder At</th>
+            <th scope="col" class="px-3 py-3 text-right">Listing Price</th>
+            <th scope="col" class="px-3 py-3">Catalog Status</th>
+            <th scope="col" class="px-3 py-3">Stock Status</th>
+            <th scope="col" class="px-3 py-3">Replenishment</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          @for (item of filteredItems(); track item.sku) {
+            <tr class="text-slate-700 hover:bg-slate-50">
+              <td class="px-4 py-3">
+                <p class="font-medium text-slate-900">{{ item.name }}</p>
+                <p class="mt-0.5 text-[10px] text-slate-500">{{ item.sku }} · {{ item.unit }}</p>
+              </td>
+              <td class="px-3 py-3">{{ item.manufacturerName }}</td>
+              <td class="px-3 py-3">{{ item.category }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-900">
+                {{ item.onHand | number }}
+              </td>
+              <td class="whitespace-nowrap px-3 py-3 text-right text-slate-500">
+                {{ item.lowStockThreshold | number }}
+              </td>
+              <td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-900">
+                {{ item.listPrice | currency: 'KES' : 'symbol' : '1.0-0' }}
+              </td>
+              <td class="px-3 py-3">
+                <span
+                  class="rounded border px-2 py-1 text-[9px] font-medium"
+                  [class.border-blue-200]="item.listed"
+                  [class.bg-blue-50]="item.listed"
+                  [class.text-blue-700]="item.listed"
+                  [class.border-slate-200]="!item.listed"
+                  [class.bg-slate-50]="!item.listed"
+                  [class.text-slate-600]="!item.listed"
+                  >{{ item.listed ? 'LISTED' : 'NOT LISTED' }}</span
+                >
+              </td>
+              <td class="px-3 py-3">
+                <span
+                  class="rounded border px-2 py-1 text-[9px] font-medium"
+                  [class]="levelClass(item.level)"
+                  >{{ item.level }}</span
+                >
+              </td>
+              <td class="px-3 py-3">
+                @if (item.manufacturerOrganizationId) {
+                  @if (hasPendingRestock(item.id)) {
+                    <span class="text-[10px] text-amber-700">Request pending</span
+                    ><button
+                      type="button"
+                      (click)="cancelRestock(pendingRestockId(item.id)!, item.sku)"
+                      class="ml-2 text-[10px] text-slate-500"
+                    >
+                      Cancel
+                    </button>
+                  } @else {
+                    <button
+                      type="button"
+                      (click)="requestRestock(item.sku)"
+                      class="text-[10px] font-medium text-blue-600 hover:text-blue-700"
+                    >
+                      Request restock
+                    </button>
+                  }
+                } @else {
+                  <span class="text-[10px] text-slate-400">No supplier link</span>
+                }
+                @if (restockFeedback()[item.sku]) {
+                  <p class="mt-1 max-w-40 text-[10px] text-slate-500">
+                    {{ restockFeedback()[item.sku] }}
+                  </p>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="9" class="px-4 py-12 text-center text-sm text-slate-500">
+                No inventory items match these filters.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   </section>
 </section>

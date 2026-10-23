@@ -23,27 +23,27 @@ export const manufacturerNavigation: NavigationItem[] = [
   {
     label: 'Dashboard',
     route: '/manufacturer/dashboard',
-    icon: 'grid'
+    icon: 'grid',
   },
   {
     label: 'Products',
     route: '/manufacturer/products',
-    icon: 'package'
+    icon: 'package',
   },
   {
     label: 'Inventory',
     route: '/manufacturer/inventory',
-    icon: 'layers'
+    icon: 'layers',
   },
   {
     label: 'Purchase Orders',
     route: '/manufacturer/purchase-orders',
-    icon: 'file-text'
+    icon: 'file-text',
   },
   {
     label: 'Shipments',
     route: '/manufacturer/shipments',
-    icon: 'truck'
+    icon: 'truck',
   },
   {
     label: 'Logistics',
@@ -53,83 +53,103 @@ export const manufacturerNavigation: NavigationItem[] = [
       {
         label: 'Active Trips',
         route: '/manufacturer/logistics/trips',
-        icon: 'route'
+        icon: 'route',
       },
       {
         label: 'Live Map',
         route: '/manufacturer/logistics/live-map',
-        icon: 'map-pin'
-      }
-    ]
+        icon: 'map-pin',
+      },
+    ],
   },
   {
     label: 'Drivers',
     route: '/manufacturer/drivers',
-    icon: 'users'
+    icon: 'steering-wheel',
   },
   {
     label: 'Vehicles',
     route: '/manufacturer/vehicles',
-    icon: 'truck'
+    icon: 'truck',
   },
   {
     label: 'Staff',
     route: '/manufacturer/staff',
-    icon: 'users'
+    icon: 'id-card',
   },
   {
     label: 'Warehouses',
     route: '/manufacturer/warehouses',
-    icon: 'warehouse'
+    icon: 'warehouse',
   },
   {
     label: 'Reports',
     route: '/manufacturer/reports',
-    icon: 'bar-chart'
+    icon: 'bar-chart',
   },
   {
     label: 'Settings',
     route: '/manufacturer/settings',
-    icon: 'settings'
-  }
+    icon: 'settings',
+  },
 ];
 
 export const distributorNavigation: NavigationItem[] = [
   {
     label: 'Dashboard',
     route: '/distributor/dashboard',
-    icon: 'grid'
+    icon: 'grid',
   },
   {
     label: 'Catalog',
     route: '/distributor/catalog',
-    icon: 'package'
+    icon: 'package',
   },
   {
     label: 'Inventory',
     route: '/distributor/inventory',
-    icon: 'layers'
+    icon: 'layers',
   },
   {
     label: 'Procurement',
     route: '/distributor/procurement',
-    icon: 'file-text'
+    icon: 'file-text',
   },
   {
     label: 'Logistics',
     route: '/distributor/logistics',
-    icon: 'map'
+    icon: 'map',
+  },
+  {
+    label: 'Drivers',
+    route: '/distributor/drivers',
+    icon: 'steering-wheel',
+  },
+  {
+    label: 'Vehicles',
+    route: '/distributor/vehicles',
+    icon: 'truck',
+  },
+  {
+    label: 'Staff',
+    route: '/distributor/staff',
+    icon: 'id-card',
+  },
+  {
+    label: 'Warehouses',
+    route: '/distributor/warehouses',
+    icon: 'warehouse',
   },
   {
     label: 'Customers',
     route: '/distributor/customers',
-    icon: 'users'
+    icon: 'contact',
   },
   {
     label: 'Orders',
     route: '/distributor/orders',
-    icon: 'shopping-bag'
-  }
+    icon: 'shopping-bag',
+  },
 ];
 
 export const manufacturerWorkspace: WorkspaceConfig = {
@@ -137,7 +157,7 @@ export const manufacturerWorkspace: WorkspaceConfig = {
   homeRoute: '/manufacturer/dashboard',
   searchPlaceholder: 'Universal lookup (PO, SKU, Driver)...',
   navigation: manufacturerNavigation,
-  account: { initials: 'MV', name: 'Marcus Vance', subtitle: 'Global Operations' }
+  account: { initials: 'MV', name: 'Marcus Vance', subtitle: 'Global Operations' },
 };
 
 export const distributorWorkspace: WorkspaceConfig = {
@@ -145,5 +165,5 @@ export const distributorWorkspace: WorkspaceConfig = {
   homeRoute: '/distributor/dashboard',
   searchPlaceholder: 'Search order, customer, SKU...',
   navigation: distributorNavigation,
-  account: { initials: 'VD', name: 'Vance Distributors', subtitle: 'Enterprise Wholesaler' }
+  account: { initials: 'VD', name: 'Vance Distributors', subtitle: 'Enterprise Wholesaler' },
 };

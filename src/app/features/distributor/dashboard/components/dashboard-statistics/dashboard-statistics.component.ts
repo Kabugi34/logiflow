@@ -6,7 +6,7 @@ import { DistributorDashboard } from '../../dashboard.models';
   selector: 'app-distributor-dashboard-statistics',
   standalone: true,
   imports: [CurrencyPipe, DecimalPipe],
-  templateUrl: './dashboard-statistics.component.html'
+  templateUrl: './dashboard-statistics.component.html',
 })
 export class DashboardStatisticsComponent {
   readonly dashboard = input.required<DistributorDashboard>();

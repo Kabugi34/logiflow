@@ -1,7 +1,12 @@
 <section class="space-y-5">
   <header class="border-b border-slate-200 pb-4">
     <nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-xs text-slate-400">
-      <a routerLink="/distributor/dashboard" queryParamsHandling="preserve" class="hover:text-blue-600">LogiFlow</a>
+      <a
+        routerLink="/distributor/dashboard"
+        queryParamsHandling="preserve"
+        class="hover:text-blue-600"
+        >LogiFlow</a
+      >
       <span aria-hidden="true">›</span>
       <span>Distributor</span>
       <span aria-hidden="true">›</span>
@@ -11,7 +16,9 @@
     <div class="flex flex-wrap items-end justify-between gap-3">
       <div>
         <h1 class="text-xl font-semibold text-slate-900">Customer account overview</h1>
-        <p class="mt-1 text-sm text-slate-500">See who ordered what, payment status, ship assignment, and live fulfillment stage.</p>
+        <p class="mt-1 text-sm text-slate-500">
+          See who ordered what, payment status, ship assignment, and live fulfillment stage.
+        </p>
       </div>
 
       <a
@@ -33,15 +40,15 @@
 
     <article class="rounded-lg border border-slate-200 bg-white p-4">
       <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">Open orders</p>
-      <p class="mt-2 text-2xl font-semibold text-slate-900">{{ customers().reduce((sum, customer) => sum + customer.activeOrders.length, 0) }}</p>
+      <p class="mt-2 text-2xl font-semibold text-slate-900">
+        {{ customers().reduce((sum, customer) => sum + customer.activeOrders.length, 0) }}
+      </p>
       <p class="mt-1 text-[10px] text-slate-500">Awaiting dispatch or in transit</p>
     </article>
 
     <article class="rounded-lg border border-slate-200 bg-white p-4">
       <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">Payment health</p>
-      <p class="mt-2 text-2xl font-semibold text-emerald-600">
-        {{ averagePaidRatio() }}%
-      </p>
+      <p class="mt-2 text-2xl font-semibold text-emerald-600">{{ averagePaidRatio() }}%</p>
       <p class="mt-1 text-[10px] text-slate-500">Average paid order share</p>
     </article>
   </section>
@@ -50,7 +57,9 @@
     <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
       <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
         <h2 class="text-sm font-semibold text-slate-900">Customer directory</h2>
-        <span class="text-[10px] font-medium text-slate-500">{{ customers().length }} accounts</span>
+        <span class="text-[10px] font-medium text-slate-500"
+          >{{ customers().length }} accounts</span
+        >
       </div>
 
       <div class="overflow-x-auto">
@@ -79,16 +88,31 @@
                 </td>
                 <td class="px-3 py-3">
                   <p class="font-medium text-slate-900">{{ customer.orderCount }}</p>
-                  <p class="mt-0.5 text-[10px] text-slate-500">{{ customer.activeOrders.length }} active</p>
+                  <p class="mt-0.5 text-[10px] text-slate-500">
+                    {{ customer.activeOrders.length }} active
+                  </p>
                 </td>
                 <td class="px-3 py-3">
-                  <span class="inline-flex rounded-full px-2 py-1 text-[9px] font-semibold" [class]="paymentBadgeClass(customer.paidOrders.length === customer.orderCount ? 'PAID' : 'PENDING')">
-                    {{ customer.orderCount ? (customer.paidOrders.length === customer.orderCount ? 'Paid' : 'Partial') : 'No orders' }}
+                  <span
+                    class="inline-flex rounded-full px-2 py-1 text-[9px] font-semibold"
+                    [class]="
+                      paymentBadgeClass(
+                        customer.paidOrders.length === customer.orderCount ? 'PAID' : 'PENDING'
+                      )
+                    "
+                  >
+                    {{
+                      customer.orderCount
+                        ? customer.paidOrders.length === customer.orderCount
+                          ? 'Paid'
+                          : 'Partial'
+                        : 'No orders'
+                    }}
                   </span>
                 </td>
                 <td class="px-3 py-3 whitespace-nowrap text-slate-500">
                   @if (customer.latestOrder) {
-                    <span>{{ customer.latestOrder.orderDate | date:'dd MMM y' }}</span>
+                    <span>{{ customer.latestOrder.orderDate | date: 'dd MMM y' }}</span>
                   } @else {
                     <span>—</span>
                   }
@@ -96,10 +120,15 @@
                 <td class="px-3 py-3">
                   @if (customer.shipment) {
                     <p class="font-medium text-slate-900">{{ customer.shipment.id }}</p>
-                    <p class="mt-0.5 text-[10px] text-slate-500">{{ customer.shipment.orderIds.length }} order(s) · {{ customer.shipment.status }}</p>
+                    <p class="mt-0.5 text-[10px] text-slate-500">
+                      {{ customer.shipment.orderIds.length }} order(s) ·
+                      {{ customer.shipment.status }}
+                    </p>
                   } @else if (customer.activeDelivery) {
                     <p class="font-medium text-slate-900">{{ customer.activeDelivery.id }}</p>
-                    <p class="mt-0.5 text-[10px] text-slate-500">{{ customer.activeDelivery.status }}</p>
+                    <p class="mt-0.5 text-[10px] text-slate-500">
+                      {{ customer.activeDelivery.status }}
+                    </p>
                   } @else {
                     <span class="text-slate-400">No active shipment</span>
                   }
@@ -107,7 +136,9 @@
                 <td class="px-3 py-3">
                   @if (customer.vehicle) {
                     <p class="font-medium text-slate-900">{{ customer.vehicle.plate }}</p>
-                    <p class="mt-0.5 text-[10px] text-slate-500">{{ customer.driver?.name ?? 'Driver assigned' }}</p>
+                    <p class="mt-0.5 text-[10px] text-slate-500">
+                      {{ customer.driver?.name ?? 'Driver assigned' }}
+                    </p>
                   } @else {
                     <span class="text-slate-400">Unassigned</span>
                   }
@@ -123,11 +154,26 @@
       @if (selectedCustomer(); as customer) {
         <div class="flex items-center justify-between gap-2">
           <div>
-            <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">Selected customer</p>
+            <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+              Selected customer
+            </p>
             <h2 class="mt-1 text-lg font-semibold text-slate-900">{{ customer.storeName }}</h2>
           </div>
-          <span class="inline-flex rounded-full px-2 py-1 text-[9px] font-semibold" [class]="paymentBadgeClass(customer.paidOrders.length === customer.orderCount ? 'PAID' : 'PENDING')">
-            {{ customer.orderCount ? (customer.paidOrders.length === customer.orderCount ? 'Paid' : 'Partial') : 'No orders' }}
+          <span
+            class="inline-flex rounded-full px-2 py-1 text-[9px] font-semibold"
+            [class]="
+              paymentBadgeClass(
+                customer.paidOrders.length === customer.orderCount ? 'PAID' : 'PENDING'
+              )
+            "
+          >
+            {{
+              customer.orderCount
+                ? customer.paidOrders.length === customer.orderCount
+                  ? 'Paid'
+                  : 'Partial'
+                : 'No orders'
+            }}
           </span>
         </div>
 
@@ -142,11 +188,21 @@
           </div>
           <div class="flex items-center justify-between gap-3">
             <dt class="text-[10px] uppercase tracking-wide text-slate-400">Total value</dt>
-            <dd class="font-semibold text-slate-900">{{ customer.totalValue | currency:'KES':'symbol':'1.0-0' }}</dd>
+            <dd class="font-semibold text-slate-900">
+              {{ customer.totalValue | currency: 'KES' : 'symbol' : '1.0-0' }}
+            </dd>
           </div>
           <div class="flex items-center justify-between gap-3">
             <dt class="text-[10px] uppercase tracking-wide text-slate-400">Shipment</dt>
-            <dd class="font-medium text-slate-800">{{ customer.shipment ? customer.shipment.id : (customer.activeDelivery ? customer.activeDelivery.id : 'No active dispatch') }}</dd>
+            <dd class="font-medium text-slate-800">
+              {{
+                customer.shipment
+                  ? customer.shipment.id
+                  : customer.activeDelivery
+                    ? customer.activeDelivery.id
+                    : 'No active dispatch'
+              }}
+            </dd>
           </div>
           <div class="flex items-center justify-between gap-3">
             <dt class="text-[10px] uppercase tracking-wide text-slate-400">Assigned driver</dt>
@@ -155,17 +211,29 @@
         </dl>
 
         <div class="mt-4">
-          <h3 class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Recent orders</h3>
+          <h3 class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            Recent orders
+          </h3>
           <ul class="mt-2 space-y-2">
             @for (order of customer.orders.slice(0, 3); track order.id) {
               <li class="rounded-md border border-slate-200 bg-slate-50 p-2">
                 <div class="flex items-center justify-between gap-2 text-[10px]">
-                  <a [routerLink]="['/distributor/orders', order.id]" queryParamsHandling="preserve" class="font-semibold text-blue-600 hover:text-blue-700">{{ order.id }}</a>
-                  <span class="inline-flex rounded-full px-2 py-1 font-semibold" [class]="orderStatusClass(order.status)">
+                  <a
+                    [routerLink]="['/distributor/orders', order.id]"
+                    queryParamsHandling="preserve"
+                    class="font-semibold text-blue-600 hover:text-blue-700"
+                    >{{ order.id }}</a
+                  >
+                  <span
+                    class="inline-flex rounded-full px-2 py-1 font-semibold"
+                    [class]="orderStatusClass(order.status)"
+                  >
                     {{ order.status }}
                   </span>
                 </div>
-                <p class="mt-1 text-[10px] text-slate-500">{{ order.orderDate | date:'dd MMM y' }} · {{ order.paymentStatus }}</p>
+                <p class="mt-1 text-[10px] text-slate-500">
+                  {{ order.orderDate | date: 'dd MMM y' }} · {{ order.paymentStatus }}
+                </p>
               </li>
             }
           </ul>

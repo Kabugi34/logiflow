@@ -7,7 +7,7 @@ import { DistributorCatalogService } from '../catalog.service';
   selector: 'app-master-catalog',
   standalone: true,
   imports: [CurrencyPipe, RouterLink],
-  templateUrl: './master-catalog.component.html'
+  templateUrl: './master-catalog.component.html',
 })
 export class MasterCatalogComponent {
   protected readonly catalogService = inject(DistributorCatalogService);
@@ -17,15 +17,21 @@ export class MasterCatalogComponent {
 
   protected readonly categories = computed(() => [
     'All categories',
-    ...new Set(this.catalogService.availableProducts().map(product => product.category))
+    ...new Set(this.catalogService.availableProducts().map((product) => product.category)),
   ]);
 
   protected readonly filteredProducts = computed(() => {
     const query = this.searchTerm().trim().toLowerCase();
 
-    return this.catalogService.availableProducts().filter(product => {
-      const matchesQuery = !query || [product.name, product.sku, product.manufacturerName].some(value => value.toLowerCase().includes(query));
-      const matchesCategory = this.selectedCategory() === 'All categories' || product.category === this.selectedCategory();
+    return this.catalogService.availableProducts().filter((product) => {
+      const matchesQuery =
+        !query ||
+        [product.name, product.sku, product.manufacturerName].some((value) =>
+          value.toLowerCase().includes(query),
+        );
+      const matchesCategory =
+        this.selectedCategory() === 'All categories' ||
+        product.category === this.selectedCategory();
       return matchesQuery && matchesCategory;
     });
   });
@@ -33,8 +39,12 @@ export class MasterCatalogComponent {
   protected toggleOffer(offer: import('../catalog.models').DistributorCatalogOffer): void {
     this.actionMessage.set('');
     this.catalogService.updateOffer(offer.id, { active: offer.status !== 'ACTIVE' }).subscribe({
-      next: () => { this.catalogService.refresh(); this.actionMessage.set(offer.status === 'ACTIVE' ? 'Offer paused.' : 'Offer resumed.'); },
-      error: error => this.actionMessage.set(error?.error?.message ?? 'Offer status could not be updated.')
+      next: () => {
+        this.catalogService.refresh();
+        this.actionMessage.set(offer.status === 'ACTIVE' ? 'Offer paused.' : 'Offer resumed.');
+      },
+      error: (error) =>
+        this.actionMessage.set(error?.error?.message ?? 'Offer status could not be updated.'),
     });
   }
   protected updateSearch(event: Event): void {

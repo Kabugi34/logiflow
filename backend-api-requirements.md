@@ -43,7 +43,8 @@ Authentication requests are in `src/app/core/auth/auth-api.service.ts` and use t
 | Distributor inventory and restocking | `GET /api/stock/items?size=100`; `GET/POST /api/stock/restock-request`; `PATCH /api/stock/restock-request/{id}/status` | Load stock, request replenishment for a linked manufacturer offer, and cancel a pending request | Partial: no warehouse-level balances or movement history. |
 | Customer orders and payments | `GET /api/v1/orders`; `PATCH /api/v1/orders/{id}/status`; `POST /api/v1/payments/initiate`; `GET /api/v1/payments/{orderId}/status`; `GET /api/stock/items/{id}` | Load orders, enrich line labels from stock, update supported statuses, and initiate/poll M-Pesa payment | Partial: customer directory, creation by distributor, trip dispatch, and delivery proof remain unavailable. |
 | Distributor catalog offers and warehouses | `GET /api/v1/products`; `GET /api/stock/items`; `POST/PATCH /api/stock/offers`; `GET/POST /api/v1/warehouses` | Browse supplier products, list/create/pause/resume distributor offers, and choose/create a distributor warehouse | Partial: MOQ, notes, supplier names, and warehouse inventory totals are not provided by these DTOs. |
-| Trips and tracking | `GET /api/v1/trips`; `GET /api/v1/trips/{id}/tracking`; `PATCH /api/v1/trips/{id}/status` | View organization trips, route stops/location pings, start scheduled trips, and complete ongoing trips | Partial: no vehicle/driver directory or trip-to-purchase-order association; create/assign actions are service-only pending a usable screen and rider directory. |
+| Trips and tracking | `GET/POST /api/v1/trips`; `GET /api/v1/trips/{id}/tracking`; `PATCH /api/v1/trips/{id}/status`; `PATCH /api/v1/trips/{id}/assign` | View trips, schedule routes, assign a selected driver, start/complete trips, and inspect tracking | Partial: driver choices remain frontend-memory records until driver APIs exist; no reliable trip-to-purchase-order association. |
+| Distributor driver directory | Frontend workflow in `DistributorFleetService`; backend integration is pending | View/search/filter drivers, add/edit contact and license details, approve or suspend access, reinstate drivers, and keep active-trip drivers protected from edits or suspension | Frontend interactions use in-memory state so the workspace flow can be reviewed. No sample accounts or browser persistence are used. Backend must supply tenant-scoped driver records, invitation delivery, and status updates before the feature can persist across reloads or users. |
 
 ### Cross-workspace purchase flow to test
 
@@ -90,7 +91,7 @@ Wire the directory and invite actions to these routes; confirm whether driver pr
 
 ### Fleet, shipments, and logistics
 
-Manufacturer fleet and shipment services are local-only. No vehicle/driver CRUD or shipment controller is present in the supplied backend. Backend does have `/api/v1/trips` list/detail/create, assignment, status, and location/tracking routes. These are trip resources rather than a complete shipment/fleet API; Angular currently does not call them.
+Manufacturer fleet, warehouse, and shipment screens now expose in-memory workflows for registering drivers and vehicles, assigning vehicles, dispatching shipments, updating vehicle condition, creating warehouses, and changing warehouse status. No manufacturer vehicle/driver CRUD or shipment controller is present in the supplied backend, so those changes reset on reload and are not shared with distributors. Manufacturer trips are derived from these shipment records. Backend does have `/api/v1/trips` list/detail/create, assignment, status, and location/tracking routes, but those routes do not replace a tenant-scoped manufacturer fleet or shipment API.
 
 To complete these screens, either connect appropriate trip use cases and define how they relate to purchase-order fulfillment, or add the missing driver/vehicle/shipment resources, including assignments, stops, delivery confirmation, and shipment status.
 
@@ -114,7 +115,23 @@ The distributor customer directory remains unwired, and there is no customer dir
 
 ### Fleet, trips, and inbound purchase-order tracking
 
-Distributor trip support is partially wired. Angular reads `/api/v1/trips`, loads a selected trip's `/tracking` locations, updates scheduled trips to ongoing and ongoing trips to completed, and groups DELIVERY trips with customer orders when stop `orderNumber` matches. The API service also supports create and driver assignment, but the screen does not expose those actions because no vehicle/driver directory is available to select an assignment. No vehicle/driver directory endpoints, manufacturer shipment resource, inbound receipt endpoint, or purchase-order tracking link is supplied. A RESTOCK or DELIVERY trip cannot currently be reliably associated with a distributor purchase order.
+Distributor trip support uses `/api/v1/trips`, `/tracking`, status, create, and assignment routes. The logistics screen now exposes trip creation, driver assignment, start/complete actions, and tracking. Driver choices currently come from the frontend driver directory; backend assignment will need the real organization-scoped driver IDs once driver APIs are available. No vehicle/driver directory endpoints, manufacturer shipment resource, inbound receipt endpoint, or purchase-order tracking link is supplied. A RESTOCK or DELIVERY trip cannot currently be reliably associated with a distributor purchase order.
+
+The distributor driver directory UI is implemented at `/distributor/drivers`. It supports roster search/filter, add/edit, invitation approval, suspension/reinstatement, and prevents editing or suspending an on-trip driver. `DistributorFleetService` currently holds directory state in memory so the screens and dispatch selectors are interactive; reloads clear that state until backend integration. No seeded drivers or fake persistence are included.
+
+Distributor workspace pages are also available for staff (`/distributor/staff`), vehicles (`/distributor/vehicles`), and warehouses (`/distributor/warehouses`). Staff and vehicle changes currently live in frontend memory. Warehouse create/list uses the existing distributor warehouse API; the warehouse API currently exposes no update/deactivate action to the frontend. The catalog flow can also create a warehouse inline.
+
+Backend contract needed to make the driver feature persistent:
+
+- `GET /api/v1/drivers?search=&status=&page=&size=` returns tenant-scoped paginated driver profiles.
+- `POST /api/v1/drivers` creates a profile and invitation, accepting `fullName`, `email`, `phoneNumber`, and `licenseNumber`; returns the created driver and invitation status.
+- `GET /api/v1/drivers/{driverId}` returns one organization-scoped profile.
+- `PATCH /api/v1/drivers/{driverId}` updates editable contact/license fields.
+- `PATCH /api/v1/drivers/{driverId}/status` accepts `ACTIVE` or `SUSPENDED`; `PENDING_INVITATION` can become `ACTIVE` only after the invitation/account activation flow completes. Define resend/cancel invitation actions if needed.
+- Driver responses should include `id`, `organizationId`, `fullName`, `email`, `phoneNumber`, `licenseNumber`, `status`, `createdAt`, and optional active `tripId`/`vehicleId`.
+- Enforce distributor organization scoping and admin/staff permissions server-side. Reject suspension or profile changes while the driver has an active trip, and ensure only active drivers can be assigned to a new trip.
+
+The frontend's `INVITED`/`STANDBY` terms should be mapped to the backend's agreed `PENDING_INVITATION`/`ACTIVE` values when the API is wired.
 
 ### Distributor dashboard
 

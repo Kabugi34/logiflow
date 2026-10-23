@@ -10,7 +10,7 @@ import { DistributorFleetService } from '../../fleet/fleet.service';
   selector: 'app-customer-directory',
   standalone: true,
   imports: [CurrencyPipe, DatePipe, RouterLink],
-  templateUrl: './customer-directory.component.html'
+  templateUrl: './customer-directory.component.html',
 })
 export class CustomerDirectoryComponent {
   protected readonly customerService = inject(DistributorCustomerService);
@@ -18,17 +18,25 @@ export class CustomerDirectoryComponent {
   protected readonly fleetService = inject(DistributorFleetService);
 
   protected readonly customers = computed(() =>
-    this.customerService.customers().map(customer => {
-      const orders = this.orderService.orders().filter(order => order.customerId === customer.id);
-      const activeOrders = orders.filter(order => order.status !== 'COMPLETED');
-      const paidOrders = orders.filter(order => order.paymentStatus === 'PAID');
-      const latestOrder = [...orders].sort((left, right) =>
-        new Date(right.orderDate).getTime() - new Date(left.orderDate).getTime()
+    this.customerService.customers().map((customer) => {
+      const orders = this.orderService.orders().filter((order) => order.customerId === customer.id);
+      const activeOrders = orders.filter((order) => order.status !== 'COMPLETED');
+      const paidOrders = orders.filter((order) => order.paymentStatus === 'PAID');
+      const latestOrder = [...orders].sort(
+        (left, right) => new Date(right.orderDate).getTime() - new Date(left.orderDate).getTime(),
       )[0];
-      const activeDelivery = orders.find(order => order.status === 'IN_TRANSIT' || order.status === 'REROUTED');
-      const vehicle = activeDelivery ? this.fleetService.findVehicle(activeDelivery.vehicleId ?? '') : undefined;
-      const driver = activeDelivery ? this.fleetService.findDriver(activeDelivery.driverId ?? '') : undefined;
-      const shipment = activeDelivery ? this.orderService.findShipmentForOrder(activeDelivery.id) : undefined;
+      const activeDelivery = orders.find(
+        (order) => order.status === 'IN_TRANSIT' || order.status === 'REROUTED',
+      );
+      const vehicle = activeDelivery
+        ? this.fleetService.findVehicle(activeDelivery.vehicleId ?? '')
+        : undefined;
+      const driver = activeDelivery
+        ? this.fleetService.findDriver(activeDelivery.driverId ?? '')
+        : undefined;
+      const shipment = activeDelivery
+        ? this.orderService.findShipmentForOrder(activeDelivery.id)
+        : undefined;
 
       return {
         ...customer,
@@ -42,9 +50,9 @@ export class CustomerDirectoryComponent {
         shipment,
         orderCount: orders.length,
         paidRatio: orders.length ? Math.round((paidOrders.length / orders.length) * 100) : 0,
-        totalValue: orders.reduce((sum, order) => sum + this.orderService.total(order), 0)
+        totalValue: orders.reduce((sum, order) => sum + this.orderService.total(order), 0),
       };
-    })
+    }),
   );
 
   protected readonly selectedCustomerId = signal('');
@@ -52,13 +60,15 @@ export class CustomerDirectoryComponent {
   protected readonly selectedCustomer = computed(() => {
     const list = this.customers();
     if (!list.length) return undefined;
-    return list.find(customer => customer.id === this.selectedCustomerId()) ?? list[0];
+    return list.find((customer) => customer.id === this.selectedCustomerId()) ?? list[0];
   });
 
   protected averagePaidRatio(): number {
     const customers = this.customers();
     if (!customers.length) return 0;
-    return Math.round(customers.reduce((sum, customer) => sum + customer.paidRatio, 0) / customers.length);
+    return Math.round(
+      customers.reduce((sum, customer) => sum + customer.paidRatio, 0) / customers.length,
+    );
   }
 
   protected paymentBadgeClass(status: string): string {

@@ -1,3 +1,4 @@
+import { FormValidationSummaryComponent } from '../../../../shared/forms/form-validation-summary.component';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -5,12 +6,13 @@ import { AppearanceService } from '../../../../core/services/appearance.service'
 import { ManufacturerWarehouseService } from '../../warehouses/warehouse.service';
 import { ManufacturerSettingsService } from '../settings.service';
 import { NotificationPreferenceKey } from '../settings.models';
+import { trimmedRequired } from '../../../../core/forms/form-validators';
 
 @Component({
   selector: 'app-settings-center',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
-  templateUrl: './settings-center.component.html'
+  imports: [FormValidationSummaryComponent, ReactiveFormsModule, RouterLink],
+  templateUrl: './settings-center.component.html',
 })
 export class SettingsCenterComponent {
   private readonly formBuilder = inject(FormBuilder);
@@ -22,16 +24,19 @@ export class SettingsCenterComponent {
   protected readonly notifications = this.settingsService.notifications;
   protected readonly savedMessage = signal('');
   protected readonly form = this.formBuilder.nonNullable.group({
-    registeredName: [this.profile().registeredName, [Validators.required, Validators.maxLength(120)]],
-    taxRegistrationId: [this.profile().taxRegistrationId, [Validators.required, Validators.maxLength(48)]]
+    registeredName: [this.profile().registeredName, [trimmedRequired, Validators.maxLength(120)]],
+    taxRegistrationId: [
+      this.profile().taxRegistrationId,
+      [trimmedRequired, Validators.maxLength(48), Validators.pattern(/^[A-Za-z0-9/-]+$/)],
+    ],
   });
   protected readonly regionalForm = this.formBuilder.nonNullable.group({
     timezone: [this.profile().timezone, Validators.required],
-    defaultWarehouseId: [this.profile().defaultWarehouseId, Validators.required]
+    defaultWarehouseId: [this.profile().defaultWarehouseId, Validators.required],
   });
   protected readonly timezones = [
     { value: 'Africa/Nairobi', label: 'East Africa Time (Nairobi)' },
-    { value: 'UTC', label: 'Coordinated Universal Time (UTC)' }
+    { value: 'UTC', label: 'Coordinated Universal Time (UTC)' },
   ];
 
   protected saveProfile(): void {
@@ -44,7 +49,9 @@ export class SettingsCenterComponent {
       this.settingsService.updateProfile({ ...this.profile(), ...this.form.getRawValue() });
       this.savedMessage.set('Organization settings saved.');
     } catch (error) {
-      this.savedMessage.set(error instanceof Error ? error.message : 'Organization settings could not be saved.');
+      this.savedMessage.set(
+        error instanceof Error ? error.message : 'Organization settings could not be saved.',
+      );
     }
   }
 
@@ -63,7 +70,9 @@ export class SettingsCenterComponent {
       this.form.patchValue(this.profile());
       this.savedMessage.set('Regional defaults saved.');
     } catch (error) {
-      this.savedMessage.set(error instanceof Error ? error.message : 'Regional defaults could not be saved.');
+      this.savedMessage.set(
+        error instanceof Error ? error.message : 'Regional defaults could not be saved.',
+      );
     }
   }
 

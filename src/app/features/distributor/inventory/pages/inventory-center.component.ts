@@ -10,7 +10,7 @@ import { StockLevel } from '../inventory.models';
 @Component({
   selector: 'app-distributor-inventory-center',
   imports: [CurrencyPipe, DecimalPipe, RouterLink],
-  templateUrl: './inventory-center.component.html'
+  templateUrl: './inventory-center.component.html',
 })
 export class InventoryCenterComponent {
   private readonly inventoryService = inject(DistributorInventoryService);
@@ -23,33 +23,47 @@ export class InventoryCenterComponent {
     { value: 'ALL', label: 'All stock' },
     { value: 'LOW', label: 'Low stock' },
     { value: 'CRITICAL', label: 'Critical' },
-    { value: 'HEALTHY', label: 'Healthy' }
+    { value: 'HEALTHY', label: 'Healthy' },
   ];
   protected readonly items = computed(() => {
-    const offers = new Map(this.catalogService.offers().map(offer => [offer.sku, offer]));
-    return this.inventoryService.items().map(item => {
+    const offers = new Map(this.catalogService.offers().map((offer) => [offer.sku, offer]));
+    return this.inventoryService.items().map((item) => {
       const product = this.productService.findBySku(item.sku);
       const offer = offers.get(item.sku);
       return {
         ...item,
-        manufacturerName: product ? this.procurement.manufacturerForBrand(product.brand)?.name ?? product.brand : 'Manufacturer partner',
+        manufacturerName: product
+          ? (this.procurement.manufacturerForBrand(product.brand)?.name ?? product.brand)
+          : 'Manufacturer partner',
         listed: Boolean(offer),
         listPrice: offer?.listPrice ?? item.unitPrice,
-        level: this.inventoryService.stockLevel(item)
+        level: this.inventoryService.stockLevel(item),
       };
     });
   });
   protected readonly filteredItems = computed(() => {
     const query = this.searchTerm().trim().toLowerCase();
-    return this.items().filter(item => {
-      const matchesText = !query || [item.name, item.sku, item.manufacturerName, item.category].some(value => value.toLowerCase().includes(query));
+    return this.items().filter((item) => {
+      const matchesText =
+        !query ||
+        [item.name, item.sku, item.manufacturerName, item.category].some((value) =>
+          value.toLowerCase().includes(query),
+        );
       return matchesText && (this.selectedLevel() === 'ALL' || item.level === this.selectedLevel());
     });
   });
-  protected readonly totalUnits = computed(() => this.items().reduce((sum, item) => sum + item.onHand, 0));
-  protected readonly inventoryValue = computed(() => this.items().reduce((sum, item) => sum + item.onHand * item.unitPrice, 0));
-  protected readonly lowStockCount = computed(() => this.items().filter(item => item.level !== 'HEALTHY').length);
-  protected readonly listedCount = computed(() => this.items().filter(item => item.listed).length);
+  protected readonly totalUnits = computed(() =>
+    this.items().reduce((sum, item) => sum + item.onHand, 0),
+  );
+  protected readonly inventoryValue = computed(() =>
+    this.items().reduce((sum, item) => sum + item.onHand * item.unitPrice, 0),
+  );
+  protected readonly lowStockCount = computed(
+    () => this.items().filter((item) => item.level !== 'HEALTHY').length,
+  );
+  protected readonly listedCount = computed(
+    () => this.items().filter((item) => item.listed).length,
+  );
   protected readonly restockFeedback = signal<Record<string, string>>({});
 
   protected updateSearch(event: Event): void {
@@ -65,28 +79,59 @@ export class InventoryCenterComponent {
     if (!item) return;
     const quantity = Math.max(1, item.lowStockThreshold - item.onHand);
     try {
-      this.inventoryService.requestRestock(item, quantity, 'Requested from distributor inventory.').subscribe({
-        next: () => { this.restockFeedback.update(state => ({ ...state, [sku]: 'Restock request submitted.' })); this.inventoryService.refreshRestockRequests(); },
-        error: error => this.restockFeedback.update(state => ({ ...state, [sku]: error?.error?.message ?? 'Restock request failed.' }))
-      });
-    } catch (error) { this.restockFeedback.update(state => ({ ...state, [sku]: error instanceof Error ? error.message : 'Restock request failed.' })); }
+      this.inventoryService
+        .requestRestock(item, quantity, 'Requested from distributor inventory.')
+        .subscribe({
+          next: () => {
+            this.restockFeedback.update((state) => ({
+              ...state,
+              [sku]: 'Restock request submitted.',
+            }));
+            this.inventoryService.refreshRestockRequests();
+          },
+          error: (error) =>
+            this.restockFeedback.update((state) => ({
+              ...state,
+              [sku]: error?.error?.message ?? 'Restock request failed.',
+            })),
+        });
+    } catch (error) {
+      this.restockFeedback.update((state) => ({
+        ...state,
+        [sku]: error instanceof Error ? error.message : 'Restock request failed.',
+      }));
+    }
   }
 
-  protected pendingRestockId(id: string): string | undefined { return this.inventoryService.pendingRestockId(id); }
+  protected pendingRestockId(id: string): string | undefined {
+    return this.inventoryService.pendingRestockId(id);
+  }
 
   protected cancelRestock(id: string, sku: string): void {
     this.inventoryService.cancelRestockRequest(id).subscribe({
-      next: () => { this.restockFeedback.update(state => ({ ...state, [sku]: 'Restock request cancelled.' })); this.inventoryService.refreshRestockRequests(); },
-      error: error => this.restockFeedback.update(state => ({ ...state, [sku]: error?.error?.message ?? 'Restock request could not be cancelled.' }))
+      next: () => {
+        this.restockFeedback.update((state) => ({ ...state, [sku]: 'Restock request cancelled.' }));
+        this.inventoryService.refreshRestockRequests();
+      },
+      error: (error) =>
+        this.restockFeedback.update((state) => ({
+          ...state,
+          [sku]: error?.error?.message ?? 'Restock request could not be cancelled.',
+        })),
     });
   }
-  protected hasPendingRestock(id: string): boolean { return this.inventoryService.hasPendingRestock(id); }
+  protected hasPendingRestock(id: string): boolean {
+    return this.inventoryService.hasPendingRestock(id);
+  }
 
   protected levelClass(level: StockLevel): string {
     switch (level) {
-      case 'HEALTHY': return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-      case 'LOW': return 'border-amber-200 bg-amber-50 text-amber-700';
-      case 'CRITICAL': return 'border-red-200 bg-red-50 text-red-700';
+      case 'HEALTHY':
+        return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      case 'LOW':
+        return 'border-amber-200 bg-amber-50 text-amber-700';
+      case 'CRITICAL':
+        return 'border-red-200 bg-red-50 text-red-700';
     }
   }
 }

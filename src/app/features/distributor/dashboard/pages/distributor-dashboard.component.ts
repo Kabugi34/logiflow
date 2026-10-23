@@ -16,16 +16,16 @@ import { FleetOverviewComponent } from '../components/fleet-overview/fleet-overv
     ActiveCustomerOrdersComponent,
     CriticalStockComponent,
     FleetMapComponent,
-    FleetOverviewComponent
+    FleetOverviewComponent,
   ],
-  templateUrl: './distributor-dashboard.component.html'
+  templateUrl: './distributor-dashboard.component.html',
 })
 export class DistributorDashboardComponent {
+  private readonly dashboardService = inject(DistributorDashboardService);
 
-  private readonly dashboardService =
-    inject(DistributorDashboardService);
-
-  get dashboard() { return this.dashboardService.getDashboard(); }
+  get dashboard() {
+    return this.dashboardService.getDashboard();
+  }
 
   activeOrders = this.dashboardService.activeOrders;
 

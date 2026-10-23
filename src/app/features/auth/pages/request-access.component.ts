@@ -1,15 +1,21 @@
+import { FormValidationSummaryComponent } from '../../../shared/forms/form-validation-summary.component';
 import { Component, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { OrganizationType } from '../../../core/models/organization.model';
+import {
+  internationalPhone,
+  personName,
+  trimmedRequired,
+} from '../../../core/forms/form-validators';
 
 @Component({
   selector: 'app-request-access',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
-  templateUrl: './request-access.component.html'
+  imports: [FormValidationSummaryComponent, ReactiveFormsModule, RouterLink],
+  templateUrl: './request-access.component.html',
 })
 export class RequestAccessComponent {
   private readonly formBuilder = inject(FormBuilder);
@@ -25,11 +31,11 @@ export class RequestAccessComponent {
 
   protected readonly form = this.formBuilder.nonNullable.group({
     organizationType: ['MANUFACTURER' as OrganizationType, Validators.required],
-    organizationName: ['', [Validators.required, Validators.minLength(2)]],
-    contactName: ['', [Validators.required, Validators.minLength(2)]],
-    contactEmail: ['', [Validators.required, Validators.email]],
-    organizationEmail: ['', [Validators.required, Validators.email]],
-    phoneNumber: ['', [Validators.required, Validators.pattern(/^\+?[0-9\s\-()]{7,20}$/)]]
+    organizationName: ['', [trimmedRequired, Validators.minLength(2), Validators.maxLength(120)]],
+    contactName: ['', [trimmedRequired, personName, Validators.maxLength(80)]],
+    contactEmail: ['', [trimmedRequired, Validators.email, Validators.maxLength(120)]],
+    organizationEmail: ['', [trimmedRequired, Validators.email, Validators.maxLength(120)]],
+    phoneNumber: ['', [trimmedRequired, internationalPhone, Validators.maxLength(32)]],
   });
 
   protected submit(): void {
@@ -52,14 +58,16 @@ export class RequestAccessComponent {
     this.isSubmitting.set(true);
     this.authService.requestAccess(payload).subscribe({
       next: () => {
-        this.successMessage.set(`Your request has been submitted for review. If approved, the invitation link will be sent to ${this.submittedEmail()}.`);
+        this.successMessage.set(
+          `Your request has been submitted for review. If approved, the invitation link will be sent to ${this.submittedEmail()}.`,
+        );
         this.submitted.set(true);
         this.isSubmitting.set(false);
       },
-      error: error => {
+      error: (error) => {
         this.setRequestError(error);
         this.isSubmitting.set(false);
-      }
+      },
     });
   }
 
@@ -69,22 +77,36 @@ export class RequestAccessComponent {
       return;
     }
 
-    const body = typeof error.error === 'object' && error.error !== null
-      ? error.error as Record<string, unknown>
-      : {};
+    const body =
+      typeof error.error === 'object' && error.error !== null
+        ? (error.error as Record<string, unknown>)
+        : {};
     const code = typeof body['code'] === 'string' ? body['code'].toLowerCase() : '';
     const field = typeof body['field'] === 'string' ? body['field'].toLowerCase() : '';
     const message = typeof body['message'] === 'string' ? body['message'].toLowerCase() : '';
     const detail = `${code} ${field} ${message}`;
-    const duplicate = detail.includes('duplicate') || detail.includes('already') || detail.includes('exists') || error.status === 409;
+    const duplicate =
+      detail.includes('duplicate') ||
+      detail.includes('already') ||
+      detail.includes('exists') ||
+      error.status === 409;
 
-    if (detail.includes('contactemail') || detail.includes('personalemail') || detail.includes('personal email') || detail.includes('user_email') ||
-        (duplicate && (detail.includes('contact email') || detail.includes('user email')))) {
+    if (
+      detail.includes('contactemail') ||
+      detail.includes('personalemail') ||
+      detail.includes('personal email') ||
+      detail.includes('user_email') ||
+      (duplicate && (detail.includes('contact email') || detail.includes('user email')))
+    ) {
       this.duplicateContactEmail.set(true);
       return;
     }
-    if (detail.includes('organizationemail') || detail.includes('organization email') || detail.includes('org_email') ||
-        (duplicate && detail.includes('org email'))) {
+    if (
+      detail.includes('organizationemail') ||
+      detail.includes('organization email') ||
+      detail.includes('org_email') ||
+      (duplicate && detail.includes('org email'))
+    ) {
       this.duplicateOrganizationEmail.set(true);
       return;
     }
@@ -93,8 +115,10 @@ export class RequestAccessComponent {
       return;
     }
 
-    this.errorMessage.set(duplicate
-      ? 'An application with these details already exists. Check the email fields or contact LogiFlow support.'
-      : 'Unable to submit your request right now. Please check your details and try again.');
+    this.errorMessage.set(
+      duplicate
+        ? 'An application with these details already exists. Check the email fields or contact LogiFlow support.'
+        : 'Unable to submit your request right now. Please check your details and try again.',
+    );
   }
 }
