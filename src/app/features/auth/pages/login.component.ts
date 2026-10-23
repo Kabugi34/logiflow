@@ -4,12 +4,14 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
+import { LoadingIndicatorComponent } from '../../../shared/loading/loading-indicator.component';
 import { trimmedRequired } from '../../../core/forms/form-validators';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormValidationSummaryComponent, ReactiveFormsModule, RouterLink],
+  imports: [FormValidationSummaryComponent, LoadingIndicatorComponent, ReactiveFormsModule, RouterLink],
   templateUrl: './login.component.html',
 })
 export class LoginComponent {
@@ -43,7 +45,7 @@ export class LoginComponent {
     const { email, password } = this.form.getRawValue();
     this.isSubmitting.set(true);
 
-    this.authService.login(email, password).subscribe({
+    this.authService.login(email, password).pipe(finalize(() => this.isSubmitting.set(false))).subscribe({
       next: (user) => {
         const destination = user ? this.destinationForRole(user.roles[0]) : null;
 
@@ -51,7 +53,6 @@ export class LoginComponent {
           this.errorMessage.set(
             'This portal is available to Manufacturer and Distributor accounts with an assigned workspace role.',
           );
-          this.isSubmitting.set(false);
           return;
         }
 
@@ -61,7 +62,6 @@ export class LoginComponent {
         const target =
           returnUrl && this.validWorkspaceReturnUrl(returnUrl, workspace) ? returnUrl : destination;
 
-        this.isSubmitting.set(false);
         void this.router.navigateByUrl(target);
       },
       error: (error) => {
@@ -70,7 +70,6 @@ export class LoginComponent {
             ? 'Incorrect email or password.'
             : 'Unable to sign in. Please try again.',
         );
-        this.isSubmitting.set(false);
       },
     });
   }

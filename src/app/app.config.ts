@@ -6,6 +6,7 @@ import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { errorInterceptor } from './core/interceptors/error.interceptor';
 import { mockAuthInterceptor } from './core/api/mock-auth.interceptor';
+import { loadingInterceptor } from './core/interceptors/loading.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -15,7 +16,8 @@ export const appConfig: ApplicationConfig = {
       withInterceptors([
         authInterceptor,
         mockAuthInterceptor,
-        errorInterceptor
+        errorInterceptor,
+        loadingInterceptor
       ])
     )
   ]

@@ -132,7 +132,11 @@
             [disabled]="isSubmitting() || submitted()"
             class="inline-flex h-11 items-center justify-center rounded-md bg-blue-600 px-5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"
           >
-            {{ isSubmitting() ? 'Submitting…' : 'Submit request' }}
+            @if (isSubmitting()) {
+              <app-loading-indicator label="Submitting…" [small]="true" />
+            } @else {
+              Submit request
+            }
           </button>
         </div>
       </form>

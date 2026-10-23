@@ -10,6 +10,7 @@ import { DistributorOrderService } from '../../orders/order.service';
 import { DistributorTripService } from '../trip.service';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DistributorFleetService } from '../../fleet/fleet.service';
+import { finalize } from 'rxjs';
 import {
   internationalPhone,
   personName,
@@ -42,6 +43,7 @@ export class DistributorLogisticsComponent {
   protected readonly tripFormError = signal('');
   protected readonly selectedRiderId = signal('');
   protected readonly assignmentMessage = signal('');
+  protected readonly pendingTripAction = signal('');
   protected readonly tripForm = this.fb.nonNullable.group({
     type: ['DELIVERY' as 'DELIVERY' | 'RESTOCK', Validators.required],
     originName: ['', [trimmedRequired, Validators.maxLength(100)]],
@@ -162,11 +164,13 @@ export class DistributorLogisticsComponent {
   }
 
   protected createTrip(): void {
+    if (this.pendingTripAction()) return;
     if (this.tripForm.invalid) {
       this.tripForm.markAllAsTouched();
       return;
     }
     this.tripFormError.set('');
+    this.pendingTripAction.set('create');
     const value = this.tripForm.getRawValue();
     this.tripService
       .create({
@@ -193,6 +197,7 @@ export class DistributorLogisticsComponent {
           },
         ],
       })
+      .pipe(finalize(() => this.pendingTripAction.set('')))
       .subscribe({
         next: (trip) => {
           this.tripService.refresh();
@@ -208,13 +213,17 @@ export class DistributorLogisticsComponent {
   }
 
   protected assignSelectedDriver(): void {
+    if (this.pendingTripAction()) return;
     const tripId = this.selectedTripId();
     const driverId = this.selectedRiderId();
     if (!tripId || !driverId) {
       this.assignmentMessage.set('Select a trip and an available driver.');
       return;
     }
-    this.tripService.assignDriver(tripId, driverId).subscribe({
+    this.pendingTripAction.set('assign');
+    this.tripService.assignDriver(tripId, driverId).pipe(
+      finalize(() => this.pendingTripAction.set('')),
+    ).subscribe({
       next: () => {
         this.tripService.refresh();
         this.assignmentMessage.set('Driver assignment updated.');
@@ -227,7 +236,11 @@ export class DistributorLogisticsComponent {
   }
 
   protected updateTripStatus(id: string, status: 'ONGOING' | 'COMPLETED'): void {
-    this.tripService.updateStatus(id, status).subscribe({
+    if (this.pendingTripAction()) return;
+    this.pendingTripAction.set(id);
+    this.tripService.updateStatus(id, status).pipe(
+      finalize(() => this.pendingTripAction.set('')),
+    ).subscribe({
       next: () => this.tripService.refresh(),
       error: (error) =>
         this.tripService.error.set(error?.error?.message ?? 'Trip status could not be updated.'),

@@ -5,6 +5,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DistributorProcurementService } from '../procurement.service';
 import { DraftProcurementLine } from '../procurement.models';
+import { finalize } from 'rxjs';
 
 interface DraftLineView extends DraftProcurementLine {
   productName: string;
@@ -39,6 +40,7 @@ export class PurchaseOrderFormComponent {
   );
   protected readonly lines = signal<DraftLineView[]>([]);
   protected readonly errorMessage = signal('');
+  protected readonly creating = signal(false);
   protected readonly form = this.formBuilder.nonNullable.group({
     sku: ['', Validators.required],
     quantity: [1, [Validators.required, Validators.min(1)]],
@@ -97,17 +99,20 @@ export class PurchaseOrderFormComponent {
   }
 
   protected createDraft(): void {
+    if (this.creating()) return;
     this.errorMessage.set('');
     if (!this.lines().length) {
       this.errorMessage.set('Add at least one product before creating the purchase order.');
       return;
     }
     try {
+      this.creating.set(true);
       this.procurement
         .createDraft(
           this.manufacturerId(),
           this.lines().map(({ sku, quantity }) => ({ sku, quantity })),
         )
+        .pipe(finalize(() => this.creating.set(false)))
         .subscribe({
           next: (id) =>
             void this.router.navigate(['/distributor/procurement', id], {

@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DistributorCatalogService } from '../catalog.service';
 import { trimmedRequired } from '../../../../core/forms/form-validators';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-catalog-offer-form',
@@ -53,22 +54,23 @@ export class CatalogOfferFormComponent {
   }
 
   protected createWarehouse(): void {
+    if (this.warehouseSaving()) return;
     if (this.warehouseForm.invalid) {
       this.warehouseForm.markAllAsTouched();
       return;
     }
     this.warehouseSaving.set(true);
     this.warehouseMessage.set('');
-    this.catalogService.createWarehouse(this.warehouseForm.getRawValue()).subscribe({
+    this.catalogService.createWarehouse(this.warehouseForm.getRawValue()).pipe(
+      finalize(() => this.warehouseSaving.set(false)),
+    ).subscribe({
       next: (warehouse) => {
         this.catalogService.refresh();
         this.form.controls.warehouseId.setValue(warehouse.id);
         this.warehouseForm.reset({ code: '', name: '', address: '' });
-        this.warehouseSaving.set(false);
         this.warehouseMessage.set('Warehouse created.');
       },
       error: (error) => {
-        this.warehouseSaving.set(false);
         this.warehouseMessage.set(
           error?.error?.message ?? 'Warehouse creation is available to distributor administrators.',
         );
@@ -80,6 +82,7 @@ export class CatalogOfferFormComponent {
   }
 
   protected submit(): void {
+    if (this.saving()) return;
     this.errorMessage.set('');
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -98,6 +101,7 @@ export class CatalogOfferFormComponent {
     this.saving.set(true);
     this.catalogService
       .addOffer({ sourceStockItemId, warehouseId, sku, listPrice, reorderThreshold })
+      .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
         next: () => {
           this.catalogService.refresh();
@@ -105,7 +109,6 @@ export class CatalogOfferFormComponent {
         },
         error: (error) => {
           this.errorMessage.set(error?.error?.message ?? 'Unable to save catalog offer.');
-          this.saving.set(false);
         },
       });
   }

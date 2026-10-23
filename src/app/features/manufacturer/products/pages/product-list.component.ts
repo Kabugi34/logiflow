@@ -2,15 +2,16 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ManufacturerProductService } from '../product.service';
+import { LoadingSkeletonComponent } from '../../../../shared/loading/loading-skeleton.component';
 
 @Component({
   selector: 'app-product-list',
   standalone: true,
-  imports: [DecimalPipe, RouterLink],
+  imports: [DecimalPipe, LoadingSkeletonComponent, RouterLink],
   templateUrl: './product-list.component.html'
 })
 export class ProductListComponent {
-  private readonly productService = inject(ManufacturerProductService);
+  protected readonly productService = inject(ManufacturerProductService);
   protected readonly searchTerm = signal('');
   protected readonly selectedCategory = signal('All categories');
   protected readonly selectedStatus = signal('All statuses');

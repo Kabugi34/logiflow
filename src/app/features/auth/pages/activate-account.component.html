@@ -98,7 +98,11 @@
             [disabled]="isSubmitting()"
             class="inline-flex h-11 items-center justify-center rounded-md bg-blue-600 px-5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            {{ isSubmitting() ? 'Activating…' : 'Activate account' }}
+            @if (isSubmitting()) {
+              <app-loading-indicator label="Activating…" [small]="true" />
+            } @else {
+              Activate account
+            }
           </button>
         </div>
       </form>
@@ -135,7 +139,11 @@
           [disabled]="isSubmitting()"
           class="inline-flex h-11 w-full items-center justify-center rounded-md bg-blue-600 px-5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"
         >
-          {{ isSubmitting() ? 'Requesting…' : 'Request a new link' }}
+          @if (isSubmitting()) {
+            <app-loading-indicator label="Requesting…" [small]="true" />
+          } @else {
+            Request a new link
+          }
         </button>
         <a
           routerLink="/auth/login"

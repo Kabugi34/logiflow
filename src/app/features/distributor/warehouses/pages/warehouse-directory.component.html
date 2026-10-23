@@ -40,7 +40,7 @@
       </button>
     </div>
     @if (loading()) {
-      <p class="p-8 text-center text-xs text-slate-500">Loading warehouse locations…</p>
+      <app-loading-skeleton [rows]="4" [columns]="4" />
     } @else {
       <div class="overflow-x-auto">
         <table class="w-full min-w-[520px] text-xs">

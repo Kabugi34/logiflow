@@ -3,12 +3,14 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
+import { LoadingIndicatorComponent } from '../../../shared/loading/loading-indicator.component';
 import { matchingFields } from '../../../core/forms/form-validators';
 import { trimmedRequired } from '../../../core/forms/form-validators';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-reset-password',
-  imports: [FormValidationSummaryComponent, ReactiveFormsModule, RouterLink],
+  imports: [FormValidationSummaryComponent, LoadingIndicatorComponent, ReactiveFormsModule, RouterLink],
   templateUrl: './reset-password.component.html',
 })
 export class ResetPasswordComponent {
@@ -38,6 +40,7 @@ export class ResetPasswordComponent {
   );
 
   protected requestReset(): void {
+    if (this.isSubmitting()) return;
     this.errorMessage.set('');
     this.successMessage.set('');
     if (this.requestForm.invalid) {
@@ -45,21 +48,20 @@ export class ResetPasswordComponent {
       return;
     }
     this.isSubmitting.set(true);
-    this.authService.requestPasswordReset(this.requestForm.controls.email.value).subscribe({
+    this.authService.requestPasswordReset(this.requestForm.controls.email.value).pipe(finalize(() => this.isSubmitting.set(false))).subscribe({
       next: () => {
         this.successMessage.set(
           'If an account exists for that email, a password reset link will be sent.',
         );
-        this.isSubmitting.set(false);
       },
       error: () => {
         this.errorMessage.set('Unable to request a password reset right now. Please try again.');
-        this.isSubmitting.set(false);
       },
     });
   }
 
   protected resetPassword(): void {
+    if (this.isSubmitting()) return;
     this.errorMessage.set('');
     this.successMessage.set('');
     if (this.resetForm.invalid) {
@@ -76,14 +78,12 @@ export class ResetPasswordComponent {
       return;
     }
     this.isSubmitting.set(true);
-    this.authService.resetPassword({ email, token: this.token, password }).subscribe({
+    this.authService.resetPassword({ email, token: this.token, password }).pipe(finalize(() => this.isSubmitting.set(false))).subscribe({
       next: () => {
         this.successMessage.set('Your password has been reset. You can now sign in.');
-        this.isSubmitting.set(false);
       },
       error: () => {
         this.errorMessage.set('Unable to reset your password. The link may be invalid or expired.');
-        this.isSubmitting.set(false);
       },
     });
   }

@@ -69,6 +69,9 @@
     />
   </div>
 
+  @if (procurement.loading()) {
+    <app-loading-skeleton [rows]="6" [columns]="7" />
+  } @else {
   <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
     <div class="overflow-x-auto">
       <table class="w-full min-w-240 text-xs">
@@ -138,4 +141,5 @@
       </table>
     </div>
   </section>
+  }
 </section>

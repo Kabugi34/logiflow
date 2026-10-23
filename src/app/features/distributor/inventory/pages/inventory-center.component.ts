@@ -6,14 +6,16 @@ import { DistributorInventoryService } from '../inventory.service';
 import { DistributorProcurementService } from '../../procurement/procurement.service';
 import { ManufacturerProductService } from '../../../manufacturer/products/product.service';
 import { StockLevel } from '../inventory.models';
+import { finalize } from 'rxjs';
+import { LoadingSkeletonComponent } from '../../../../shared/loading/loading-skeleton.component';
 
 @Component({
   selector: 'app-distributor-inventory-center',
-  imports: [CurrencyPipe, DecimalPipe, RouterLink],
+  imports: [CurrencyPipe, DecimalPipe, LoadingSkeletonComponent, RouterLink],
   templateUrl: './inventory-center.component.html',
 })
 export class InventoryCenterComponent {
-  private readonly inventoryService = inject(DistributorInventoryService);
+  protected readonly inventoryService = inject(DistributorInventoryService);
   private readonly catalogService = inject(DistributorCatalogService);
   private readonly productService = inject(ManufacturerProductService);
   protected readonly procurement = inject(DistributorProcurementService);
@@ -65,6 +67,7 @@ export class InventoryCenterComponent {
     () => this.items().filter((item) => item.listed).length,
   );
   protected readonly restockFeedback = signal<Record<string, string>>({});
+  protected readonly pendingRestockActions = signal<Record<string, 'request' | 'cancel'>>({});
 
   protected updateSearch(event: Event): void {
     this.searchTerm.set((event.target as HTMLInputElement).value);
@@ -75,12 +78,18 @@ export class InventoryCenterComponent {
   }
 
   protected requestRestock(sku: string): void {
+    if (this.pendingRestockActions()[sku]) return;
     const item = this.inventoryService.findBySku(sku);
     if (!item) return;
     const quantity = Math.max(1, item.lowStockThreshold - item.onHand);
+    this.pendingRestockActions.update((state) => ({ ...state, [sku]: 'request' }));
     try {
       this.inventoryService
         .requestRestock(item, quantity, 'Requested from distributor inventory.')
+        .pipe(finalize(() => this.pendingRestockActions.update((state) => {
+          const { [sku]: _pending, ...rest } = state;
+          return rest;
+        })))
         .subscribe({
           next: () => {
             this.restockFeedback.update((state) => ({
@@ -96,6 +105,10 @@ export class InventoryCenterComponent {
             })),
         });
     } catch (error) {
+      this.pendingRestockActions.update((state) => {
+        const { [sku]: _pending, ...rest } = state;
+        return rest;
+      });
       this.restockFeedback.update((state) => ({
         ...state,
         [sku]: error instanceof Error ? error.message : 'Restock request failed.',
@@ -108,7 +121,14 @@ export class InventoryCenterComponent {
   }
 
   protected cancelRestock(id: string, sku: string): void {
-    this.inventoryService.cancelRestockRequest(id).subscribe({
+    if (this.pendingRestockActions()[sku]) return;
+    this.pendingRestockActions.update((state) => ({ ...state, [sku]: 'cancel' }));
+    this.inventoryService.cancelRestockRequest(id).pipe(
+      finalize(() => this.pendingRestockActions.update((state) => {
+        const { [sku]: _pending, ...rest } = state;
+        return rest;
+      })),
+    ).subscribe({
       next: () => {
         this.restockFeedback.update((state) => ({ ...state, [sku]: 'Restock request cancelled.' }));
         this.inventoryService.refreshRestockRequests();

@@ -21,6 +21,9 @@ export class DistributorDashboardService {
   private readonly fleetService = inject(DistributorFleetService);
   private readonly procurementService = inject(DistributorProcurementService);
   private readonly tripService = inject(DistributorTripService);
+  readonly loading = computed(
+    () => this.orderService.loading() || this.inventoryService.loading() || this.procurementService.loading() || this.tripService.loading(),
+  );
 
   readonly activeOrders = computed<DashboardCustomerOrder[]>(() =>
     this.orderService.activeOrders().map((order) => ({

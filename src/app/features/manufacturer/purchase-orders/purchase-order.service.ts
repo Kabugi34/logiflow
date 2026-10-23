@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import { ManufacturerPurchaseOrder, PurchaseOrderStatus } from './purchase-order.models';
+import { Observable, map, tap } from 'rxjs';
 
 interface ApiPo {
   id: string; purchaseOrderNumber: string; buyerOrganizationId: string; status: string; submittedAt: string;
@@ -44,12 +45,14 @@ export class ManufacturerPurchaseOrderService {
 
   findById(id: string): ManufacturerPurchaseOrder | undefined { return this.records().find(order => order.id === id); }
 
-  updateStatus(id: string, status: PurchaseOrderStatus, note = ''): void {
+  updateStatus(id: string, status: PurchaseOrderStatus, note = ''): Observable<void> {
     const apiStatus = status === 'ACCEPTED' ? 'APPROVED' : status === 'PENDING' ? 'SUBMITTED' : status;
-    this.http.patch<ApiPo>(API_ENDPOINTS.manufacturer.purchaseOrderDecision(id), { status: apiStatus, note }).subscribe({
-      next: () => this.refresh(),
-      error: () => this.error.set('The purchase order decision could not be saved.')
-    });
+    return this.http
+      .patch<ApiPo>(API_ENDPOINTS.manufacturer.purchaseOrderDecision(id), { status: apiStatus, note })
+      .pipe(
+        tap(() => this.refresh()),
+        map(() => undefined),
+      );
   }
 
   private mapOrder(row: ApiPo): ManufacturerPurchaseOrder {

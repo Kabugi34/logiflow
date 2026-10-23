@@ -7,6 +7,13 @@
     <p class="mt-1 text-sm text-slate-500">Real-time multi-warehouse overview and dispatch pipelines.</p>
   </header>
 
+  @if (loading()) {
+    <app-loading-skeleton variant="cards" [rows]="4" />
+    <div class="grid gap-4 2xl:grid-cols-2">
+      <app-loading-skeleton [rows]="4" [columns]="3" />
+      <app-loading-skeleton [rows]="4" [columns]="3" />
+    </div>
+  } @else {
   <app-dashboard-statistics [dashboard]="dashboard" />
 
   <div class="grid grid-cols-1 items-start gap-4 2xl:grid-cols-[1.55fr_1fr]">
@@ -28,4 +35,5 @@
       <app-attention-panel [items]="attentionItems" />
     </aside>
   </div>
+  }
 </section>

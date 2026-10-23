@@ -63,6 +63,9 @@
     >
   </div>
 
+  @if (orderService.loading()) {
+    <app-loading-skeleton [rows]="6" [columns]="8" />
+  } @else {
   <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
     <div class="overflow-x-auto">
       <table class="w-full min-w-220 text-xs">
@@ -114,4 +117,5 @@
       </table>
     </div>
   </div>
+  }
 </section>

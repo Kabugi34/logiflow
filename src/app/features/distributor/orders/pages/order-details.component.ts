@@ -48,6 +48,7 @@ export class OrderDetailsComponent {
   protected readonly paymentMessage = signal('');
   protected readonly showPaymentForm = signal(false);
   protected readonly paymentBusy = signal(false);
+  protected readonly statusAction = signal<'IN_TRANSIT' | 'DELIVERED' | null>(null);
   private checkedPaymentOrderId = '';
 
   constructor() {
@@ -80,13 +81,18 @@ export class OrderDetailsComponent {
     const order = this.order();
     if (!order) return;
     this.errorMessage.set('');
+    if (this.statusAction()) return;
+    this.statusAction.set('IN_TRANSIT');
     try {
-      this.orderService.updateStatus(order.id, 'IN_TRANSIT').subscribe({
+      this.orderService.updateStatus(order.id, 'IN_TRANSIT').pipe(
+        finalize(() => this.statusAction.set(null)),
+      ).subscribe({
         next: () => this.orderService.refresh(),
         error: (error) =>
           this.errorMessage.set(error?.error?.message ?? 'The order status could not be updated.'),
       });
     } catch (error) {
+      this.statusAction.set(null);
       this.errorMessage.set(
         error instanceof Error ? error.message : 'Unable to dispatch this order.',
       );
@@ -95,12 +101,16 @@ export class OrderDetailsComponent {
 
   protected confirmDelivery(): void {
     const order = this.order();
-    if (order)
-      this.orderService.updateStatus(order.id, 'DELIVERED').subscribe({
+    if (order && !this.statusAction()) {
+      this.statusAction.set('DELIVERED');
+      this.orderService.updateStatus(order.id, 'DELIVERED').pipe(
+        finalize(() => this.statusAction.set(null)),
+      ).subscribe({
         next: () => this.orderService.refresh(),
         error: (error) =>
           this.errorMessage.set(error?.error?.message ?? 'The order status could not be updated.'),
       });
+    }
   }
 
   protected markPaid(): void {

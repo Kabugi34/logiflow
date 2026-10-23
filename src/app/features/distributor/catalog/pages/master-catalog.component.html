@@ -177,9 +177,10 @@
             <button
               type="button"
               (click)="toggleOffer(offer)"
-              class="mt-3 text-[10px] font-medium text-blue-600"
+              [disabled]="!!pendingOfferId()"
+              class="mt-3 text-[10px] font-medium text-blue-600 disabled:cursor-wait disabled:opacity-50"
             >
-              {{ offer.status === 'ACTIVE' ? 'Pause offer' : 'Resume offer' }}
+              {{ pendingOfferId() === offer.id ? 'Saving…' : offer.status === 'ACTIVE' ? 'Pause offer' : 'Resume offer' }}
             </button>
           </article>
         } @empty {

@@ -10,6 +10,13 @@
     </p>
   </header>
 
+  @if (loading()) {
+    <app-loading-skeleton variant="cards" [rows]="4" />
+    <div class="grid gap-4 2xl:grid-cols-2">
+      <app-loading-skeleton [rows]="4" [columns]="3" />
+      <app-loading-skeleton [rows]="4" [columns]="3" />
+    </div>
+  } @else {
   <app-distributor-dashboard-statistics [dashboard]="dashboard" />
 
   <div class="grid grid-cols-1 items-start gap-4 2xl:grid-cols-[1.55fr_1fr]">
@@ -40,4 +47,5 @@
       <app-distributor-fleet-overview [drivers]="drivers()" />
     </aside>
   </div>
+  }
 </section>

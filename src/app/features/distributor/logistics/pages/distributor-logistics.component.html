@@ -298,9 +298,10 @@
         <button
           type="button"
           (click)="tripService.refresh()"
-          class="text-xs font-medium text-blue-600"
+          [disabled]="tripService.loading()"
+          class="text-xs font-medium text-blue-600 disabled:cursor-wait disabled:opacity-60"
         >
-          Refresh trips</button
+          {{ tripService.loading() ? 'Refreshing…' : 'Refresh trips' }}</button
         ><button
           type="button"
           (click)="createTripOpen.set(true); tripFormError.set('')"
@@ -345,17 +346,19 @@
                     <button
                       type="button"
                       (click)="updateTripStatus(trip.id, 'ONGOING')"
-                      class="text-blue-600"
+                      [disabled]="!!pendingTripAction()"
+                      class="text-blue-600 disabled:cursor-wait disabled:opacity-50"
                     >
-                      Start
+                      {{ pendingTripAction() === trip.id ? 'Updating…' : 'Start' }}
                     </button>
                   } @else if (trip.status === 'ONGOING') {
                     <button
                       type="button"
                       (click)="updateTripStatus(trip.id, 'COMPLETED')"
-                      class="text-blue-600"
+                      [disabled]="!!pendingTripAction()"
+                      class="text-blue-600 disabled:cursor-wait disabled:opacity-50"
                     >
-                      Complete
+                      {{ pendingTripAction() === trip.id ? 'Updating…' : 'Complete' }}
                     </button>
                   }
                 </td>
@@ -393,10 +396,10 @@
             ><button
               type="button"
               (click)="assignSelectedDriver()"
-              [disabled]="trip.status === 'COMPLETED' || trip.status === 'CANCELLED'"
+              [disabled]="trip.status === 'COMPLETED' || trip.status === 'CANCELLED' || !!pendingTripAction()"
               class="h-8 rounded bg-blue-600 px-3 text-xs text-white disabled:opacity-50"
             >
-              Assign driver
+              {{ pendingTripAction() === 'assign' ? 'Assigning…' : 'Assign driver' }}
             </button>
           </div>
           @if (assignmentMessage()) {
@@ -522,8 +525,8 @@
             class="h-9 rounded border px-3 text-xs"
           >
             Cancel</button
-          ><button type="submit" class="h-9 rounded bg-blue-600 px-3 text-xs text-white">
-            Create trip
+          ><button type="submit" [disabled]="!!pendingTripAction()" class="h-9 rounded bg-blue-600 px-3 text-xs text-white disabled:cursor-wait disabled:opacity-60">
+            {{ pendingTripAction() === 'create' ? 'Creating…' : 'Create trip' }}
           </button>
         </div>
       </form>

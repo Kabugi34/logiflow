@@ -140,9 +140,10 @@
     ><button
       type="button"
       (click)="createDraft()"
-      class="h-9 rounded-md bg-blue-600 px-4 text-xs font-medium text-white hover:bg-blue-700"
+      [disabled]="creating()"
+      class="h-9 rounded-md bg-blue-600 px-4 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"
     >
-      Submit Draft PO
+      {{ creating() ? 'Submitting…' : 'Submit Draft PO' }}
     </button>
   </div>
 </section>

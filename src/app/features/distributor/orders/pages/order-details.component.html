@@ -194,17 +194,19 @@
             <button
               type="button"
               (click)="dispatch()"
-              class="mt-4 min-h-10 w-full rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700"
+              [disabled]="!!statusAction()"
+              class="mt-4 min-h-10 w-full rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"
             >
-              Mark In Transit
+              {{ statusAction() === 'IN_TRANSIT' ? 'Updating…' : 'Mark In Transit' }}
             </button>
           } @else if (currentOrder.status === 'IN_TRANSIT') {
             <button
               type="button"
               (click)="confirmDelivery()"
-              class="mt-4 min-h-10 w-full rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700"
+              [disabled]="!!statusAction()"
+              class="mt-4 min-h-10 w-full rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"
             >
-              Mark Delivered
+              {{ statusAction() === 'DELIVERED' ? 'Updating…' : 'Mark Delivered' }}
             </button>
           }
           @if (errorMessage()) {

@@ -4,11 +4,13 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { DistributorCatalogService } from '../../catalog/catalog.service';
 import { trimmedRequired } from '../../../../core/forms/form-validators';
+import { finalize } from 'rxjs';
+import { LoadingSkeletonComponent } from '../../../../shared/loading/loading-skeleton.component';
 
 @Component({
   selector: 'app-distributor-warehouse-directory',
   standalone: true,
-  imports: [FormValidationSummaryComponent, ReactiveFormsModule, RouterLink],
+  imports: [FormValidationSummaryComponent, LoadingSkeletonComponent, ReactiveFormsModule, RouterLink],
   templateUrl: './warehouse-directory.component.html',
 })
 export class WarehouseDirectoryComponent {
@@ -26,22 +28,23 @@ export class WarehouseDirectoryComponent {
     address: ['', [trimmedRequired, Validators.maxLength(160)]],
   });
   protected create(): void {
-    if (this.form.invalid || this.saving()) {
+    if (this.saving()) return;
+    if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
     this.saving.set(true);
     this.message.set('');
-    this.service.createWarehouse(this.form.getRawValue()).subscribe({
+    this.service.createWarehouse(this.form.getRawValue()).pipe(
+      finalize(() => this.saving.set(false)),
+    ).subscribe({
       next: () => {
         this.service.refresh();
-        this.saving.set(false);
         this.dialog.set(false);
         this.form.reset({ code: '', name: '', address: '' });
         this.message.set('Warehouse created.');
       },
       error: (error) => {
-        this.saving.set(false);
         this.message.set(
           error?.error?.message ??
             'Warehouse could not be created. Check your organization role and try again.',

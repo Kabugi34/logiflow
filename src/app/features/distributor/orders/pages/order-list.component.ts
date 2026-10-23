@@ -4,11 +4,12 @@ import { RouterLink } from '@angular/router';
 import { DistributorOrderService } from '../order.service';
 import { CustomerOrderStatus, PaymentStatus } from '../order.models';
 import { OrderBadgeComponent } from '../components/order-badge/order-badge.component';
+import { LoadingSkeletonComponent } from '../../../../shared/loading/loading-skeleton.component';
 
 @Component({
   selector: 'app-order-list',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, RouterLink, OrderBadgeComponent],
+  imports: [CurrencyPipe, DatePipe, LoadingSkeletonComponent, RouterLink, OrderBadgeComponent],
   templateUrl: './order-list.component.html',
 })
 export class OrderListComponent {

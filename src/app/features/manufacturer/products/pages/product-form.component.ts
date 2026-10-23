@@ -3,12 +3,14 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ManufacturerProductService } from '../product.service';
+import { LoadingIndicatorComponent } from '../../../../shared/loading/loading-indicator.component';
 import { trimmedRequired } from '../../../../core/forms/form-validators';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-product-form',
   standalone: true,
-  imports: [FormValidationSummaryComponent, ReactiveFormsModule, RouterLink],
+  imports: [FormValidationSummaryComponent, LoadingIndicatorComponent, ReactiveFormsModule, RouterLink],
   templateUrl: './product-form.component.html',
 })
 export class ProductFormComponent {
@@ -17,6 +19,7 @@ export class ProductFormComponent {
   private readonly router = inject(Router);
   protected readonly selectedImage = signal('');
   protected readonly errorMessage = signal('');
+  protected readonly isSubmitting = signal(false);
   protected readonly categories = ['Motors', 'Transmission', 'Electronics', 'Valves', 'Other'];
   protected readonly form = this.formBuilder.nonNullable.group({
     name: ['', [trimmedRequired, Validators.maxLength(120)]],
@@ -36,12 +39,16 @@ export class ProductFormComponent {
   }
 
   protected submit(): void {
+    if (this.isSubmitting()) return;
     this.errorMessage.set('');
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-    this.productService.save(this.form.getRawValue()).subscribe({
+    this.isSubmitting.set(true);
+    this.productService.save(this.form.getRawValue()).pipe(
+      finalize(() => this.isSubmitting.set(false)),
+    ).subscribe({
       next: () => {
         this.productService.refresh();
         void this.router.navigate(['/manufacturer/products']);

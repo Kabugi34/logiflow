@@ -22,6 +22,9 @@
     <span class="ml-auto text-xs text-slate-500">{{ filteredProducts().length }} products</span>
   </div>
 
+  @if (productService.loading()) {
+    <app-loading-skeleton [rows]="6" [columns]="9" />
+  } @else {
   <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
     <div class="overflow-x-auto">
       <table class="w-full min-w-190 text-xs">
@@ -43,4 +46,5 @@
       </table>
     </div>
   </div>
+  }
 </section>

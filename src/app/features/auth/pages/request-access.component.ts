@@ -4,17 +4,19 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
+import { LoadingIndicatorComponent } from '../../../shared/loading/loading-indicator.component';
 import { OrganizationType } from '../../../core/models/organization.model';
 import {
   internationalPhone,
   personName,
   trimmedRequired,
 } from '../../../core/forms/form-validators';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-request-access',
   standalone: true,
-  imports: [FormValidationSummaryComponent, ReactiveFormsModule, RouterLink],
+  imports: [FormValidationSummaryComponent, LoadingIndicatorComponent, ReactiveFormsModule, RouterLink],
   templateUrl: './request-access.component.html',
 })
 export class RequestAccessComponent {
@@ -56,17 +58,15 @@ export class RequestAccessComponent {
     const payload = this.form.getRawValue();
     this.submittedEmail.set(payload.contactEmail.trim());
     this.isSubmitting.set(true);
-    this.authService.requestAccess(payload).subscribe({
+    this.authService.requestAccess(payload).pipe(finalize(() => this.isSubmitting.set(false))).subscribe({
       next: () => {
         this.successMessage.set(
           `Your request has been submitted for review. If approved, the invitation link will be sent to ${this.submittedEmail()}.`,
         );
         this.submitted.set(true);
-        this.isSubmitting.set(false);
       },
       error: (error) => {
         this.setRequestError(error);
-        this.isSubmitting.set(false);
       },
     });
   }

@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { computed, inject, Injectable } from '@angular/core';
 import { DashboardPurchaseOrder, DashboardAttentionItem, DashboardDriver, DashboardShipment, ManufacturerDashboard } from './dashboard.models';
 import { ManufacturerProductService } from '../products/product.service';
 import { ManufacturerPurchaseOrderService } from '../purchase-orders/purchase-order.service';
@@ -7,6 +7,7 @@ import { ManufacturerPurchaseOrderService } from '../purchase-orders/purchase-or
 export class ManufacturerDashboardService {
   private readonly productService = inject(ManufacturerProductService);
   private readonly purchaseOrderService = inject(ManufacturerPurchaseOrderService);
+  readonly loading = computed(() => this.purchaseOrderService.loading() || this.productService.loading());
   // The backend currently has no dashboard aggregation endpoint. Avoid showing fabricated KPI values.
   getDashboard(): ManufacturerDashboard {
     const pending = this.purchaseOrderService.orders().filter(order => order.status === 'PENDING');

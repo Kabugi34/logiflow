@@ -4,13 +4,15 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
+import { LoadingIndicatorComponent } from '../../../shared/loading/loading-indicator.component';
 import { matchingFields } from '../../../core/forms/form-validators';
 import { trimmedRequired } from '../../../core/forms/form-validators';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-activate-account',
   standalone: true,
-  imports: [FormValidationSummaryComponent, ReactiveFormsModule, RouterLink],
+  imports: [FormValidationSummaryComponent, LoadingIndicatorComponent, ReactiveFormsModule, RouterLink],
   templateUrl: './activate-account.component.html',
 })
 export class ActivateAccountComponent {
@@ -84,6 +86,7 @@ export class ActivateAccountComponent {
         password,
         confirmPassword,
       })
+      .pipe(finalize(() => this.isSubmitting.set(false)))
       .subscribe({
         next: () => {
           void this.router.navigate(['/auth/login'], {
@@ -92,7 +95,6 @@ export class ActivateAccountComponent {
         },
         error: (error) => {
           this.activationState.set(this.activationFailureState(error));
-          this.isSubmitting.set(false);
 
           if (error instanceof HttpErrorResponse && error.status === 400) {
             this.errorMessage.set(
@@ -122,16 +124,16 @@ export class ActivateAccountComponent {
 
     this.isSubmitting.set(true);
 
-    this.authService.requestActivationLink(this.resendForm.controls.email.value).subscribe({
+    this.authService.requestActivationLink(this.resendForm.controls.email.value).pipe(
+      finalize(() => this.isSubmitting.set(false)),
+    ).subscribe({
       next: () => {
         this.linkRequested.set(true);
-        this.isSubmitting.set(false);
       },
       error: () => {
         this.errorMessage.set(
           'Unable to request a new activation link right now. Please try again.',
         );
-        this.isSubmitting.set(false);
       },
     });
   }

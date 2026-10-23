@@ -4,10 +4,11 @@ import { RouterLink } from '@angular/router';
 import { printPurchaseOrderPdf } from '../purchase-order-pdf';
 import { DistributorProcurementService } from '../procurement.service';
 import { DistributorPurchaseOrder, ProcurementStatus } from '../procurement.models';
+import { LoadingSkeletonComponent } from '../../../../shared/loading/loading-skeleton.component';
 
 @Component({
   selector: 'app-procurement-center',
-  imports: [CurrencyPipe, DatePipe, RouterLink],
+  imports: [CurrencyPipe, DatePipe, LoadingSkeletonComponent, RouterLink],
   templateUrl: './procurement-center.component.html',
 })
 export class ProcurementCenterComponent {
