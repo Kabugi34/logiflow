@@ -1,34 +1,47 @@
+import { FormValidationSummaryComponent } from '../../../../shared/forms/form-validation-summary.component';
 import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { FleetDriver, FleetVehicle, VehicleStatus } from '../../fleet/fleet.models';
 import { ManufacturerFleetService } from '../../fleet/fleet.service';
+import { trimmedRequired } from '../../../../core/forms/form-validators';
 
 @Component({
   selector: 'app-vehicle-center',
   standalone: true,
-  imports: [DecimalPipe, ReactiveFormsModule, RouterLink],
-  templateUrl: './vehicle-center.component.html'
+  imports: [FormValidationSummaryComponent, DecimalPipe, ReactiveFormsModule, RouterLink],
+  templateUrl: './vehicle-center.component.html',
 })
 export class VehicleCenterComponent {
   private readonly fleetService = inject(ManufacturerFleetService);
   private readonly formBuilder = inject(FormBuilder);
-  protected readonly vehicles = computed(() => this.fleetService.vehicles().map(vehicle => ({
-    ...vehicle,
-    serviceStatus: this.fleetService.vehicleStatus(vehicle)
-  })));
+  protected readonly vehicles = computed(() =>
+    this.fleetService.vehicles().map((vehicle) => ({
+      ...vehicle,
+      serviceStatus: this.fleetService.vehicleStatus(vehicle),
+    })),
+  );
   protected readonly drivers = this.fleetService.drivers;
   protected readonly metrics = this.fleetService.vehicleMetrics;
   protected readonly selectedStatus = signal('ALL');
   protected readonly isRegisterOpen = signal(false);
   protected readonly formError = signal('');
   protected readonly assignmentMessage = signal('');
-  protected readonly filteredVehicles = computed(() => this.vehicles().filter(vehicle => this.selectedStatus() === 'ALL' || this.fleetService.vehicleStatus(vehicle) === this.selectedStatus()));
+  protected readonly filteredVehicles = computed(() =>
+    this.vehicles().filter(
+      (vehicle) =>
+        this.selectedStatus() === 'ALL' ||
+        this.fleetService.vehicleStatus(vehicle) === this.selectedStatus(),
+    ),
+  );
   protected readonly form = this.formBuilder.nonNullable.group({
-    plate: ['', [Validators.required, Validators.maxLength(20)]],
-    type: ['', [Validators.required, Validators.maxLength(80)]],
-    maxWeightCapacity: [26000, [Validators.required, Validators.min(1)]]
+    plate: [
+      '',
+      [trimmedRequired, Validators.maxLength(20), Validators.pattern(/^[A-Za-z0-9 -]+$/)],
+    ],
+    type: ['', [trimmedRequired, Validators.maxLength(80)]],
+    maxWeightCapacity: [26000, [Validators.required, Validators.min(1)]],
   });
 
   protected updateStatus(event: Event): void {
@@ -60,22 +73,26 @@ export class VehicleCenterComponent {
   }
 
   protected availableDrivers(vehicleId: string): FleetDriver[] {
-    const vehicle = this.vehicles().find(record => record.id === vehicleId);
+    const vehicle = this.vehicles().find((record) => record.id === vehicleId);
     if (!vehicle) return [];
     if (vehicle.assignedDriverId) {
-      const assignedDriver = this.drivers().find(driver => driver.id === vehicle.assignedDriverId);
+      const assignedDriver = this.drivers().find(
+        (driver) => driver.id === vehicle.assignedDriverId,
+      );
       return assignedDriver ? [assignedDriver] : [];
     }
     if (this.fleetService.vehicleStatus(vehicle) !== 'IDLE') return [];
-    return this.drivers().filter(driver =>
-      driver.vehicleId === null &&
-      driver.currentTripId === null &&
-      ['INVITED', 'STANDBY'].includes(driver.status)
+    return this.drivers().filter(
+      (driver) =>
+        driver.vehicleId === null &&
+        driver.currentTripId === null &&
+        driver.accountStatus === 'ACTIVE' &&
+        driver.operationalStatus === 'AVAILABLE',
     );
   }
 
   protected assignedDriverName(driverId: string | null): string {
-    return this.drivers().find(driver => driver.id === driverId)?.name ?? 'Unassigned';
+    return this.drivers().find((driver) => driver.id === driverId)?.name ?? 'Unassigned';
   }
 
   protected vehicleStatus(vehicle: FleetVehicle): VehicleStatus {
@@ -85,9 +102,20 @@ export class VehicleCenterComponent {
   protected assignDriver(vehicleId: string, event: Event): void {
     const driverId = (event.target as HTMLSelectElement).value;
     const assigned = this.fleetService.assignDriver(vehicleId, driverId || null);
-    this.assignmentMessage.set(assigned
-      ? 'Vehicle assignment updated.'
-      : 'Choose an unassigned driver and an idle vehicle.');
+    this.assignmentMessage.set(
+      assigned ? 'Vehicle assignment updated.' : 'Choose an unassigned driver and an idle vehicle.',
+    );
+  }
+
+  protected updateCondition(vehicleId: string, event: Event): void {
+    const condition = (event.target as HTMLSelectElement).value as
+      'READY' | 'MAINTENANCE' | 'OUT_OF_SERVICE';
+    const updated = this.fleetService.updateVehicleCondition(vehicleId, condition);
+    this.assignmentMessage.set(
+      updated
+        ? 'Vehicle service status updated.'
+        : 'A vehicle on an active trip cannot be changed.',
+    );
   }
 
   protected statusLabel(status: VehicleStatus): string {
@@ -96,11 +124,16 @@ export class VehicleCenterComponent {
 
   protected statusClass(status: VehicleStatus): string {
     switch (status) {
-      case 'ACTIVE': return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-      case 'STANDBY': return 'border-blue-200 bg-blue-50 text-blue-700';
-      case 'MAINTENANCE': return 'border-amber-200 bg-amber-50 text-amber-700';
-      case 'IDLE': return 'border-blue-200 bg-blue-50 text-blue-700';
-      case 'OUT_OF_SERVICE': return 'border-red-200 bg-red-50 text-red-700';
+      case 'ACTIVE':
+        return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      case 'STANDBY':
+        return 'border-blue-200 bg-blue-50 text-blue-700';
+      case 'MAINTENANCE':
+        return 'border-amber-200 bg-amber-50 text-amber-700';
+      case 'IDLE':
+        return 'border-blue-200 bg-blue-50 text-blue-700';
+      case 'OUT_OF_SERVICE':
+        return 'border-red-200 bg-red-50 text-red-700';
     }
   }
 }

@@ -1,18 +1,19 @@
+import { FormValidationSummaryComponent } from '../../../shared/forms/form-validation-summary.component';
 import { Component, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import {
-  FormBuilder,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
+import { LoadingIndicatorComponent } from '../../../shared/loading/loading-indicator.component';
+import { matchingFields } from '../../../core/forms/form-validators';
+import { trimmedRequired } from '../../../core/forms/form-validators';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-activate-account',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
-  templateUrl: './activate-account.component.html'
+  imports: [FormValidationSummaryComponent, LoadingIndicatorComponent, ReactiveFormsModule, RouterLink],
+  templateUrl: './activate-account.component.html',
 })
 export class ActivateAccountComponent {
   private readonly formBuilder = inject(FormBuilder);
@@ -23,41 +24,30 @@ export class ActivateAccountComponent {
   protected readonly errorMessage = signal('');
   protected readonly isSubmitting = signal(false);
 
-  protected readonly email =
-    this.route.snapshot.queryParamMap.get('email') ?? '';
+  protected readonly email = this.route.snapshot.queryParamMap.get('email') ?? '';
 
-  protected readonly activationToken =
-    this.route.snapshot.queryParamMap.get('token') ?? '';
+  protected readonly activationToken = this.route.snapshot.queryParamMap.get('token') ?? '';
 
-  protected readonly activationState = signal<
-    'READY' | 'EXPIRED' | 'USED' | 'INVALID' | 'ERROR'
-  >(this.email && this.activationToken ? 'READY' : 'INVALID');
+  protected readonly activationState = signal<'READY' | 'EXPIRED' | 'USED' | 'INVALID' | 'ERROR'>(
+    this.email && this.activationToken ? 'READY' : 'INVALID',
+  );
 
   protected readonly linkRequested = signal(false);
 
   protected readonly resendForm = this.formBuilder.nonNullable.group({
-    email: [this.email, [Validators.required, Validators.email]]
+    email: [this.email, [trimmedRequired, Validators.email, Validators.maxLength(120)]],
   });
 
   // Matches the backend: 8–72 characters, with uppercase, lowercase, and digit.
   private readonly passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,72}$/;
 
-  protected readonly form = this.formBuilder.nonNullable.group({
-    password: [
-      '',
-      [
-        Validators.required,
-        Validators.pattern(this.passwordPattern)
-      ]
-    ],
-    confirmPassword: [
-      '',
-      [
-        Validators.required,
-        Validators.pattern(this.passwordPattern)
-      ]
-    ]
-  });
+  protected readonly form = this.formBuilder.nonNullable.group(
+    {
+      password: ['', [Validators.required, Validators.pattern(this.passwordPattern)]],
+      confirmPassword: ['', [Validators.required, Validators.pattern(this.passwordPattern)]],
+    },
+    { validators: matchingFields('password', 'confirmPassword') },
+  );
 
   protected submit(): void {
     if (this.isSubmitting()) return;
@@ -66,7 +56,7 @@ export class ActivateAccountComponent {
 
     if (!this.email || !this.activationToken) {
       this.errorMessage.set(
-        'This activation link is incomplete. Please use the link from your LogiFlow invitation email.'
+        'This activation link is incomplete. Please use the link from your LogiFlow invitation email.',
       );
       this.activationState.set('INVALID');
       return;
@@ -75,7 +65,7 @@ export class ActivateAccountComponent {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.errorMessage.set(
-        'Password must be 8–72 characters and include an uppercase letter, a lowercase letter, and a number.'
+        'Password must be 8–72 characters and include an uppercase letter, a lowercase letter, and a number.',
       );
       return;
     }
@@ -89,39 +79,36 @@ export class ActivateAccountComponent {
 
     this.isSubmitting.set(true);
 
-    this.authService.activateAccount({
-      email: this.email,
-      token: this.activationToken,
-      password,
-      confirmPassword
-    }).subscribe({
-      next: () => {
-        void this.router.navigate(['/auth/login'], {
-          queryParams: { email: this.email }
-        });
-      },
-      error: error => {
-        this.activationState.set(this.activationFailureState(error));
-        this.isSubmitting.set(false);
+    this.authService
+      .activateAccount({
+        email: this.email,
+        token: this.activationToken,
+        password,
+        confirmPassword,
+      })
+      .pipe(finalize(() => this.isSubmitting.set(false)))
+      .subscribe({
+        next: () => {
+          void this.router.navigate(['/auth/login'], {
+            queryParams: { email: this.email },
+          });
+        },
+        error: (error) => {
+          this.activationState.set(this.activationFailureState(error));
 
-        if (error instanceof HttpErrorResponse && error.status === 400) {
-          this.errorMessage.set(
-            'The activation details or password are invalid. Check both password fields and try again.'
-          );
-        } else if (
-          error instanceof HttpErrorResponse &&
-          [401, 404, 410].includes(error.status)
-        ) {
-          this.errorMessage.set(
-            'This activation link is invalid, expired, or already used. Request a new link.'
-          );
-        } else {
-          this.errorMessage.set(
-            'Unable to activate your account right now. Please try again.'
-          );
-        }
-      }
-    });
+          if (error instanceof HttpErrorResponse && error.status === 400) {
+            this.errorMessage.set(
+              'The activation details or password are invalid. Check both password fields and try again.',
+            );
+          } else if (error instanceof HttpErrorResponse && [401, 404, 410].includes(error.status)) {
+            this.errorMessage.set(
+              'This activation link is invalid, expired, or already used. Request a new link.',
+            );
+          } else {
+            this.errorMessage.set('Unable to activate your account right now. Please try again.');
+          }
+        },
+      });
   }
 
   protected requestNewLink(): void {
@@ -137,41 +124,29 @@ export class ActivateAccountComponent {
 
     this.isSubmitting.set(true);
 
-    this.authService
-      .requestActivationLink(this.resendForm.controls.email.value)
-      .subscribe({
-        next: () => {
-          this.linkRequested.set(true);
-          this.isSubmitting.set(false);
-        },
-        error: () => {
-          this.errorMessage.set(
-            'Unable to request a new activation link right now. Please try again.'
-          );
-          this.isSubmitting.set(false);
-        }
-      });
+    this.authService.requestActivationLink(this.resendForm.controls.email.value).pipe(
+      finalize(() => this.isSubmitting.set(false)),
+    ).subscribe({
+      next: () => {
+        this.linkRequested.set(true);
+      },
+      error: () => {
+        this.errorMessage.set(
+          'Unable to request a new activation link right now. Please try again.',
+        );
+      },
+    });
   }
 
-  private activationFailureState(
-    error: unknown
-  ): 'EXPIRED' | 'USED' | 'INVALID' | 'ERROR' {
+  private activationFailureState(error: unknown): 'EXPIRED' | 'USED' | 'INVALID' | 'ERROR' {
     const body =
-      error instanceof HttpErrorResponse &&
-      typeof error.error === 'object' &&
-      error.error !== null
-        ? error.error as Record<string, unknown>
+      error instanceof HttpErrorResponse && typeof error.error === 'object' && error.error !== null
+        ? (error.error as Record<string, unknown>)
         : {};
 
-    const code =
-      typeof body['code'] === 'string'
-        ? body['code'].toLowerCase()
-        : '';
+    const code = typeof body['code'] === 'string' ? body['code'].toLowerCase() : '';
 
-    if (
-      code.includes('expired') ||
-      (error instanceof HttpErrorResponse && error.status === 410)
-    ) {
+    if (code.includes('expired') || (error instanceof HttpErrorResponse && error.status === 410)) {
       return 'EXPIRED';
     }
 
@@ -185,8 +160,7 @@ export class ActivateAccountComponent {
 
     if (
       code.includes('invalid') ||
-      (error instanceof HttpErrorResponse &&
-        [400, 401, 404].includes(error.status))
+      (error instanceof HttpErrorResponse && [400, 401, 404].includes(error.status))
     ) {
       return 'INVALID';
     }

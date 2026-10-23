@@ -11,7 +11,7 @@
     <div class="space-y-4">
       <section class="rounded-lg border border-slate-200 bg-white p-4 sm:p-5">
         <h2 class="text-sm font-semibold text-slate-900">Organization Information</h2>
-        <form [formGroup]="form" (ngSubmit)="saveProfile()" class="mt-4 space-y-3">
+        <form [formGroup]="form" (ngSubmit)="saveProfile()" class="mt-4 space-y-3"><app-form-validation-summary [form]="form" />
           <label class="block space-y-1.5"><span class="text-xs font-medium text-slate-700">Corporate Tenant Registered Name</span><input formControlName="registeredName" class="h-10 w-full rounded-md border border-slate-200 bg-slate-50 px-3 text-xs text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"></label>
           <label class="block space-y-1.5"><span class="text-xs font-medium text-slate-700">Unique Tax ID / VAT Registration</span><input formControlName="taxRegistrationId" class="h-10 w-full rounded-md border border-slate-200 bg-slate-50 px-3 text-xs text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"></label>
           <div class="flex justify-end pt-1"><button type="submit" class="h-9 rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700">Save Organization Details</button></div>
@@ -26,7 +26,7 @@
 
       <section class="rounded-lg border border-slate-200 bg-white p-4 sm:p-5">
         <h2 class="text-sm font-semibold text-slate-900">Regional Operations Defaults</h2>
-        <form [formGroup]="regionalForm" (ngSubmit)="saveRegionalDefaults()" class="mt-4"><div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><label class="block space-y-1.5"><span class="text-xs font-medium text-slate-700">Default Time Zone</span><select formControlName="timezone" class="h-10 w-full rounded-md border border-slate-200 bg-slate-50 px-3 text-xs text-slate-800 outline-none focus:border-blue-400">@for (timezone of timezones; track timezone.value) { <option [value]="timezone.value">{{ timezone.label }}</option> }</select></label><label class="block space-y-1.5"><span class="text-xs font-medium text-slate-700">Default Warehouse</span><select formControlName="defaultWarehouseId" class="h-10 w-full rounded-md border border-slate-200 bg-slate-50 px-3 text-xs text-slate-800 outline-none focus:border-blue-400">@for (warehouse of warehouseService.warehouses(); track warehouse.id) { <option [value]="warehouse.id">{{ warehouse.city }} Distribution Hub</option> }</select></label></div><div class="mt-3 flex justify-end"><button type="submit" class="h-8 rounded-md border border-slate-200 px-3 text-[10px] font-medium text-slate-700 hover:bg-slate-50">Save Regional Defaults</button></div></form>
+        <form [formGroup]="regionalForm" (ngSubmit)="saveRegionalDefaults()" class="mt-4"><app-form-validation-summary [form]="regionalForm" /><div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><label class="block space-y-1.5"><span class="text-xs font-medium text-slate-700">Default Time Zone</span><select formControlName="timezone" class="h-10 w-full rounded-md border border-slate-200 bg-slate-50 px-3 text-xs text-slate-800 outline-none focus:border-blue-400">@for (timezone of timezones; track timezone.value) { <option [value]="timezone.value">{{ timezone.label }}</option> }</select></label><label class="block space-y-1.5"><span class="text-xs font-medium text-slate-700">Default Warehouse</span><select formControlName="defaultWarehouseId" class="h-10 w-full rounded-md border border-slate-200 bg-slate-50 px-3 text-xs text-slate-800 outline-none focus:border-blue-400">@for (warehouse of warehouseService.warehouses(); track warehouse.id) { <option [value]="warehouse.id">{{ warehouse.city }} Distribution Hub</option> }</select></label></div><div class="mt-3 flex justify-end"><button type="submit" class="h-8 rounded-md border border-slate-200 px-3 text-[10px] font-medium text-slate-700 hover:bg-slate-50">Save Regional Defaults</button></div></form>
       </section>
     </div>
 
@@ -48,3 +48,4 @@
     </div>
   </div>
 </section>
+

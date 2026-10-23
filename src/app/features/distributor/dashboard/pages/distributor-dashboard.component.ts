@@ -6,26 +6,29 @@ import { ActiveCustomerOrdersComponent } from '../components/active-customer-ord
 import { CriticalStockComponent } from '../components/critical-stock/critical-stock.component';
 import { FleetMapComponent } from '../components/fleet-map/fleet-map.component';
 import { FleetOverviewComponent } from '../components/fleet-overview/fleet-overview.component';
+import { LoadingSkeletonComponent } from '../../../../shared/loading/loading-skeleton.component';
 
 @Component({
   selector: 'app-distributor-dashboard',
   standalone: true,
   imports: [
     RouterLink,
+    LoadingSkeletonComponent,
     DashboardStatisticsComponent,
     ActiveCustomerOrdersComponent,
     CriticalStockComponent,
     FleetMapComponent,
-    FleetOverviewComponent
+    FleetOverviewComponent,
   ],
-  templateUrl: './distributor-dashboard.component.html'
+  templateUrl: './distributor-dashboard.component.html',
 })
 export class DistributorDashboardComponent {
+  private readonly dashboardService = inject(DistributorDashboardService);
+  protected readonly loading = this.dashboardService.loading;
 
-  private readonly dashboardService =
-    inject(DistributorDashboardService);
-
-  get dashboard() { return this.dashboardService.getDashboard(); }
+  get dashboard() {
+    return this.dashboardService.getDashboard();
+  }
 
   activeOrders = this.dashboardService.activeOrders;
 

@@ -12,6 +12,25 @@ ng serve
 
 Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
 
+## Local authentication demo
+
+Auth API requests are simulated locally by `mockAuthInterceptor` while
+`useMockAuth` is `true` in `src/app/core/api/api.config.ts`. The mock returns
+the same response shapes used by `AuthApiService` and `AuthService`; it does
+not replace those services or change their HTTP contract.
+
+Use either seeded account with password `LogiflowDemo1!`:
+
+| Workspace | Email |
+| --- | --- |
+| Manufacturer | `manufacturer@logiflow.demo` |
+| Distributor | `distributor@logiflow.demo` |
+
+Set `useMockAuth` to `false` when the backend is available. Login, refresh,
+logout, and current-user requests will then use the configured API URL. The
+mock is for local development and reviewer demos only; it has no real database
+or security enforcement.
+
 ## Code scaffolding
 
 Angular CLI includes powerful code scaffolding tools. To generate a new component, run:

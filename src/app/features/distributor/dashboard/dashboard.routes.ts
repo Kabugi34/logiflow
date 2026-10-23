@@ -4,10 +4,8 @@ export const DASHBOARD_ROUTES: Routes = [
   {
     path: '',
     loadComponent: () =>
-      import(
-        './pages/distributor-dashboard.component'
-      ).then(
-        m => m.DistributorDashboardComponent
-      )
-  }
+      import('./pages/distributor-dashboard.component').then(
+        (m) => m.DistributorDashboardComponent,
+      ),
+  },
 ];

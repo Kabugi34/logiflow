@@ -4,8 +4,6 @@ export const CUSTOMER_ROUTES: Routes = [
   {
     path: '',
     loadComponent: () =>
-      import('./pages/customer-directory.component').then(
-        m => m.CustomerDirectoryComponent
-      )
-  }
+      import('./pages/customer-directory.component').then((m) => m.CustomerDirectoryComponent),
+  },
 ];

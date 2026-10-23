@@ -138,6 +138,30 @@ export const routes: Routes = [
             .then(m => m.LOGISTICS_ROUTES)
       },
       {
+        path: 'drivers',
+        loadChildren: () =>
+          import('./features/distributor/drivers/drivers.routes')
+            .then(m => m.DISTRIBUTOR_DRIVER_ROUTES)
+      },
+      {
+        path: 'vehicles',
+        loadChildren: () =>
+          import('./features/distributor/vehicles/vehicles.routes')
+            .then(m => m.DISTRIBUTOR_VEHICLE_ROUTES)
+      },
+      {
+        path: 'staff',
+        loadChildren: () =>
+          import('./features/distributor/staff/staff.routes')
+            .then(m => m.DISTRIBUTOR_STAFF_ROUTES)
+      },
+      {
+        path: 'warehouses',
+        loadChildren: () =>
+          import('./features/distributor/warehouses/warehouses.routes')
+            .then(m => m.DISTRIBUTOR_WAREHOUSE_ROUTES)
+      },
+      {
         path: 'customers',
         loadChildren: () =>
           import('./features/distributor/customers/customers.routes')

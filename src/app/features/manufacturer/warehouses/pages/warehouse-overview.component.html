@@ -1,9 +1,11 @@
 <section class="space-y-5">
   <header class="border-b border-slate-200 pb-4">
     <nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-xs text-slate-400"><a routerLink="/manufacturer/dashboard" queryParamsHandling="preserve" class="hover:text-blue-600">LogiFlow</a><span aria-hidden="true">›</span><span class="text-slate-500">Warehouses</span></nav>
-    <h1 class="text-xl font-semibold text-slate-900">LogiFlow Terminal Warehouses</h1>
-    <p class="mt-1 text-sm text-slate-500">Manage manufactured stock holds, active site managers, and dispatch terminals.</p>
+    <div class="flex flex-wrap items-end justify-between gap-3"><div><h1 class="text-xl font-semibold text-slate-900">LogiFlow Terminal Warehouses</h1>
+    <p class="mt-1 text-sm text-slate-500">Manage sites, managers, and dispatch terminals.</p></div><button type="button" (click)="openCreate()" class="h-9 rounded-md bg-blue-600 px-3 text-xs font-medium text-white">+ Add warehouse</button></div>
   </header>
+
+  @if (message()) { <p role="status" class="rounded-md bg-blue-50 px-3 py-2 text-xs text-blue-800">{{ message() }}</p> }
 
   <div class="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(300px,0.85fr)]">
     <div class="grid grid-cols-1 gap-3 2xl:grid-cols-2">
@@ -14,7 +16,10 @@
       }
     </div>
     @if (selectedWarehouse(); as warehouse) {
-      <app-warehouse-details [warehouse]="warehouse" (closeDetails)="closeDetails()" />
+      <div class="space-y-2"><app-warehouse-details [warehouse]="warehouse" (closeDetails)="closeDetails()" /><button type="button" (click)="toggleSelectedStatus()" class="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700">{{ warehouse.status === 'ACTIVE' ? 'Deactivate warehouse' : 'Reactivate warehouse' }}</button></div>
     }
   </div>
 </section>
+
+@if (createOpen()) { <div class="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-950/40 p-4" (click)="createOpen.set(false)"><section role="dialog" aria-modal="true" aria-labelledby="new-warehouse-title" class="my-auto w-full max-w-md rounded-lg bg-white p-5 shadow-xl" (click)="$event.stopPropagation()"><h2 id="new-warehouse-title" class="text-base font-semibold text-slate-900">Add a warehouse</h2><form [formGroup]="form" (ngSubmit)="createWarehouse()" class="mt-4 space-y-3"><app-form-validation-summary [form]="form" /><label class="block space-y-1"><span class="text-xs">Warehouse name</span><input formControlName="name" class="h-9 w-full rounded border px-3 text-xs"></label><label class="block space-y-1"><span class="text-xs">Street address</span><input formControlName="address" class="h-9 w-full rounded border px-3 text-xs"></label><div class="grid grid-cols-2 gap-2"><label class="block space-y-1"><span class="text-xs">City</span><input formControlName="city" class="h-9 w-full rounded border px-3 text-xs"></label><label class="block space-y-1"><span class="text-xs">Postal code</span><input formControlName="postalCode" class="h-9 w-full rounded border px-3 text-xs"></label></div><label class="block space-y-1"><span class="text-xs">Site manager</span><input formControlName="siteManager" class="h-9 w-full rounded border px-3 text-xs"></label>@if (error()) { <p role="alert" class="text-xs text-red-600">{{ error() }}</p> }<div class="flex justify-end gap-2"><button type="button" (click)="createOpen.set(false)" class="h-9 rounded border px-3 text-xs">Cancel</button><button type="submit" class="h-9 rounded bg-blue-600 px-3 text-xs font-medium text-white">Create warehouse</button></div></form></section></div> }
+

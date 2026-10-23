@@ -4,12 +4,13 @@ import { RouterLink } from '@angular/router';
 import { DistributorOrderService } from '../order.service';
 import { CustomerOrderStatus, PaymentStatus } from '../order.models';
 import { OrderBadgeComponent } from '../components/order-badge/order-badge.component';
+import { LoadingSkeletonComponent } from '../../../../shared/loading/loading-skeleton.component';
 
 @Component({
   selector: 'app-order-list',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, RouterLink, OrderBadgeComponent],
-  templateUrl: './order-list.component.html'
+  imports: [CurrencyPipe, DatePipe, LoadingSkeletonComponent, RouterLink, OrderBadgeComponent],
+  templateUrl: './order-list.component.html',
 })
 export class OrderListComponent {
   protected readonly orderService = inject(DistributorOrderService);
@@ -20,21 +21,27 @@ export class OrderListComponent {
     { value: 'PREPARING', label: 'Preparing' },
     { value: 'IN_TRANSIT', label: 'In Transit' },
     { value: 'REROUTED', label: 'Rerouted' },
-    { value: 'COMPLETED', label: 'Completed' }
+    { value: 'COMPLETED', label: 'Completed' },
   ];
   protected readonly paymentOptions: { value: 'ALL' | PaymentStatus; label: string }[] = [
     { value: 'ALL', label: 'All' },
     { value: 'PAID', label: 'Paid' },
-    { value: 'PENDING', label: 'Pending' }
+    { value: 'PENDING', label: 'Pending' },
   ];
-  protected readonly filteredOrders = computed(() => this.orderService.orders().filter(order => {
-    const statusMatches = this.selectedStatus() === 'ALL' || order.status === this.selectedStatus();
-    const paymentMatches = this.selectedPayment() === 'ALL' || order.paymentStatus === this.selectedPayment();
-    return statusMatches && paymentMatches;
-  }));
+  protected readonly filteredOrders = computed(() =>
+    this.orderService.orders().filter((order) => {
+      const statusMatches =
+        this.selectedStatus() === 'ALL' || order.status === this.selectedStatus();
+      const paymentMatches =
+        this.selectedPayment() === 'ALL' || order.paymentStatus === this.selectedPayment();
+      return statusMatches && paymentMatches;
+    }),
+  );
 
   protected updateStatus(event: Event): void {
-    this.selectedStatus.set((event.target as HTMLSelectElement).value as 'ALL' | CustomerOrderStatus);
+    this.selectedStatus.set(
+      (event.target as HTMLSelectElement).value as 'ALL' | CustomerOrderStatus,
+    );
   }
 
   protected updatePayment(event: Event): void {

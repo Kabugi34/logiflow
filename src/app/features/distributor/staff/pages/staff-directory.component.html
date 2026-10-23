@@ -1,0 +1,155 @@
+<section class="space-y-5">
+  <header class="flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-4">
+    <div>
+      <nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-xs text-slate-400">
+        <a routerLink="/distributor/dashboard" queryParamsHandling="preserve">LogiFlow</a
+        ><span>›</span><span>Organization</span><span>›</span
+        ><span class="font-medium text-slate-600">Staff</span>
+      </nav>
+      <h1 class="text-xl font-semibold text-slate-900">Staff &amp; access</h1>
+      <p class="mt-1 text-sm text-slate-500">
+        Manage distributor team invitations and workspace access.
+      </p>
+    </div>
+    <button
+      type="button"
+      (click)="open.set(true); error.set('')"
+      class="h-9 rounded-md bg-blue-600 px-3 text-xs font-medium text-white"
+    >
+      + Invite team member
+    </button>
+  </header>
+  @if (notice()) {
+    <p role="status" class="rounded-md bg-blue-50 px-3 py-2 text-xs text-blue-800">
+      {{ notice() }}
+    </p>
+  }
+  <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <div class="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+      <h2 class="text-sm font-semibold">Team directory ({{ filtered().length }})</h2>
+      <div class="flex gap-2">
+        <label class="sr-only" for="staff-status">Filter staff</label
+        ><select
+          id="staff-status"
+          (change)="filterStatus($event)"
+          class="h-8 rounded border px-2 text-xs"
+        >
+          <option value="ALL">All statuses</option>
+          <option value="PENDING">Pending</option>
+          <option value="ACTIVE">Active</option>
+          <option value="SUSPENDED">Suspended</option></select
+        ><label class="sr-only" for="staff-search">Search staff</label
+        ><input
+          id="staff-search"
+          type="search"
+          placeholder="Search name or email"
+          (input)="search($event)"
+          class="h-8 rounded border px-2 text-xs"
+        />
+      </div>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[640px] text-xs">
+        <thead class="bg-slate-50 text-left text-[10px] text-slate-600">
+          <tr>
+            <th class="px-4 py-3">Team member</th>
+            <th class="px-3 py-3">Workspace role</th>
+            <th class="px-3 py-3">Status</th>
+            <th class="px-3 py-3">Added</th>
+            <th class="px-3 py-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          @for (member of filtered(); track member.id) {
+            <tr>
+              <td class="px-4 py-3">
+                <p class="font-semibold text-slate-900">{{ member.name }}</p>
+                <p class="mt-0.5 text-[10px] text-slate-500">{{ member.email }}</p>
+              </td>
+              <td class="px-3 py-3">{{ member.role }}</td>
+              <td class="px-3 py-3">{{ member.status }}</td>
+              <td class="px-3 py-3 text-slate-500">{{ member.joinedAt | date: 'dd MMM y' }}</td>
+              <td class="px-3 py-3">
+                @if (member.status === 'PENDING') {
+                  <button type="button" (click)="approve(member)" class="mr-3 text-emerald-700">
+                    Approve</button
+                  ><button
+                    type="button"
+                    (click)="changeStatus(member, 'SUSPENDED')"
+                    class="text-red-700"
+                  >
+                    Suspend
+                  </button>
+                } @else if (member.status === 'ACTIVE') {
+                  <button
+                    type="button"
+                    (click)="changeStatus(member, 'SUSPENDED')"
+                    class="text-red-700"
+                  >
+                    Suspend
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    (click)="changeStatus(member, 'ACTIVE')"
+                    class="text-blue-700"
+                  >
+                    Reinstate
+                  </button>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5" class="px-4 py-10 text-center text-slate-500">
+                No team members found. Invite a member to start the directory.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>
+@if (open()) {
+  <div
+    class="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4"
+    (click)="open.set(false)"
+  >
+    <section
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="invite-distributor-staff"
+      class="w-full max-w-md rounded-lg bg-white p-5"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 id="invite-distributor-staff" class="text-base font-semibold">Invite team member</h2>
+      <form [formGroup]="form" (ngSubmit)="invite()" class="mt-4 space-y-3">
+        <app-form-validation-summary [form]="form" /><label class="block space-y-1"
+          ><span class="text-xs">Full name</span
+          ><input formControlName="name" class="h-9 w-full rounded border px-3 text-xs" /></label
+        ><label class="block space-y-1"
+          ><span class="text-xs">Email</span
+          ><input
+            type="email"
+            formControlName="email"
+            class="h-9 w-full rounded border px-3 text-xs"
+        /></label>
+        <p class="rounded bg-slate-50 p-2 text-[10px] text-slate-500">
+          Workspace role: DISTRIBUTOR_STAFF. Invitation delivery will be connected to the
+          organization invitation API.
+        </p>
+        @if (error()) {
+          <p role="alert" class="text-xs text-red-600">{{ error() }}</p>
+        }
+        <div class="flex justify-end gap-2">
+          <button type="button" (click)="open.set(false)" class="h-9 rounded border px-3 text-xs">
+            Cancel</button
+          ><button type="submit" class="h-9 rounded bg-blue-600 px-3 text-xs text-white">
+            Add team member
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

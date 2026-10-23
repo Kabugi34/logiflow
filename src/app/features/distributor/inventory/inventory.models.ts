@@ -13,4 +13,7 @@ export interface DistributorInventoryItem {
   criticalStockThreshold: number;
 }
 
-export interface StockDeduction { sku: string; quantity: number; }
+export interface StockDeduction {
+  sku: string;
+  quantity: number;
+}

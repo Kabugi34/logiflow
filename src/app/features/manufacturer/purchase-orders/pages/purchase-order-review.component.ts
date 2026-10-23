@@ -1,10 +1,11 @@
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ManufacturerPurchaseOrderService } from '../purchase-order.service';
 import { PurchaseOrderLine } from '../purchase-order.models';
 import { PurchaseOrderStatusComponent } from '../components/purchase-order-status/purchase-order-status.component';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-purchase-order-review',
@@ -19,6 +20,7 @@ export class PurchaseOrderReviewComponent {
   private readonly routeParams = toSignal(this.route.paramMap, { initialValue: this.route.snapshot.paramMap });
 
   protected readonly order = computed(() => this.orderService.findById(this.routeParams().get('id') ?? ''));
+  protected readonly savingDecision = signal(false);
 
   protected totalValue(lines: PurchaseOrderLine[]): number {
     return lines.reduce((sum, line) => sum + line.requestedQuantity * line.unitPrice, 0);
@@ -26,15 +28,21 @@ export class PurchaseOrderReviewComponent {
 
   protected acceptAndGenerateManifest(): void {
     const order = this.order();
-    if (!order || order.status !== 'PENDING') return;
-    this.orderService.updateStatus(order.id, 'ACCEPTED');
-    void this.router.navigate(['/manufacturer/purchase-orders'], { queryParamsHandling: 'preserve' });
+    if (!order || order.status !== 'PENDING' || this.savingDecision()) return;
+    this.savingDecision.set(true);
+    this.orderService.updateStatus(order.id, 'ACCEPTED').pipe(finalize(() => this.savingDecision.set(false))).subscribe({
+      next: () => void this.router.navigate(['/manufacturer/purchase-orders'], { queryParamsHandling: 'preserve' }),
+      error: () => this.orderService.error.set('The purchase order could not be approved.'),
+    });
   }
 
   protected rejectOrder(): void {
     const order = this.order();
-    if (!order || order.status !== 'PENDING') return;
-    this.orderService.updateStatus(order.id, 'REJECTED');
-    void this.router.navigate(['/manufacturer/purchase-orders'], { queryParamsHandling: 'preserve' });
+    if (!order || order.status !== 'PENDING' || this.savingDecision()) return;
+    this.savingDecision.set(true);
+    this.orderService.updateStatus(order.id, 'REJECTED').pipe(finalize(() => this.savingDecision.set(false))).subscribe({
+      next: () => void this.router.navigate(['/manufacturer/purchase-orders'], { queryParamsHandling: 'preserve' }),
+      error: () => this.orderService.error.set('The purchase order could not be rejected.'),
+    });
   }
 }

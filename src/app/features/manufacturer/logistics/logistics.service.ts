@@ -30,7 +30,7 @@ export class ManufacturerLogisticsService {
     const trips = this.trips();
     return {
       activeTrips: trips.length,
-      availableDrivers: this.fleetService.drivers().filter(driver => driver.status === 'STANDBY').length,
+      availableDrivers: this.fleetService.drivers().filter(driver => driver.accountStatus === 'ACTIVE' && driver.operationalStatus === 'AVAILABLE').length,
       delayedTrips: trips.filter(trip => trip.status === 'DELAYED').length
     };
   });

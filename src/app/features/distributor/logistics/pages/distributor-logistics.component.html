@@ -1,7 +1,12 @@
 <section class="space-y-5">
   <header class="border-b border-slate-200 pb-4">
     <nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-xs text-slate-400">
-      <a routerLink="/distributor/dashboard" queryParamsHandling="preserve" class="hover:text-blue-600">LogiFlow</a>
+      <a
+        routerLink="/distributor/dashboard"
+        queryParamsHandling="preserve"
+        class="hover:text-blue-600"
+        >LogiFlow</a
+      >
       <span aria-hidden="true">›</span>
       <span class="font-medium text-slate-600">Logistics</span>
     </nav>
@@ -10,7 +15,8 @@
       <div>
         <h1 class="text-xl font-semibold text-slate-900">Distributor logistics</h1>
         <p class="mt-1 text-sm text-slate-500">
-          Track orders from manufacturers, active shipments, and customer deliveries from one overview.
+          Track orders from manufacturers, active shipments, and customer deliveries from one
+          overview.
         </p>
       </div>
 
@@ -26,21 +32,33 @@
 
   <section class="grid gap-3 sm:grid-cols-3">
     <article class="rounded-lg border border-slate-200 bg-white p-4">
-      <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">Inbound from manufacturers</p>
+      <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+        Inbound from manufacturers
+      </p>
       <p class="mt-2 text-2xl font-semibold text-slate-900">{{ inboundOrders().length }}</p>
-      <p class="mt-1 text-[10px] text-slate-500">{{ inboundShipmentsInMotion() }} in motion or processing</p>
+      <p class="mt-1 text-[10px] text-slate-500">
+        {{ inboundShipmentsInMotion() }} in motion or processing
+      </p>
     </article>
 
     <article class="rounded-lg border border-slate-200 bg-white p-4">
-      <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">Outbound to customers</p>
+      <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+        Outbound to customers
+      </p>
       <p class="mt-2 text-2xl font-semibold text-slate-900">{{ outboundOrders().length }}</p>
-      <p class="mt-1 text-[10px] text-slate-500">{{ outboundDeliveriesInMotion() }} deliveries active</p>
+      <p class="mt-1 text-[10px] text-slate-500">
+        {{ outboundDeliveriesInMotion() }} deliveries active
+      </p>
     </article>
 
     <article class="rounded-lg border border-slate-200 bg-white p-4">
       <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">Inbound SLA</p>
-      <p class="mt-2 text-2xl font-semibold text-emerald-600">{{ onTimeInboundRate() === null ? 'Awaiting ETA data' : onTimeInboundRate() + '%' }}</p>
-      <p class="mt-1 text-[10px] text-slate-500">Requires shipment and expected-delivery API data</p>
+      <p class="mt-2 text-2xl font-semibold text-emerald-600">
+        {{ onTimeInboundRate() === null ? 'Awaiting ETA data' : onTimeInboundRate() + '%' }}
+      </p>
+      <p class="mt-1 text-[10px] text-slate-500">
+        Requires shipment and expected-delivery API data
+      </p>
     </article>
   </section>
 
@@ -48,7 +66,9 @@
     <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
       <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
         <h2 class="text-sm font-semibold text-slate-900">Inbound from manufacturers</h2>
-        <span class="text-[10px] font-medium text-slate-500">{{ inboundOrders().length }} active</span>
+        <span class="text-[10px] font-medium text-slate-500"
+          >{{ inboundOrders().length }} active</span
+        >
       </div>
 
       <div class="overflow-x-auto">
@@ -71,7 +91,9 @@
                 [class.bg-blue-50]="selectedInboundId() === order.id"
                 (click)="selectInbound(order.id)"
               >
-                <td class="whitespace-nowrap px-4 py-3 font-semibold text-blue-600">{{ order.id }}</td>
+                <td class="whitespace-nowrap px-4 py-3 font-semibold text-blue-600">
+                  {{ order.id }}
+                </td>
                 <td class="px-3 py-3">
                   <p class="font-medium text-slate-900">{{ order.manufacturerName }}</p>
                   <p class="mt-0.5 text-[10px] text-slate-500">{{ order.manufacturerLocation }}</p>
@@ -79,11 +101,16 @@
                 <td class="px-3 py-3 text-slate-500">{{ order.manufacturerLocation }}</td>
                 <td class="px-3 py-3 text-slate-500">{{ order.destination }}</td>
                 <td class="px-3 py-3">
-                  <span class="inline-flex rounded-full px-2 py-1 text-[9px] font-semibold" [class]="inboundStatusClass(order.status)">
+                  <span
+                    class="inline-flex rounded-full px-2 py-1 text-[9px] font-semibold"
+                    [class]="inboundStatusClass(order.status)"
+                  >
                     {{ order.status.replace('_', ' ') }}
                   </span>
                 </td>
-                <td class="whitespace-nowrap px-3 py-3 text-slate-500">{{ order.tripId ?? 'Awaiting dispatch' }}</td>
+                <td class="whitespace-nowrap px-3 py-3 text-slate-500">
+                  {{ order.tripId ?? 'Awaiting dispatch' }}
+                </td>
               </tr>
             }
           </tbody>
@@ -95,13 +122,27 @@
       @if (selectedInbound(); as activeInbound) {
         <div class="flex items-center justify-between gap-2">
           <h2 class="text-sm font-semibold text-slate-900">Inbound route</h2>
-          <span class="inline-flex rounded-full px-2 py-1 text-[9px] font-semibold" [class]="inboundStatusClass(activeInbound.status)">
+          <span
+            class="inline-flex rounded-full px-2 py-1 text-[9px] font-semibold"
+            [class]="inboundStatusClass(activeInbound.status)"
+          >
             {{ activeInbound.status.replace('_', ' ') }}
           </span>
         </div>
 
         <div class="mt-3 h-52 overflow-hidden rounded-md border border-slate-200 bg-slate-100">
-          @if (inboundRoute().length) { <app-logistics-route-map [route]="inboundRoute()" [currentIndex]="activeInbound.currentRouteIndex" routeLabel="Manufacturer shipment route" /> } @else { <div class="grid h-full place-items-center p-6 text-center text-xs text-slate-500">Purchase order status is live. Route tracking requires a shipment or trip linked to this purchase order.</div> }
+          @if (inboundRoute().length) {
+            <app-logistics-route-map
+              [route]="inboundRoute()"
+              [currentIndex]="activeInbound.currentRouteIndex"
+              routeLabel="Manufacturer shipment route"
+            />
+          } @else {
+            <div class="grid h-full place-items-center p-6 text-center text-xs text-slate-500">
+              Purchase order status is live. Route tracking requires a shipment or trip linked to
+              this purchase order.
+            </div>
+          }
         </div>
 
         <dl class="mt-4 space-y-2 border-t border-slate-100 pt-3 text-xs text-slate-600">
@@ -115,11 +156,18 @@
           </div>
           <div class="flex items-center justify-between gap-3">
             <dt class="text-[10px] uppercase tracking-wide text-slate-400">Vehicle</dt>
-            <dd class="font-medium text-slate-800">{{ activeInbound.vehicleLabel ?? 'Waiting assignment' }}</dd>
+            <dd class="font-medium text-slate-800">
+              {{ activeInbound.vehicleLabel ?? 'Waiting assignment' }}
+            </dd>
           </div>
           <div class="flex items-center justify-between gap-3">
             <dt class="text-[10px] uppercase tracking-wide text-slate-400">Next checkpoint</dt>
-            <dd class="font-medium text-slate-800">{{ activeInbound.route[activeInbound.currentRouteIndex]?.label ?? activeInbound.destination }}</dd>
+            <dd class="font-medium text-slate-800">
+              {{
+                activeInbound.route[activeInbound.currentRouteIndex]?.label ??
+                  activeInbound.destination
+              }}
+            </dd>
           </div>
         </dl>
       }
@@ -130,7 +178,9 @@
     <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
       <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
         <h2 class="text-sm font-semibold text-slate-900">Outbound deliveries to customers</h2>
-        <span class="text-[10px] font-medium text-slate-500">{{ outboundOrders().length }} active</span>
+        <span class="text-[10px] font-medium text-slate-500"
+          >{{ outboundOrders().length }} active</span
+        >
       </div>
 
       <div class="overflow-x-auto">
@@ -153,19 +203,30 @@
                 [class.bg-blue-50]="selectedOutboundId() === shipment.id"
                 (click)="selectOutbound(shipment.id)"
               >
-                <td class="whitespace-nowrap px-4 py-3 font-semibold text-blue-600">{{ shipment.id }}</td>
+                <td class="whitespace-nowrap px-4 py-3 font-semibold text-blue-600">
+                  {{ shipment.id }}
+                </td>
                 <td class="px-3 py-3">
-                  <p class="font-medium text-slate-900">{{ shipment.orders[0]?.customerName ?? 'Route group' }}</p>
-                  <p class="mt-0.5 text-[10px] text-slate-500">{{ shipment.orderIds.length }} customer orders</p>
+                  <p class="font-medium text-slate-900">
+                    {{ shipment.orders[0]?.customerName ?? 'Route group' }}
+                  </p>
+                  <p class="mt-0.5 text-[10px] text-slate-500">
+                    {{ shipment.orderIds.length }} customer orders
+                  </p>
                 </td>
                 <td class="px-3 py-3 text-slate-500">{{ shipment.routeLabel }}</td>
                 <td class="px-3 py-3">
-                  <span class="inline-flex rounded-full px-2 py-1 text-[9px] font-semibold" [class]="outboundStatusClass(shipment.status)">
+                  <span
+                    class="inline-flex rounded-full px-2 py-1 text-[9px] font-semibold"
+                    [class]="outboundStatusClass(shipment.status)"
+                  >
                     {{ shipment.status.replace('_', ' ') }}
                   </span>
                 </td>
                 <td class="px-3 py-3 text-slate-500">{{ shipment.vehicleId ?? 'Unassigned' }}</td>
-                <td class="whitespace-nowrap px-3 py-3 text-slate-500">{{ shipment.orders[0]?.orderDate | date:'dd MMM' }}</td>
+                <td class="whitespace-nowrap px-3 py-3 text-slate-500">
+                  {{ shipment.orders[0]?.orderDate | date: 'dd MMM' }}
+                </td>
               </tr>
             }
           </tbody>
@@ -177,13 +238,26 @@
       @if (selectedOutbound(); as activeOutbound) {
         <div class="flex items-center justify-between gap-2">
           <h2 class="text-sm font-semibold text-slate-900">Customer trip route</h2>
-          <span class="inline-flex rounded-full px-2 py-1 text-[9px] font-semibold" [class]="outboundStatusClass(activeOutbound.status)">
+          <span
+            class="inline-flex rounded-full px-2 py-1 text-[9px] font-semibold"
+            [class]="outboundStatusClass(activeOutbound.status)"
+          >
             {{ activeOutbound.status.replace('_', ' ') }}
           </span>
         </div>
 
         <div class="mt-3 h-52 overflow-hidden rounded-md border border-slate-200 bg-slate-100">
-          @if (outboundRoute().length) { <app-logistics-route-map [route]="outboundRoute()" [currentIndex]="selectedOutboundShipment().currentRouteIndex" routeLabel="Outbound customer route" /> } @else { <div class="grid h-full place-items-center p-6 text-center text-xs text-slate-500">No delivery trip is linked to these customer orders.</div> }
+          @if (outboundRoute().length) {
+            <app-logistics-route-map
+              [route]="outboundRoute()"
+              [currentIndex]="selectedOutboundShipment().currentRouteIndex"
+              routeLabel="Outbound customer route"
+            />
+          } @else {
+            <div class="grid h-full place-items-center p-6 text-center text-xs text-slate-500">
+              No delivery trip is linked to these customer orders.
+            </div>
+          }
         </div>
 
         <dl class="mt-4 space-y-2 border-t border-slate-100 pt-3 text-xs text-slate-600">
@@ -197,11 +271,15 @@
           </div>
           <div class="flex items-center justify-between gap-3">
             <dt class="text-[10px] uppercase tracking-wide text-slate-400">Vehicle</dt>
-            <dd class="font-medium text-slate-800">{{ activeOutbound.vehicleId ?? 'Awaiting assignment' }}</dd>
+            <dd class="font-medium text-slate-800">
+              {{ activeOutbound.vehicleId ?? 'Awaiting assignment' }}
+            </dd>
           </div>
           <div class="flex items-center justify-between gap-3">
             <dt class="text-[10px] uppercase tracking-wide text-slate-400">Live ETA</dt>
-            <dd class="font-medium text-slate-800">{{ activeOutbound.orderDate | date:'dd MMM' }}</dd>
+            <dd class="font-medium text-slate-800">
+              {{ activeOutbound.orderDate | date: 'dd MMM' }}
+            </dd>
           </div>
         </dl>
       }
@@ -209,16 +287,249 @@
   </div>
 
   <section class="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
-    <div class="flex flex-wrap items-center justify-between gap-2"><div><h2 class="text-sm font-semibold text-slate-900">Live organization trips</h2><p class="mt-1 text-xs text-slate-500">Trips returned for this distributor organization.</p></div><button type="button" (click)="tripService.refresh()" class="text-xs font-medium text-blue-600">Refresh trips</button></div>
-    @if (tripService.error()) { <p role="alert" class="text-xs text-red-600">{{ tripService.error() }}</p> }
-    <div class="grid gap-4 lg:grid-cols-2">
-      <div class="overflow-x-auto"><table class="w-full min-w-[420px] text-xs"><thead class="bg-slate-50 text-left text-slate-600"><tr><th class="px-3 py-2">Trip</th><th class="px-3 py-2">Type</th><th class="px-3 py-2">Status</th><th class="px-3 py-2">Stops</th><th class="px-3 py-2">Actions</th></tr></thead><tbody class="divide-y divide-slate-100">
-        @for (trip of tripService.trips(); track trip.id) {
-          <tr><td class="px-3 py-2"><button type="button" (click)="loadTripTracking(trip.id)" class="font-medium text-blue-600">{{ trip.tripNumber }}</button></td><td class="px-3 py-2">{{ trip.type }}</td><td class="px-3 py-2">{{ trip.status }}</td><td class="px-3 py-2">{{ trip.stops.length }}</td><td class="px-3 py-2">@if (trip.status === 'SCHEDULED') { <button type="button" (click)="updateTripStatus(trip.id, 'ONGOING')" class="text-blue-600">Start</button> } @else if (trip.status === 'ONGOING') { <button type="button" (click)="updateTripStatus(trip.id, 'COMPLETED')" class="text-blue-600">Complete</button> }</td></tr>
-        } @empty { <tr><td colspan="5" class="px-3 py-6 text-center text-slate-500">No trips found.</td></tr> }
-      </tbody></table></div>
-      @if (selectedTrip(); as trip) {
-        <div><h3 class="mb-2 text-xs font-semibold text-slate-800">{{ trip.tripNumber }} tracking</h3><div class="h-56 overflow-hidden rounded border border-slate-200"><app-logistics-route-map [route]="selectedTripRoute()" [currentIndex]="selectedTripRoute().length ? selectedTripRoute().length - 1 : 0" routeLabel="Backend trip route" /></div>@if (selectedTripPings().length) { <p class="mt-2 text-[10px] text-slate-500">Last location: {{ selectedTripPings()[selectedTripPings().length - 1].recordedAt | date:'short' }}</p> } @else { <p class="mt-2 text-[10px] text-slate-500">No tracking pings have been recorded yet.</p> }</div>
-      } @else { <p class="self-center text-xs text-slate-500">Select a trip number to load its tracking history.</p> }
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <h2 class="text-sm font-semibold text-slate-900">Organization trips</h2>
+        <p class="mt-1 text-xs text-slate-500">
+          Create, assign, start, complete, and track delivery or restock trips.
+        </p>
+      </div>
+      <div class="flex gap-3">
+        <button
+          type="button"
+          (click)="tripService.refresh()"
+          [disabled]="tripService.loading()"
+          class="text-xs font-medium text-blue-600 disabled:cursor-wait disabled:opacity-60"
+        >
+          {{ tripService.loading() ? 'Refreshing…' : 'Refresh trips' }}</button
+        ><button
+          type="button"
+          (click)="createTripOpen.set(true); tripFormError.set('')"
+          class="h-8 rounded-md bg-blue-600 px-3 text-xs font-medium text-white"
+        >
+          + Schedule trip
+        </button>
+      </div>
     </div>
-  </section></section>
+    @if (tripService.error()) {
+      <p role="alert" class="text-xs text-red-600">{{ tripService.error() }}</p>
+    }
+    <div class="grid gap-4 lg:grid-cols-2">
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[420px] text-xs">
+          <thead class="bg-slate-50 text-left text-slate-600">
+            <tr>
+              <th class="px-3 py-2">Trip</th>
+              <th class="px-3 py-2">Type</th>
+              <th class="px-3 py-2">Status</th>
+              <th class="px-3 py-2">Stops</th>
+              <th class="px-3 py-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            @for (trip of tripService.trips(); track trip.id) {
+              <tr [class.bg-blue-50]="selectedTripId() === trip.id">
+                <td class="px-3 py-2">
+                  <button
+                    type="button"
+                    (click)="loadTripTracking(trip.id)"
+                    class="font-medium text-blue-600"
+                  >
+                    {{ trip.tripNumber }}
+                  </button>
+                </td>
+                <td class="px-3 py-2">{{ trip.type }}</td>
+                <td class="px-3 py-2">{{ trip.status }}</td>
+                <td class="px-3 py-2">{{ trip.stops.length }}</td>
+                <td class="px-3 py-2">
+                  @if (trip.status === 'SCHEDULED') {
+                    <button
+                      type="button"
+                      (click)="updateTripStatus(trip.id, 'ONGOING')"
+                      [disabled]="!!pendingTripAction()"
+                      class="text-blue-600 disabled:cursor-wait disabled:opacity-50"
+                    >
+                      {{ pendingTripAction() === trip.id ? 'Updating…' : 'Start' }}
+                    </button>
+                  } @else if (trip.status === 'ONGOING') {
+                    <button
+                      type="button"
+                      (click)="updateTripStatus(trip.id, 'COMPLETED')"
+                      [disabled]="!!pendingTripAction()"
+                      class="text-blue-600 disabled:cursor-wait disabled:opacity-50"
+                    >
+                      {{ pendingTripAction() === trip.id ? 'Updating…' : 'Complete' }}
+                    </button>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5" class="px-3 py-6 text-center text-slate-500">No trips found.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      @if (selectedTrip(); as trip) {
+        <div>
+          <h3 class="mb-2 text-xs font-semibold text-slate-800">{{ trip.tripNumber }} tracking</h3>
+          <div class="h-56 overflow-hidden rounded border border-slate-200">
+            <app-logistics-route-map
+              [route]="selectedTripRoute()"
+              [currentIndex]="selectedTripRoute().length ? selectedTripRoute().length - 1 : 0"
+              routeLabel="Backend trip route"
+            />
+          </div>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <label class="sr-only" for="trip-rider">Assign driver</label
+            ><select
+              id="trip-rider"
+              [value]="selectedRiderId()"
+              (change)="selectedRiderId.set($any($event.target).value)"
+              class="h-8 rounded border px-2 text-xs"
+            >
+              <option value="">Choose an available driver</option>
+              @for (driver of fleetService.standbyDrivers(); track driver.id) {
+                <option [value]="driver.id">{{ driver.name }} · {{ driver.phone }}</option>
+              }</select
+            ><button
+              type="button"
+              (click)="assignSelectedDriver()"
+              [disabled]="trip.status === 'COMPLETED' || trip.status === 'CANCELLED' || !!pendingTripAction()"
+              class="h-8 rounded bg-blue-600 px-3 text-xs text-white disabled:opacity-50"
+            >
+              {{ pendingTripAction() === 'assign' ? 'Assigning…' : 'Assign driver' }}
+            </button>
+          </div>
+          @if (assignmentMessage()) {
+            <p role="status" class="mt-1 text-[10px] text-slate-600">{{ assignmentMessage() }}</p>
+          }
+          @if (selectedTripPings().length) {
+            <p class="mt-2 text-[10px] text-slate-500">
+              Last location:
+              {{ selectedTripPings()[selectedTripPings().length - 1].recordedAt | date: 'short' }}
+            </p>
+          } @else {
+            <p class="mt-2 text-[10px] text-slate-500">No tracking pings have been recorded yet.</p>
+          }
+        </div>
+      } @else {
+        <p class="self-center text-xs text-slate-500">
+          Select a trip number to load its tracking history.
+        </p>
+      }
+    </div>
+  </section>
+</section>
+
+@if (createTripOpen()) {
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/40 p-4"
+    (click)="createTripOpen.set(false)"
+  >
+    <section
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="schedule-trip-title"
+      class="my-auto w-full max-w-2xl rounded-lg bg-white p-5 shadow-xl"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 id="schedule-trip-title" class="text-base font-semibold text-slate-900">
+        Schedule a trip
+      </h2>
+      <form [formGroup]="tripForm" (ngSubmit)="createTrip()" class="mt-4 space-y-4">
+        <app-form-validation-summary [form]="tripForm" /><label class="block space-y-1"
+          ><span class="text-xs">Trip type</span
+          ><select formControlName="type" class="h-9 w-full rounded border px-2 text-xs">
+            <option value="DELIVERY">Customer delivery</option>
+            <option value="RESTOCK">Supplier restock</option>
+          </select></label
+        >
+        <div class="grid gap-3 sm:grid-cols-2">
+          <fieldset class="space-y-2 rounded border p-3">
+            <legend class="px-1 text-xs font-semibold">Origin</legend>
+            <input
+              formControlName="originName"
+              placeholder="Location name"
+              class="h-9 w-full rounded border px-2 text-xs"
+            /><input
+              formControlName="originAddress"
+              placeholder="Street address"
+              class="h-9 w-full rounded border px-2 text-xs"
+            />
+            <div class="grid grid-cols-2 gap-2">
+              <input
+                type="number"
+                formControlName="originLat"
+                aria-label="Origin latitude"
+                class="h-9 w-full rounded border px-2 text-xs"
+              /><input
+                type="number"
+                formControlName="originLng"
+                aria-label="Origin longitude"
+                class="h-9 w-full rounded border px-2 text-xs"
+              />
+            </div>
+          </fieldset>
+          <fieldset class="space-y-2 rounded border p-3">
+            <legend class="px-1 text-xs font-semibold">First stop</legend>
+            <input
+              formControlName="destinationName"
+              placeholder="Destination name"
+              class="h-9 w-full rounded border px-2 text-xs"
+            /><input
+              formControlName="destinationAddress"
+              placeholder="Street address"
+              class="h-9 w-full rounded border px-2 text-xs"
+            />
+            <div class="grid grid-cols-2 gap-2">
+              <input
+                type="number"
+                formControlName="destinationLat"
+                aria-label="Destination latitude"
+                class="h-9 w-full rounded border px-2 text-xs"
+              /><input
+                type="number"
+                formControlName="destinationLng"
+                aria-label="Destination longitude"
+                class="h-9 w-full rounded border px-2 text-xs"
+              />
+            </div>
+          </fieldset>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-3">
+          <label class="block space-y-1"
+            ><span class="text-xs">Scheduled start</span
+            ><input
+              type="datetime-local"
+              formControlName="scheduledStartLabel"
+              class="h-9 w-full rounded border px-2 text-xs" /></label
+          ><label class="block space-y-1"
+            ><span class="text-xs">Contact name</span
+            ><input
+              formControlName="contactName"
+              class="h-9 w-full rounded border px-2 text-xs" /></label
+          ><label class="block space-y-1"
+            ><span class="text-xs">Contact phone</span
+            ><input formControlName="contactPhone" class="h-9 w-full rounded border px-2 text-xs"
+          /></label>
+        </div>
+        @if (tripFormError()) {
+          <p role="alert" class="text-xs text-red-600">{{ tripFormError() }}</p>
+        }
+        <div class="flex justify-end gap-2">
+          <button
+            type="button"
+            (click)="createTripOpen.set(false)"
+            class="h-9 rounded border px-3 text-xs"
+          >
+            Cancel</button
+          ><button type="submit" [disabled]="!!pendingTripAction()" class="h-9 rounded bg-blue-600 px-3 text-xs text-white disabled:cursor-wait disabled:opacity-60">
+            {{ pendingTripAction() === 'create' ? 'Creating…' : 'Create trip' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

@@ -7,12 +7,14 @@ import { ActiveShipmentsComponent } from '../components/active-shipments/active-
 import { LiveFleetMapComponent } from '../components/live-fleet-map/live-fleet-map.component';
 import { FleetOverviewComponent } from '../components/fleet-overview/fleet-overview.component';
 import { AttentionPanelComponent } from '../components/attention-panel/attention-panel.component';
+import { LoadingSkeletonComponent } from '../../../../shared/loading/loading-skeleton.component';
 
 @Component({
   selector: 'app-manufacturer-dashboard',
   standalone: true,
   imports: [
     RouterLink,
+    LoadingSkeletonComponent,
     DashboardStatisticsComponent,
     PendingPurchaseOrdersComponent,
     ActiveShipmentsComponent,
@@ -26,6 +28,7 @@ export class ManufacturerDashboardComponent {
 
   private readonly dashboardService =
     inject(ManufacturerDashboardService);
+  protected readonly loading = this.dashboardService.loading;
 
   get dashboard() { return this.dashboardService.getDashboard(); }
 

@@ -6,7 +6,7 @@ import { DashboardFleetDriver } from '../../dashboard.models';
   selector: 'app-distributor-fleet-overview',
   standalone: true,
   imports: [RouterLink],
-  templateUrl: './fleet-overview.component.html'
+  templateUrl: './fleet-overview.component.html',
 })
 export class FleetOverviewComponent {
   readonly drivers = input.required<DashboardFleetDriver[]>();

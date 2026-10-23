@@ -2,11 +2,12 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ManufacturerInventoryService } from '../inventory.service';
 import { InventoryTableComponent } from '../components/inventory-table/inventory-table.component';
+import { LoadingSkeletonComponent } from '../../../../shared/loading/loading-skeleton.component';
 
 @Component({
   selector: 'app-inventory-center',
   standalone: true,
-  imports: [RouterLink, InventoryTableComponent],
+  imports: [LoadingSkeletonComponent, RouterLink, InventoryTableComponent],
   templateUrl: './inventory-center.component.html'
 })
 export class InventoryCenterComponent {
