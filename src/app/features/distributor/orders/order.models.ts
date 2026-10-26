@@ -8,6 +8,7 @@ export type CustomerOrderStatus =
   | 'PROCESSING'
   | 'AWAITING_DISPATCH'
   | 'DELIVERED'
+  | 'PARTIALLY_DELIVERED'
   | 'CANCELLED'
   | 'REFUNDED'
   | 'FAILED';
@@ -57,6 +58,7 @@ export interface DistributorShipmentGroup {
   routeKey: string;
   routeLabel: string;
   status: CustomerOrderStatus;
+  tripStatus: string;
   orderIds: string[];
   orders: CustomerOrder[];
   driverId?: string;

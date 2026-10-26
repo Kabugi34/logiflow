@@ -42,6 +42,7 @@ export class DistributorLogisticsComponent {
   protected readonly createTripOpen = signal(false);
   protected readonly tripFormError = signal('');
   protected readonly selectedRiderId = signal('');
+  protected readonly selectedVehicleId = signal('');
   protected readonly assignmentMessage = signal('');
   protected readonly pendingTripAction = signal('');
   protected readonly tripForm = this.fb.nonNullable.group({
@@ -152,7 +153,7 @@ export class DistributorLogisticsComponent {
   readonly outboundDeliveriesInMotion = computed(
     () =>
       this.outboundShipments().filter(
-        (shipment) => shipment.status === 'IN_TRANSIT' || shipment.status === 'REROUTED',
+        (shipment) => shipment.tripStatus === 'ONGOING' || shipment.tripStatus === 'DELAYED',
       ).length,
   );
 
@@ -216,12 +217,13 @@ export class DistributorLogisticsComponent {
     if (this.pendingTripAction()) return;
     const tripId = this.selectedTripId();
     const driverId = this.selectedRiderId();
-    if (!tripId || !driverId) {
-      this.assignmentMessage.set('Select a trip and an available driver.');
+    const vehicleId = this.selectedVehicleId();
+    if (!tripId || !driverId || !vehicleId) {
+      this.assignmentMessage.set('Select a trip, an available driver, and an available vehicle.');
       return;
     }
     this.pendingTripAction.set('assign');
-    this.tripService.assignDriver(tripId, driverId).pipe(
+    this.tripService.assignDriver(tripId, driverId, vehicleId).pipe(
       finalize(() => this.pendingTripAction.set('')),
     ).subscribe({
       next: () => {
@@ -232,6 +234,21 @@ export class DistributorLogisticsComponent {
         this.assignmentMessage.set(
           error?.error?.message ?? 'Driver assignment could not be saved.',
         ),
+    });
+  }
+
+  protected dispatchSelectedTrip(): void {
+    const tripId = this.selectedTripId();
+    const trip = this.tripService.findById(tripId);
+    if (!tripId || !trip?.driverId || !trip.vehicleId || this.pendingTripAction()) {
+      this.assignmentMessage.set('Assign an available driver and vehicle before dispatch.');
+      return;
+    }
+    this.pendingTripAction.set('dispatch');
+    this.assignmentMessage.set('');
+    this.tripService.dispatch(tripId).pipe(finalize(() => this.pendingTripAction.set(''))).subscribe({
+      next: () => { this.tripService.refresh(); this.assignmentMessage.set('Trip dispatched. The backend will notify each customer with their delivery verification code.'); },
+      error: error => this.assignmentMessage.set(error?.error?.message ?? 'Trip dispatch could not be completed.')
     });
   }
 

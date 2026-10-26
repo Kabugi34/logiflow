@@ -218,9 +218,9 @@
                 <td class="px-3 py-3">
                   <span
                     class="inline-flex rounded-full px-2 py-1 text-[9px] font-semibold"
-                    [class]="outboundStatusClass(shipment.status)"
+                    [class]="outboundStatusClass(shipment.tripStatus)"
                   >
-                    {{ shipment.status.replace('_', ' ') }}
+                    Trip: {{ shipment.tripStatus.replace('_', ' ') }} · Orders: {{ shipment.status.replace('_', ' ') }}
                   </span>
                 </td>
                 <td class="px-3 py-3 text-slate-500">{{ shipment.vehicleId ?? 'Unassigned' }}</td>
@@ -345,8 +345,8 @@
                   @if (trip.status === 'SCHEDULED') {
                     <button
                       type="button"
-                      (click)="updateTripStatus(trip.id, 'ONGOING')"
-                      [disabled]="!!pendingTripAction()"
+                      (click)="selectedTripId.set(trip.id); dispatchSelectedTrip()"
+                      [disabled]="!trip.driverId || !trip.vehicleId || !!pendingTripAction()"
                       class="text-blue-600 disabled:cursor-wait disabled:opacity-50"
                     >
                       {{ pendingTripAction() === trip.id ? 'Updating…' : 'Start' }}
@@ -393,7 +393,7 @@
               @for (driver of fleetService.standbyDrivers(); track driver.id) {
                 <option [value]="driver.id">{{ driver.name }} · {{ driver.phone }}</option>
               }</select
-            ><button
+            ><select aria-label="Assign available vehicle" [value]="selectedVehicleId()" (change)="selectedVehicleId.set($any($event.target).value)" class="h-8 rounded border px-2 text-xs"><option value="">Choose available vehicle</option>@for (vehicle of fleetService.availableVehicles(); track vehicle.id) { <option [value]="vehicle.id">{{ vehicle.plate }} · {{ vehicle.model }}</option> }</select><button
               type="button"
               (click)="assignSelectedDriver()"
               [disabled]="trip.status === 'COMPLETED' || trip.status === 'CANCELLED' || !!pendingTripAction()"
@@ -401,6 +401,7 @@
             >
               {{ pendingTripAction() === 'assign' ? 'Assigning…' : 'Assign driver' }}
             </button>
+            @if (trip.status === 'SCHEDULED' && trip.driverId && trip.vehicleId) { <button type="button" (click)="dispatchSelectedTrip()" [disabled]="!!pendingTripAction()" class="h-8 rounded border border-blue-200 px-3 text-xs text-blue-700">{{ pendingTripAction() === 'dispatch' ? 'Dispatching…' : 'Dispatch trip' }}</button> }
           </div>
           @if (assignmentMessage()) {
             <p role="status" class="mt-1 text-[10px] text-slate-600">{{ assignmentMessage() }}</p>

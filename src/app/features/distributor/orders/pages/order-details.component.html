@@ -60,44 +60,10 @@
               <dt class="text-[10px] uppercase text-slate-400">Payment</dt>
               <dd class="mt-1 flex items-center gap-2">
                 <app-order-badge [value]="currentOrder.paymentStatus" />
-                @if (currentOrder.paymentStatus !== 'PAID') {
-                  <button
-                    type="button"
-                    (click)="markPaid()"
-                    class="text-[10px] font-medium text-blue-600 hover:text-blue-700"
-                  >
-                    Record payment
-                  </button>
-                }
               </dd>
             </div>
           </dl>
-          @if (showPaymentForm()) {
-            <div class="mt-3 rounded-md border border-blue-100 bg-blue-50 p-3">
-              <label class="block text-[10px] font-medium text-slate-700"
-                >Kenyan M-Pesa phone number
-                <input
-                  type="tel"
-                  inputmode="tel"
-                  placeholder="07XXXXXXXX or 2547XXXXXXXX"
-                  [value]="paymentPhone()"
-                  (input)="updatePaymentPhone($event)"
-                  class="mt-1 h-9 w-full rounded border border-slate-200 bg-white px-2 text-xs"
-                />
-              </label>
-              <button
-                type="button"
-                [disabled]="paymentBusy()"
-                (click)="submitPayment()"
-                class="mt-2 h-9 rounded bg-blue-600 px-3 text-xs font-medium text-white disabled:opacity-50"
-              >
-                {{ paymentBusy() ? 'Waiting for payment...' : 'Send M-Pesa prompt' }}
-              </button>
-            </div>
-          }
-          @if (paymentMessage()) {
-            <p class="mt-2 text-[10px] text-emerald-700">{{ paymentMessage() }}</p>
-          }
+          <p class="mt-2 text-[10px] text-slate-500">Payment status is synchronized from the customer payment flow.</p>
         </section>
 
         <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
@@ -183,32 +149,8 @@
             <app-order-badge [value]="currentOrder.status" />
           </div>
           <p class="mt-3 text-xs text-slate-600">
-            Status updates are saved by the backend. Fleet assignment and delivery proof require
-            their own backend workflows.
+            This status is synchronized from the order and delivery lifecycle. Delivery confirmation is recorded only after the assigned driver verifies the order-specific customer code.
           </p>
-          @if (
-            currentOrder.status === 'PROCESSING' ||
-            currentOrder.status === 'AWAITING_DISPATCH' ||
-            currentOrder.status === 'PREPARING'
-          ) {
-            <button
-              type="button"
-              (click)="dispatch()"
-              [disabled]="!!statusAction()"
-              class="mt-4 min-h-10 w-full rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"
-            >
-              {{ statusAction() === 'IN_TRANSIT' ? 'Updating…' : 'Mark In Transit' }}
-            </button>
-          } @else if (currentOrder.status === 'IN_TRANSIT') {
-            <button
-              type="button"
-              (click)="confirmDelivery()"
-              [disabled]="!!statusAction()"
-              class="mt-4 min-h-10 w-full rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"
-            >
-              {{ statusAction() === 'DELIVERED' ? 'Updating…' : 'Mark Delivered' }}
-            </button>
-          }
           @if (errorMessage()) {
             <p role="alert" class="mt-2 text-[10px] text-red-600">{{ errorMessage() }}</p>
           }

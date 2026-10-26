@@ -4,6 +4,7 @@ import { manufacturerGuard } from './core/guards/manufacturer.guard';
 import { distributorGuard } from './core/guards/distributor.guard';
 import { AppShellComponent } from './layout/app-shell/app-shell.component';
 import { distributorWorkspace, manufacturerWorkspace } from './layout/navigation/navigation.config';
+import { ProfileComponent } from './features/profile/profile.component';
 import { AUTH_ROUTES } from './features/auth/auth.routes';
 
 
@@ -26,6 +27,7 @@ export const routes: Routes = [
     canActivate: [manufacturerGuard],
     data: { workspace: manufacturerWorkspace },
     children: [
+      { path: 'profile', component: ProfileComponent },
       {
         path: 'dashboard',
         loadChildren: () =>
@@ -107,6 +109,7 @@ export const routes: Routes = [
     canActivate: [distributorGuard],
     data: { workspace: distributorWorkspace },
     children: [
+      { path: 'profile', component: ProfileComponent },
       {
         path: 'dashboard',
         loadChildren: () =>

@@ -1,4 +1,5 @@
 export type ProductStatus = 'ACTIVE' | 'LOW STOCK' | 'CRITICAL STOCK';
+export type ProductPublicationStatus = 'DRAFT' | 'PUBLISHED' | 'DISCONTINUED';
 
 export interface ManufacturerProduct {
   id: number | string;
@@ -9,6 +10,7 @@ export interface ManufacturerProduct {
   unit: string;
   stock: number;
   status: ProductStatus;
+  publicationStatus: ProductPublicationStatus;
   image: string;
   description: string;
   inventory: ProductInventory[];

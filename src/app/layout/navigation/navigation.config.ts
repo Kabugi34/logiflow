@@ -5,18 +5,11 @@ export interface NavigationItem {
   children?: NavigationItem[];
 }
 
-export interface WorkspaceAccount {
-  initials: string;
-  name: string;
-  subtitle: string;
-}
-
 export interface WorkspaceConfig {
   name: string;
   homeRoute: string;
   searchPlaceholder: string;
   navigation: NavigationItem[];
-  account: WorkspaceAccount;
 }
 
 export const manufacturerNavigation: NavigationItem[] = [
@@ -157,7 +150,6 @@ export const manufacturerWorkspace: WorkspaceConfig = {
   homeRoute: '/manufacturer/dashboard',
   searchPlaceholder: 'Universal lookup (PO, SKU, Driver)...',
   navigation: manufacturerNavigation,
-  account: { initials: 'MV', name: 'Marcus Vance', subtitle: 'Global Operations' },
 };
 
 export const distributorWorkspace: WorkspaceConfig = {
@@ -165,5 +157,4 @@ export const distributorWorkspace: WorkspaceConfig = {
   homeRoute: '/distributor/dashboard',
   searchPlaceholder: 'Search order, customer, SKU...',
   navigation: distributorNavigation,
-  account: { initials: 'VD', name: 'Vance Distributors', subtitle: 'Enterprise Wholesaler' },
 };

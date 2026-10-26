@@ -79,21 +79,18 @@ export class DistributorOrderService {
         const latest = (this.tripService.tracking()[trip.id] ?? []).at(-1);
         if (latest)
           route.push({ latitude: latest.lat, longitude: latest.lng, label: 'Live location' });
-        const status: CustomerOrder['status'] =
-          trip.status === 'ONGOING'
-            ? 'IN_TRANSIT'
-            : trip.status === 'COMPLETED'
-              ? 'COMPLETED'
-              : trip.status === 'DELAYED'
-                ? 'REROUTED'
-                : trip.status === 'CANCELLED'
-                  ? 'CANCELLED'
-                  : 'PREPARING';
+        const deliveredCount = orders.filter(order => order.status === 'DELIVERED' || order.status === 'COMPLETED').length;
+        const status: CustomerOrder['status'] = orders.length === 0 ? 'PREPARING'
+          : deliveredCount === orders.length ? 'DELIVERED'
+          : deliveredCount > 0 ? 'PARTIALLY_DELIVERED'
+          : orders.some(order => order.status === 'IN_TRANSIT') ? 'IN_TRANSIT'
+          : orders[0].status;
         return {
           id: trip.id,
           routeKey: trip.tripNumber,
           routeLabel: trip.stops.at(-1)?.location.name ?? trip.tripNumber,
           status,
+          tripStatus: trip.status,
           orderIds: orders.map((order) => order.id),
           orders,
           totalValue: orders.reduce((sum, order) => sum + this.total(order), 0),

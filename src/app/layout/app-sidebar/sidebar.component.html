@@ -85,23 +85,4 @@
       }
     }
   </nav>
-
-  <div class="shrink-0 border-t border-slate-200 p-3">
-    <div class="flex items-center gap-3" [class.justify-center]="!layout.isExpanded()">
-      <span
-        class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-blue-100 text-[10px] font-semibold text-blue-800"
-        >{{ workspace().account.initials }}</span
-      >
-      @if (layout.isExpanded()) {
-        <span class="min-w-0">
-          <span class="block truncate text-xs font-semibold text-slate-800">{{
-            workspace().account.name
-          }}</span>
-          <span class="block truncate text-[10px] text-slate-500">{{
-            workspace().account.subtitle
-          }}</span>
-        </span>
-      }
-    </div>
-  </div>
 </aside>

@@ -6,8 +6,8 @@ import { OrganizationType } from '../models/organization.model';
 
 export interface AuthUserResponse {
   id: string;
-  fullName: string;
-  email: string;
+  fullName?: string | null;
+  email?: string | null;
   role: string;
   organizationId: string | null;
   organizationName: string | null;
