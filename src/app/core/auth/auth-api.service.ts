@@ -25,9 +25,16 @@ export interface AccessRequestPayload {
   organizationType: OrganizationType;
   organizationName: string;
   contactName: string;
+  representativeRole: string;
+  country: string;
+  registrationNumber: string;
+  taxIdentifier: string;
   contactEmail: string;
   organizationEmail: string;
   phoneNumber: string;
+  incorporationCertificate: File;
+  taxCertificate: File;
+  authorizedRepresentative: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -35,14 +42,21 @@ export class AuthApiService {
   private readonly http = inject(HttpClient);
 
   requestAccess(payload: AccessRequestPayload): Observable<void> {
-    return this.http.post<void>(API_ENDPOINTS.auth.accessRequest, {
-      organizationType: payload.organizationType,
-      organizationName: payload.organizationName,
-      fullName: payload.contactName,
-      personalEmail: payload.contactEmail,
-      organizationEmail: payload.organizationEmail,
-      phoneNumber: payload.phoneNumber
-    });
+    const form = new FormData();
+    form.append('organizationType', payload.organizationType);
+    form.append('organizationName', payload.organizationName.trim());
+    form.append('fullName', payload.contactName.trim());
+    form.append('representativeRole', payload.representativeRole.trim());
+    form.append('country', payload.country.trim());
+    form.append('registrationNumber', payload.registrationNumber.trim());
+    form.append('taxIdentifier', payload.taxIdentifier.trim());
+    form.append('personalEmail', payload.contactEmail.trim());
+    form.append('organizationEmail', payload.organizationEmail.trim());
+    form.append('phoneNumber', payload.phoneNumber.trim());
+    form.append('incorporationCertificate', payload.incorporationCertificate);
+    form.append('taxCertificate', payload.taxCertificate);
+    form.append('authorizedRepresentative', String(payload.authorizedRepresentative));
+    return this.http.post<void>(API_ENDPOINTS.auth.accessRequest, form);
   }
 
   activateAccount(payload: { email: string; token: string; password: string; confirmPassword: string }): Observable<void> {

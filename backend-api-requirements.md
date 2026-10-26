@@ -1,7 +1,7 @@
 ﻿# Frontend API integration status and remaining requirements
 
-**Updated:** 2026-10-21  
-**Scope:** Angular manufacturer and distributor workspaces compared with the backend source in `src backend/main/java/com/example/distrobackend/controller`. Authentication is already integrated. This file records what the frontend calls today, what can be tested, and what remains to connect or request from the backend team.
+**Updated:** 2026-10-26
+**Scope:** Angular manufacturer and distributor workspaces compared with the backend source in `src backend/main/java/com/example/distrobackend/controller`. Authentication UI and API client flows exist, but auth is currently intercepted by the local mock (`API_CONFIG.useMockAuth: true`). This file distinguishes implemented live feature calls from mock/local flows and specifies the remaining backend contracts needed by the current architecture.
 
 **Route organization:** `src/app/core/api/api.config.ts` contains only backend base URLs. `src/app/core/api/api-endpoints.ts` is the centralized route registry grouped by auth, manufacturer, and distributor. Feature services contain HTTP behavior and response mapping; they should use `API_ENDPOINTS` rather than construct route paths themselves.
 
@@ -24,7 +24,7 @@ A live call in code does not guarantee a successful environment test: requests n
 
 ### Shared authentication
 
-Authentication requests are in `src/app/core/auth/auth-api.service.ts` and use the `/api/auth`, `/api/access-requests`, and `/api/users/me` routes. Login/session, refresh/logout, activation, access request, resend verification, forgot/reset password, and current-user lookup are wired. See the auth service for the exact request fields.
+Authentication client methods are present in `src/app/core/auth/auth-api.service.ts` for `/api/auth`, `/api/access-requests`, and `/api/users/me`. However, `API_CONFIG.useMockAuth` is currently `true`, so the mock interceptor handles auth requests in the browser; treat production auth integration as unverified until this is disabled and the real backend contracts are exercised. The existing activation call posts `email`, `token`, `password`, and `confirmPassword` to `/api/access-requests/activate`; the backend should support the same secure account-activation mechanism for invited organization members, including drivers.
 
 ### Manufacturer workspace
 
@@ -121,19 +121,7 @@ The distributor driver directory UI is implemented at `/distributor/drivers`. It
 
 Distributor workspace pages are also available for staff (`/distributor/staff`), vehicles (`/distributor/vehicles`), and warehouses (`/distributor/warehouses`). Staff and vehicle changes currently live in frontend memory. Warehouse create/list uses the existing distributor warehouse API; the warehouse API currently exposes no update/deactivate action to the frontend. The catalog flow can also create a warehouse inline.
 
-Backend contract needed to make the driver feature persistent:
-
-- `GET /api/v1/drivers?search=&status=&page=&size=` returns tenant-scoped paginated driver profiles.
-- `POST /api/v1/drivers` creates a profile and invitation, accepting `fullName`, `email`, `phoneNumber`, and `licenseNumber`; returns the created driver and invitation status.
-- `GET /api/v1/drivers/{driverId}` returns one organization-scoped profile.
-- `PATCH /api/v1/drivers/{driverId}` updates editable contact/license fields.
-- `PATCH /api/v1/drivers/{driverId}/status` accepts `ACTIVE` or `SUSPENDED`; `PENDING_INVITATION` can become `ACTIVE` only after the invitation/account activation flow completes. Define resend/cancel invitation actions if needed.
-- Driver responses should include `id`, `organizationId`, `fullName`, `email`, `phoneNumber`, `licenseNumber`, `status`, `createdAt`, and optional active `tripId`/`vehicleId`.
-- Enforce distributor organization scoping and admin/staff permissions server-side. Reject suspension or profile changes while the driver has an active trip, and ensure only active drivers can be assigned to a new trip.
-
-The frontend's `INVITED`/`STANDBY` terms should be mapped to the backend's agreed `PENDING_INVITATION`/`ACTIVE` values when the API is wired.
-
-### Distributor dashboard
+Driver onboarding, invitation email delivery, activation, and tenant-scoped driver API requirements are consolidated in **P0: Driver onboarding, invitation, and account activation (manufacturer and distributor)** below. The current frontend directory is still in-memory and uses local account states; wire both directories to that shared contract and map UI state to the backend account and operational statuses.\r\n\r\n### Distributor dashboard
 
 Dashboard counts now derive from live orders, procurement orders, inventory, and trip APIs where those sources are available. Driver/vehicle fields remain empty because no fleet directory exists. The backend `GET /api/organization/dashboard` is still not called and returns only coarse counts; an aggregate route is needed for paid orders, delivery performance, and fleet metrics.
 
@@ -164,5 +152,82 @@ Still not called include customer-directory CRUD, vehicle/driver list and assign
 Other services under `src/app/features/manufacturer` and `src/app/features/distributor` should be treated as local/placeholder unless they contain an explicit HTTP request.
 
 
+
+
+
+## Backend implementation handoff: remaining API contracts
+
+This section is the actionable backend backlog for the current Angular architecture. Existing routes described above should be reused where their authorization and response contract fit. All organization-owned resources must derive tenant scope from the authenticated principal; clients must not select an arbitrary `organizationId` to gain access. Use the existing `/api` and `/api/v1` prefixes consistently with `API_ENDPOINTS`, return stable resource IDs and ISO-8601 timestamps, validate state transitions server-side, and return a consistent error body with a machine-readable code and field errors.
+
+### P0: Driver onboarding, invitation, and account activation (manufacturer and distributor)
+
+Both `MANUFACTURER_ADMIN` and `DISTRIBUTOR_ADMIN` can onboard drivers belonging to their own organization. Manufacturer and distributor staff may receive read/dispatch permissions only if granted by the organization role policy; they must not gain admin invite or suspension permissions by default. Do not make the driver endpoints distributor-only.
+
+Recommended contract (the current frontend has no driver HTTP integration; these are requirements, not claims that routes already exist):
+
+| Method and path | Purpose |
+|---|---|
+| `GET /api/v1/drivers?search=&status=&page=&size=` | List only the caller's organization's drivers; support paging and search/filter. |
+| `POST /api/v1/drivers` | Create a driver profile and send an activation invitation to the driver's personal email. |
+| `GET /api/v1/drivers/{driverId}` | Read a driver in the caller's organization. |
+| `PATCH /api/v1/drivers/{driverId}` | Edit permitted profile fields; reject changes when an active trip makes the profile operationally locked. Email should be immutable after invitation, or require a new verified invitation flow. |
+| `POST /api/v1/drivers/{driverId}/invitation/resend` | Revoke prior unused token(s), issue a fresh activation link, and email it to the personal email. |
+| `DELETE /api/v1/drivers/{driverId}/invitation` | Revoke a still-pending invitation; do not delete an activated driver or trip history. |
+| `PATCH /api/v1/drivers/{driverId}/status` | Suspend/reactivate an activated account; reject suspension while assigned to an active trip. |
+
+`POST /api/v1/drivers` accepts `fullName`, `email` (personal email), `phoneNumber`, `licenseNumber`, and optional `baseWarehouseId`. `organizationId` comes from the authenticated administrator, not from the request. Return the profile with `accountStatus: INVITED`, invitation delivery state, and `createdAt`. Enforce unique active/pending driver email according to the agreed account policy; return a clear conflict if the address is already linked to another organization/account.
+
+**Invitation lifecycle:**
+
+1. An authorized manufacturer or distributor administrator enters the driver's name, personal email, phone, licence number, and optional base warehouse and submits the form.
+2. Backend creates a pending driver profile linked to that administrator's organization and a driver user identity with the driver role and least-privilege access. The driver does not receive a password from the inviter and cannot log in yet.
+3. Backend emails the personal address an HTTPS activation URL containing an opaque, high-entropy, single-use, expiring token. Store only a token hash; bind it to the invitation, email, driver user, and organization. Never expose it in list/detail API responses or logs. Resending invalidates older links. Provide a configurable expiry (recommended 24 hours) and a clear expired/revoked response.
+4. The driver opens the link and sets their own password. Reuse or extend the existing activation page/API contract (`POST /api/access-requests/activate` with email, token, password, confirmPassword) so it can activate a driver invitation as well as an access-approved organization account. The backend must verify token, email, expiry, unused state, password policy, and confirmation; consume token atomically; mark account activated and driver `ACTIVE` (account status), then allow login. Do not require an administrator to approve an already invited driver unless product policy explicitly adds a separate approval state.
+5. The activation page must show expired/revoked/already-used errors and provide a safe resend path. Resend must not disclose whether an arbitrary email has an account; rate-limit sends and activation attempts. Email delivery failure must be visible to the inviter and safely retryable without creating duplicate driver records.
+6. After activation, driver may authenticate with the role associated to their organization and see only driver-appropriate functions. Suspension disables authentication/dispatch eligibility as defined by auth policy; reactivation restores it. Preserve audit history for invite, resend, activation, suspension, and reactivation.
+
+Driver response should include `id`, `organizationId`, `fullName`, `email`, `phoneNumber`, `licenseNumber`, `accountStatus` (`INVITED`, `ACTIVE`, `SUSPENDED`, `INVITATION_EXPIRED`), `operationalStatus` (`AVAILABLE`, `ON_TRIP`, `OFF_DUTY`), nullable `baseWarehouseId`, nullable `vehicleId`/`activeTripId`, and `createdAt`/`updatedAt`. `PENDING_APPROVAL` is not part of the activation flow above; keep it only if there is a distinct driver application-review product flow. Map the frontend's `INVITED` and `ACTIVE` account states separately from operational availability.
+
+Trip assignment must accept only an activated, unsuspended driver in the same organization, and should atomically prevent double assignment. Driver profile/status API responses should expose active-trip lock information so the UI can explain blocked edits. Drivers must never be assigned across manufacturer/distributor tenants.
+
+### P1: Fleet, warehouse, shipment, and dispatch APIs
+
+Current driver and vehicle directories, manufacturer shipment screens, and much fleet state are local-only. Add or complete organization-scoped APIs:
+
+- `GET/POST /api/v1/vehicles`, `GET/PATCH /api/v1/vehicles/{vehicleId}`, and `PATCH /api/v1/vehicles/{vehicleId}/status`; support plate, type/capacity, condition, base warehouse, assigned driver, and active trip. Enforce unique plate per organization and prohibit conflicting assignments.
+- `GET/POST /api/v1/shipments`, `GET/PATCH /api/v1/shipments/{shipmentId}`, plus dispatch and delivery-confirmation actions. Shipment must link source purchase order/order, origin/destination warehouse, assigned vehicle/driver, line quantities, status timeline, stops, and proof of delivery (recipient, timestamp, optional note/photo reference).
+- Extend trip create/detail/list contracts to carry `shipmentId`, `purchaseOrderId` or `orderId`, organization ownership, stops, assigned vehicle/driver, and timestamps. Add location update ingestion for driver/device and preserve tracking history. Define legal transitions and idempotency behavior.
+- `GET /api/v1/warehouses/{warehouseId}`, `PATCH /api/v1/warehouses/{warehouseId}`, and organization-role access for manufacturer as well as distributor. Add warehouse stock balances and movements (or explicit stock-by-warehouse endpoints); current manufacturer UI needs these for warehouse selection and inventory breakdown.
+- Provide inbound receipt/partial receipt actions against a purchase order, with received quantities and stock movement creation. Link this to shipment completion rather than treating a trip status as proof of receipt.
+
+### P1: Customers and customer order creation
+
+Distributor customer UI needs tenant-scoped `GET /api/v1/customers?search=&page=&size=`, `POST /api/v1/customers`, `GET /api/v1/customers/{customerId}`, and `PATCH /api/v1/customers/{customerId}`. Define required name/contact/address fields and duplicate handling. Add `POST /api/v1/orders` if customer orders are not already creatable in the supplied backend; accept customer ID, line item IDs/quantities, delivery address, and payment preference. Validate that each item is an active offer owned by this distributor and reserve/decrement stock safely. Order detail/list must include customer display/contact fields or a documented customer expansion endpoint.
+
+### P1: Product, stock, offers, and audit completeness
+
+Choose and document the canonical product catalog versus stock-item contract; avoid two writable sources of truth. Complete the existing stock routes for `GET/PATCH /api/stock/items/{id}`, low-stock querying, stock movement history and adjustment, and warehouse-level quantities. Add an audit/count endpoint with an auditable submitted count, expected count, variance, actor, timestamp, and reason. Product detail/edit must expose the fields rendered by the UI (unit, brand, description, image, category, active state).
+
+Complete distributor offer fields used by the UI: MOQ, notes, display product/unit/brand, supplier identity/name, source stock item, selling price, reorder threshold, warehouse and active state. Define whether offer creation is a distinct resource from stock item creation and return the same contract for list/create/update.
+
+### P2: Dashboards, reports, settings, and notifications
+
+- `GET /api/v1/organization/dashboard` (or versioned equivalent): tenant-scoped counts and aggregates needed by each workspace, including orders, pending purchase orders, active shipments/trips, fleet availability, low stock, payments, and delivery performance. Support role-appropriate fields and avoid returning zeros for unsupported metrics without a capability indicator.
+- Organization-specific reports under `/api/v1/organization/reports/*`, with date range, pagination/export format, and tenant scope. Existing admin-only analytics routes cannot serve workspace roles as currently authorized.
+- Organization profile/settings read/update routes, such as `GET/PATCH /api/v1/organization`, with validated contact details, timezone, notification preferences, and role restrictions. Do not reuse super-admin global `/api/v1/settings` for tenant settings.
+- Notification list/read routes and delivery events for purchase-order decisions, invitation delivery/activation, shipment updates, and payment outcomes. If realtime is required, specify SSE/WebSocket event names and reconnect/cursor behavior; otherwise document refresh/polling expectations.
+
+### P2: Payments and purchase-order lifecycle gaps
+
+Complete payment list/detail/history endpoints needed by the payment UI, and define callback reconciliation, idempotency keys, authorization, and terminal statuses for M-Pesa. For purchase orders add cancel/amend rules, expected delivery and destination, lifecycle timeline, and a fulfillment link. Existing manufacturer decision and distributor list/detail/settlement routes remain the baseline; preserve the shared record across both organizations and ensure each side sees only permitted fields/actions.
+
+### API behavior and acceptance criteria for all remaining work
+
+- Authenticate every non-public endpoint; authorize both role and organization membership. Public activation endpoints must be token-bound, rate-limited, and resistant to account enumeration.
+- Validate enum values, required fields, lengths, phone/email formats, numeric bounds, and state transitions. Return 400 for invalid fields, 401/403 for auth/authorization, 404 for absent or cross-tenant resources, 409 for state/uniqueness conflicts, and 429 for throttling, using a consistent response envelope.
+- Paginated list endpoints accept `page` and `size`, return `content`, `totalElements`, `totalPages`, `number`, and `size`; preserve the existing page-envelope compatibility used by Angular.
+- Use transactional writes for invitation creation/token issue, stock reservation/receipt, and assignment to avoid duplicate or partial state. Make email sends retryable and idempotent.
+- Document environment configuration for email provider, activation URL base, CORS origins, token expiry, password policy, and API base URL. Never return invitation secrets or passwords.
+- Acceptance test the driver flow end to end for both manufacturer and distributor admin: create invite -> receive email at supplied personal address -> activate from link and set password -> log in as driver -> verify correct organization/role and restricted access -> resend/expire/revoke paths -> suspend/reactivate -> trip assignment eligibility and tenant isolation.
 
 
