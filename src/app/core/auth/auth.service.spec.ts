@@ -149,20 +149,27 @@ describe('AuthService', () => {
       organizationType: 'DISTRIBUTOR',
       organizationName: 'Apex Distribution',
       contactName: 'Test Admin',
+      representativeRole: 'Operations Manager',
+      country: 'Kenya',
+      registrationNumber: 'CPR-123456',
+      taxIdentifier: 'P123456789Z',
       contactEmail: 'admin@example.com',
       organizationEmail: 'ops@example.com',
-      phoneNumber: '+254700000000'
+      phoneNumber: '+254700000000',
+      incorporationCertificate: new File(['incorporation'], 'incorporation.pdf', { type: 'application/pdf' }),
+      taxCertificate: new File(['tax'], 'kra.pdf', { type: 'application/pdf' }),
+      authorizedRepresentative: true
     }).subscribe();
 
     const request = http.expectOne(API_ENDPOINTS.auth.accessRequest);
-    expect(request.request.body).toEqual({
-      organizationType: 'DISTRIBUTOR',
-      organizationName: 'Apex Distribution',
-      fullName: 'Test Admin',
-      personalEmail: 'admin@example.com',
-      organizationEmail: 'ops@example.com',
-      phoneNumber: '+254700000000'
-    });
+    expect(request.request.body).toBeInstanceOf(FormData);
+    expect(request.request.body.get('organizationName')).toBe('Apex Distribution');
+    expect(request.request.body.get('fullName')).toBe('Test Admin');
+    expect(request.request.body.get('representativeRole')).toBe('Operations Manager');
+    expect(request.request.body.get('registrationNumber')).toBe('CPR-123456');
+    expect(request.request.body.get('taxIdentifier')).toBe('P123456789Z');
+    expect(request.request.body.get('incorporationCertificate')).toBeInstanceOf(File);
+    expect(request.request.body.get('taxCertificate')).toBeInstanceOf(File);
     request.flush(null);
   });
 
