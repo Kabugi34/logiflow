@@ -1,4 +1,6 @@
-import { computed, Injectable, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { computed, inject, Injectable, signal } from '@angular/core';
+import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import {
   DistributorDriver,
   DistributorVehicle,
@@ -6,12 +8,17 @@ import {
   DriverOperationalStatus,
 } from './fleet.models';
 
+interface DriverApiRow { id: string; fullName?: string; name?: string; email?: string; phoneNumber?: string; phone?: string; licenseNumber?: string; license?: string; accountStatus?: DriverAccountStatus; operationalStatus?: DriverOperationalStatus; baseWarehouseId?: string | null; createdAt?: string; vehicleId?: string; }
+interface VehicleApiRow { id: string; model?: string; type?: string; plate?: string; registrationNumber?: string; status?: DistributorVehicle['status']; locationLabel?: string; latitude?: number; longitude?: number; }
+interface Page<T> { content?: T[]; }
+
 const HOME_WAREHOUSE = 'Nairobi Distribution Hub';
 const initialVehicles: DistributorVehicle[] = [];
 const initialDrivers: DistributorDriver[] = [];
 
 @Injectable({ providedIn: 'root' })
 export class DistributorFleetService {
+  private readonly http = inject(HttpClient);
   private readonly vehicleRecords = signal(initialVehicles);
   private readonly driverRecords = signal(initialDrivers);
   readonly vehicles = this.vehicleRecords.asReadonly();
@@ -27,6 +34,35 @@ export class DistributorFleetService {
   readonly activeVehicles = computed(() =>
     this.vehicleRecords().filter((vehicle) => vehicle.status === 'ON_TRIP'),
   );
+  readonly loading = signal(false);
+  readonly error = signal('');
+
+  constructor() { this.refresh(); }
+
+  refresh(): void {
+    this.loading.set(true);
+    let completed = 0;
+    const done = () => { completed++; if (completed === 2) this.loading.set(false); };
+    this.http.get<Page<DriverApiRow> | DriverApiRow[]>(`${API_ENDPOINTS.distributor.drivers}?size=100`).subscribe({
+      next: result => {
+        const rows = Array.isArray(result) ? result : result.content ?? [];
+        this.driverRecords.set(rows.map(row => ({
+          id: row.id, name: row.fullName ?? row.name ?? '', email: row.email ?? '', phone: row.phoneNumber ?? row.phone ?? '',
+          license: row.licenseNumber ?? row.license ?? '', accountStatus: row.accountStatus ?? 'INVITED',
+          operationalStatus: row.operationalStatus ?? 'OFF_DUTY', status: row.operationalStatus === 'AVAILABLE' ? 'STANDBY' : row.operationalStatus === 'ON_TRIP' ? 'ON_TRIP' : 'OFF_DUTY',
+          baseWarehouseId: row.baseWarehouseId ?? null, invitationResends: 0, locationLabel: '', createdAt: row.createdAt ?? '', vehicleId: row.vehicleId
+        })));
+        done();
+      }, error: () => { this.error.set('Driver directory API is unavailable.'); done(); }
+    });
+    this.http.get<Page<VehicleApiRow> | VehicleApiRow[]>(`${API_ENDPOINTS.distributor.vehicles}?size=100`).subscribe({
+      next: result => {
+        const rows = Array.isArray(result) ? result : result.content ?? [];
+        this.vehicleRecords.set(rows.map(row => ({ id: row.id, model: row.model ?? row.type ?? '', plate: row.plate ?? row.registrationNumber ?? '', status: row.status ?? 'AVAILABLE', locationLabel: row.locationLabel ?? '', latitude: row.latitude ?? 0, longitude: row.longitude ?? 0 })));
+        done();
+      }, error: () => { this.error.set('Vehicle directory API is unavailable.'); done(); }
+    });
+  }
 
   findVehicle(id: string | undefined): DistributorVehicle | undefined {
     return this.vehicleRecords().find((vehicle) => vehicle.id === id);

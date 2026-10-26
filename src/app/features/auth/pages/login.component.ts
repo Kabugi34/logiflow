@@ -22,6 +22,7 @@ export class LoginComponent {
 
   protected readonly errorMessage = signal('');
   protected readonly isSubmitting = signal(false);
+  protected readonly showPassword = signal(false);
 
   protected readonly form = this.formBuilder.nonNullable.group({
     email: [

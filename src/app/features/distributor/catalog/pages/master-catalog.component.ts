@@ -16,6 +16,7 @@ export class MasterCatalogComponent {
   protected readonly selectedCategory = signal('All categories');
   protected readonly actionMessage = signal('');
   protected readonly pendingOfferId = signal('');
+  protected readonly pendingProductId = signal('');
 
   protected readonly categories = computed(() => [
     'All categories',
@@ -51,6 +52,14 @@ export class MasterCatalogComponent {
       },
       error: (error) =>
         this.actionMessage.set(error?.error?.message ?? 'Offer status could not be updated.'),
+    });
+  }
+  protected requestAuthorization(productId: string): void {
+    if (this.pendingProductId()) return;
+    this.pendingProductId.set(productId); this.actionMessage.set('');
+    this.catalogService.requestAuthorization(productId).pipe(finalize(() => this.pendingProductId.set(''))).subscribe({
+      next: () => { this.catalogService.refresh(); this.actionMessage.set('Request sent. You can list the product after manufacturer approval.'); },
+      error: error => this.actionMessage.set(error?.error?.message ?? 'Authorization request could not be sent.')
     });
   }
   protected updateSearch(event: Event): void {

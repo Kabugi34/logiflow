@@ -16,6 +16,7 @@ export class OrderBadgeComponent {
       case 'PAID':
       case 'COMPLETED':
       case 'DELIVERED':
+      case 'PARTIALLY_DELIVERED':
         return 'border-emerald-200 bg-emerald-50 text-emerald-700';
       case 'IN_TRANSIT':
       case 'ON_ROUTE':

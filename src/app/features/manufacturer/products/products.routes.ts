@@ -10,6 +10,14 @@ export const PRODUCTS_ROUTES: Routes = [
     loadComponent: () => import('./pages/product-form.component').then(module => module.ProductFormComponent)
   },
   {
+    path: 'authorizations',
+    loadComponent: () => import('./pages/product-authorizations.component').then(module => module.ProductAuthorizationsComponent)
+  },
+  {
+    path: ':sku/edit',
+    loadComponent: () => import('./pages/product-form.component').then(module => module.ProductFormComponent)
+  },
+  {
     path: ':sku',
     loadComponent: () => import('./pages/product-details.component').then(module => module.ProductDetailsComponent)
   }

@@ -27,7 +27,10 @@ export class CatalogOfferFormComponent {
   protected readonly warehouseForm = this.formBuilder.nonNullable.group({
     code: ['', [trimmedRequired, Validators.maxLength(24), Validators.pattern(/^[A-Za-z0-9-]+$/)]],
     name: ['', [trimmedRequired, Validators.maxLength(80)]],
-    address: ['', Validators.maxLength(160)],
+    address: ['', [trimmedRequired, Validators.maxLength(160)]],
+    city: ['', [trimmedRequired, Validators.maxLength(60)]],
+    postalCode: ['', [trimmedRequired, Validators.maxLength(20)]],
+    siteManager: ['', [trimmedRequired, Validators.maxLength(80)]],
   });
 
   protected readonly form = this.formBuilder.nonNullable.group({
@@ -67,7 +70,7 @@ export class CatalogOfferFormComponent {
       next: (warehouse) => {
         this.catalogService.refresh();
         this.form.controls.warehouseId.setValue(warehouse.id);
-        this.warehouseForm.reset({ code: '', name: '', address: '' });
+        this.warehouseForm.reset({ code: '', name: '', address: '', city: '', postalCode: '', siteManager: '' });
         this.warehouseMessage.set('Warehouse created.');
       },
       error: (error) => {

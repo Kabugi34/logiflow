@@ -25,4 +25,5 @@ export interface DistributorCatalogProduct {
   unit: string;
   stock: boolean;
   description: string;
+  authorizationStatus: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
 }

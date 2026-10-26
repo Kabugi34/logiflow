@@ -33,6 +33,8 @@ export interface DistributorTrip {
   }[];
   scheduledStartLabel: string | null;
   totalDistanceKm: number;
+  driverId?: string;
+  vehicleId?: string;
 }
 export interface TripDraft {
   tripType: 'RESTOCK' | 'DELIVERY';
@@ -108,10 +110,14 @@ export class DistributorTripService {
   create(draft: TripDraft) {
     return this.http.post<DistributorTrip>(API_ENDPOINTS.distributor.trips, draft);
   }
-  assignDriver(tripId: string, riderId: string) {
+  assignDriver(tripId: string, driverId: string, vehicleId: string) {
     return this.http.patch<DistributorTrip>(API_ENDPOINTS.distributor.tripAssignment(tripId), {
-      riderId,
+      driverId,
+      vehicleId,
     });
+  }
+  dispatch(tripId: string) {
+    return this.http.post<DistributorTrip>(API_ENDPOINTS.distributor.tripDispatch(tripId), {});
   }
   updateStatus(tripId: string, status: DistributorTrip['status'], note = '') {
     return this.http.patch<DistributorTrip>(API_ENDPOINTS.distributor.tripStatus(tripId), {

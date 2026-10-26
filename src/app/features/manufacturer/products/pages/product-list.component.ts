@@ -3,6 +3,9 @@ import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ManufacturerProductService } from '../product.service';
 import { LoadingSkeletonComponent } from '../../../../shared/loading/loading-skeleton.component';
+import { AuthService } from '../../../../core/auth/auth.service';
+import { ProductPublicationStatus } from '../product.models';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-product-list',
@@ -12,6 +15,10 @@ import { LoadingSkeletonComponent } from '../../../../shared/loading/loading-ske
 })
 export class ProductListComponent {
   protected readonly productService = inject(ManufacturerProductService);
+  private readonly authService = inject(AuthService);
+  protected readonly canManagePublication = this.authService.hasRole('MANUFACTURER_ADMIN');
+  protected readonly pendingProductId = signal('');
+  protected readonly actionError = signal('');
   protected readonly searchTerm = signal('');
   protected readonly selectedCategory = signal('All categories');
   protected readonly selectedStatus = signal('All statuses');
@@ -37,4 +44,19 @@ export class ProductListComponent {
   protected updateStatus(event: Event): void {
     this.selectedStatus.set((event.target as HTMLSelectElement).value);
   }
+
+  protected togglePublication(productId: string, status: ProductPublicationStatus): void {
+    if (!this.canManagePublication || this.pendingProductId()) return;
+    const nextStatus: ProductPublicationStatus = status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED';
+    this.actionError.set('');
+    this.pendingProductId.set(productId);
+    this.productService.setPublicationStatus(productId, nextStatus).pipe(
+      finalize(() => this.pendingProductId.set('')),
+    ).subscribe({
+      next: () => this.productService.refresh(),
+      error: error => this.actionError.set(error?.error?.message ?? 'Product publication could not be updated.'),
+    });
+  }
+
+  protected productId(id: string | number): string { return String(id); }
 }

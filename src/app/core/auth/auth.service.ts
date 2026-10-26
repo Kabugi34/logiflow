@@ -131,10 +131,7 @@ export class AuthService {
     const organizationType = response?.organizationtype;
     if (
       !response?.id ||
-      !response.fullName ||
-      !response.email ||
       !response.organizationId ||
-      !response.organizationName ||
       !organizationType ||
       !isWorkspaceRole(role, organizationType)
     ) {
@@ -143,12 +140,12 @@ export class AuthService {
 
     return {
       id: response.id,
-      name: response.fullName,
-      email: response.email,
+      name: response.fullName ?? '',
+      email: response.email ?? '',
       roles: [role],
       organization: {
         id: response.organizationId,
-        name: response.organizationName,
+        name: response.organizationName ?? '',
         type: organizationType
       }
     };

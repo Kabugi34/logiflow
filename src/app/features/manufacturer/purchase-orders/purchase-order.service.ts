@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import { ManufacturerPurchaseOrder, PurchaseOrderStatus } from './purchase-order.models';
-import { Observable, map, tap } from 'rxjs';
+import { Observable, forkJoin, map, tap } from 'rxjs';
 
 interface ApiPo {
   id: string; purchaseOrderNumber: string; buyerOrganizationId: string; status: string; submittedAt: string;
@@ -10,6 +10,7 @@ interface ApiPo {
   items: { sku: string; name: string; quantity: number; unitPrice: number }[];
 }
 interface ApiPage<T> { content?: T[]; }
+interface ApiStock { sku: string; quantityOnHand: number; reservedQuantity?: number; availableQuantity?: number; }
 
 @Injectable({ providedIn: 'root' })
 export class ManufacturerPurchaseOrderService {
@@ -32,10 +33,14 @@ export class ManufacturerPurchaseOrderService {
 
   refresh(): void {
     this.loading.set(true);
-    this.http.get<ApiPage<ApiPo> | ApiPo[]>(API_ENDPOINTS.manufacturer.purchaseOrders).subscribe({
-      next: result => {
-        const page = Array.isArray(result) ? result : result.content ?? [];
-        this.records.set(page.map(row => this.mapOrder(row)));
+    forkJoin({
+      orders: this.http.get<ApiPage<ApiPo> | ApiPo[]>(API_ENDPOINTS.manufacturer.purchaseOrders),
+      stock: this.http.get<ApiPage<ApiStock> | ApiStock[]>(`${API_ENDPOINTS.manufacturer.stockItems}?size=100`)
+    }).subscribe({
+      next: ({ orders, stock }) => {
+        const page = Array.isArray(orders) ? orders : orders.content ?? [];
+        const stockRows = Array.isArray(stock) ? stock : stock.content ?? [];
+        this.records.set(page.map(row => this.mapOrder(row, stockRows)));
         this.error.set('');
         this.loading.set(false);
       },
@@ -55,7 +60,7 @@ export class ManufacturerPurchaseOrderService {
       );
   }
 
-  private mapOrder(row: ApiPo): ManufacturerPurchaseOrder {
+  private mapOrder(row: ApiPo, stock: ApiStock[]): ManufacturerPurchaseOrder {
     const status: PurchaseOrderStatus = row.status === 'APPROVED' ? 'ACCEPTED'
       : row.status === 'FULFILLED' ? 'FULFILLED'
       : row.status === 'REJECTED' ? 'REJECTED' : 'PENDING';
@@ -65,7 +70,12 @@ export class ManufacturerPurchaseOrderService {
       destinationHub: '\u2014',
       issueDate: row.submittedAt,
       status,
-      lines: (row.items ?? []).map(item => ({ productName: item.name, sku: item.sku, requestedQuantity: item.quantity, availableStock: 0, unitPrice: item.unitPrice, unit: 'Pcs' })),
+      lines: (row.items ?? []).map(item => {
+        const matching = stock.find(stockItem => stockItem.sku === item.sku);
+        return { productName: item.name, sku: item.sku, requestedQuantity: item.quantity,
+          availableStock: matching?.availableQuantity ?? Math.max(0, (matching?.quantityOnHand ?? 0) - (matching?.reservedQuantity ?? 0)),
+          unitPrice: item.unitPrice, unit: 'Pcs' };
+      }),
       timeline: []
     };
   }

@@ -39,6 +39,7 @@
       {{ actionMessage() }}
     </p>
   }
+  @if (catalogService.error()) { <p role="alert" class="rounded border border-red-200 bg-red-50 p-3 text-xs text-red-700">{{ catalogService.error() }} <button type="button" (click)="catalogService.refresh()" class="ml-2 underline">Retry</button></p> }
 
   <div class="grid gap-3 md:grid-cols-3">
     <div class="rounded-lg border border-slate-200 bg-white p-4">
@@ -119,14 +120,14 @@
                   {{ product.stock ? 'Available' : 'Out of stock' }}
                 </td>
                 <td class="whitespace-nowrap px-3 py-3">
-                  <a
+                  @if (product.authorizationStatus === 'APPROVED') { <a
                     [routerLink]="['/distributor/catalog/new']"
                     [queryParams]="{ sku: product.sku }"
                     queryParamsHandling="preserve"
                     class="font-medium text-blue-600 hover:text-blue-700"
                   >
                     Add to catalog
-                  </a>
+                  </a> } @else if (product.authorizationStatus === 'PENDING') { <span class="text-amber-700">Request pending</span> } @else { <button type="button" (click)="requestAuthorization(product.id)" [disabled]="!!pendingProductId()" class="font-medium text-blue-600 disabled:opacity-50">{{ pendingProductId() === product.id ? 'Requesting…' : product.authorizationStatus === 'REJECTED' ? 'Request again' : 'Request authorization' }}</button> }
                 </td>
               </tr>
             } @empty {

@@ -23,6 +23,8 @@ export class ActivateAccountComponent {
 
   protected readonly errorMessage = signal('');
   protected readonly isSubmitting = signal(false);
+  protected readonly showPassword = signal(false);
+  protected readonly showConfirmPassword = signal(false);
 
   protected readonly email = this.route.snapshot.queryParamMap.get('email') ?? '';
 

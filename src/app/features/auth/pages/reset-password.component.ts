@@ -22,6 +22,8 @@ export class ResetPasswordComponent {
   protected readonly successMessage = signal('');
   protected readonly errorMessage = signal('');
   protected readonly isSubmitting = signal(false);
+  protected readonly showPassword = signal(false);
+  protected readonly showConfirmPassword = signal(false);
 
   protected readonly requestForm = this.formBuilder.nonNullable.group({
     email: ['', [trimmedRequired, Validators.email, Validators.maxLength(120)]],

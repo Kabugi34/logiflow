@@ -105,6 +105,8 @@
           ><span class="text-xs">Address</span
           ><input formControlName="address" class="h-9 w-full rounded border px-3 text-xs"
         /></label>
+        <div class="grid grid-cols-2 gap-2"><label class="block space-y-1"><span class="text-xs">City</span><input formControlName="city" class="h-9 w-full rounded border px-3 text-xs"></label><label class="block space-y-1"><span class="text-xs">Postal code</span><input formControlName="postalCode" class="h-9 w-full rounded border px-3 text-xs"></label></div>
+        <label class="block space-y-1"><span class="text-xs">Site manager</span><input formControlName="siteManager" class="h-9 w-full rounded border px-3 text-xs"></label>
         <div class="flex justify-end gap-2">
           <button type="button" (click)="dialog.set(false)" class="h-9 rounded border px-3 text-xs">
             Cancel</button
