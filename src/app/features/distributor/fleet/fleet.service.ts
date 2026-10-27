@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
+import { Observable, map, tap } from 'rxjs';
 import {
   DistributorDriver,
   DistributorVehicle,
@@ -8,7 +9,7 @@ import {
   DriverOperationalStatus,
 } from './fleet.models';
 
-interface DriverApiRow { id: string; fullName?: string; name?: string; email?: string; phoneNumber?: string; phone?: string; licenseNumber?: string; license?: string; accountStatus?: DriverAccountStatus; operationalStatus?: DriverOperationalStatus; baseWarehouseId?: string | null; createdAt?: string; vehicleId?: string; }
+interface DriverApiRow { id: string; fullName?: string; name?: string; email?: string; phoneNumber?: string; phone?: string; licenseNumber?: string; license?: string; accountStatus?: DriverAccountStatus; operationalStatus?: DriverOperationalStatus; baseWarehouseId?: string | null; createdAt?: string; vehicleId?: string; invitationStatus?: 'QUEUED' | 'SENT' | 'FAILED'; }
 interface VehicleApiRow { id: string; model?: string; type?: string; plate?: string; registrationNumber?: string; status?: DistributorVehicle['status']; locationLabel?: string; latitude?: number; longitude?: number; }
 interface Page<T> { content?: T[]; }
 
@@ -38,6 +39,51 @@ export class DistributorFleetService {
   readonly error = signal('');
 
   constructor() { this.refresh(); }
+
+  createDriver(details: { name: string; email: string; phone: string; license: string; baseWarehouseId?: string }): Observable<DistributorDriver> {
+    return this.http.post<DriverApiRow>(API_ENDPOINTS.distributor.drivers, {
+      fullName: details.name.trim(), email: details.email.trim().toLowerCase(), phoneNumber: details.phone.trim(),
+      licenseNumber: details.license.trim().toUpperCase(), baseWarehouseId: details.baseWarehouseId || null
+    }).pipe(map(row => this.mapDriver(row)), tap(driver => this.driverRecords.update(rows => [driver, ...rows])));
+  }
+
+  saveDriverProfile(id: string, details: { name: string; phone: string; license: string; baseWarehouseId?: string }): Observable<DistributorDriver> {
+    return this.http.patch<DriverApiRow>(API_ENDPOINTS.distributor.driver(id), {
+      fullName: details.name.trim(), phoneNumber: details.phone.trim(), licenseNumber: details.license.trim().toUpperCase(), baseWarehouseId: details.baseWarehouseId || null
+    }).pipe(map(row => this.mapDriver(row)), tap(updated => this.driverRecords.update(rows => rows.map(row => row.id === id ? updated : row))));
+  }
+
+  runDriverAction(id: string, action: 'APPROVE' | 'REJECT' | 'RESEND' | 'REVOKE' | 'SUSPEND' | 'REACTIVATE'): Observable<unknown> {
+    if (action === 'RESEND') return this.http.post(API_ENDPOINTS.distributor.driverInvitationResend(id), {}).pipe(tap(() => this.refresh()));
+    if (action === 'REVOKE') return this.http.delete(API_ENDPOINTS.distributor.driverInvitation(id)).pipe(tap(() => this.refresh()));
+    if (action === 'SUSPEND' || action === 'REACTIVATE') return this.http.patch(API_ENDPOINTS.distributor.driverStatus(id), { status: action === 'SUSPEND' ? 'SUSPENDED' : 'ACTIVE' }).pipe(tap(() => this.refresh()));
+    return this.http.patch(API_ENDPOINTS.distributor.driverApplicationDecision(id), { decision: action === 'APPROVE' ? 'APPROVED' : 'REJECTED' }).pipe(tap(() => this.refresh()));
+  }
+
+  setDriverOperationalStatus(id: string, status: 'AVAILABLE' | 'OFF_DUTY'): Observable<unknown> {
+    return this.http.patch(API_ENDPOINTS.distributor.driverOperationalStatus(id), { status }).pipe(tap(() => this.refresh()));
+  }
+
+  createVehicle(details: { model: string; plate: string }): Observable<DistributorVehicle> {
+    return this.http.post<VehicleApiRow>(API_ENDPOINTS.distributor.vehicles, { model: details.model.trim(), plate: details.plate.trim().toUpperCase() })
+      .pipe(map(row => this.mapVehicle(row)), tap(vehicle => this.vehicleRecords.update(rows => [vehicle, ...rows])));
+  }
+
+  setVehicleStatus(id: string, status: 'AVAILABLE' | 'MAINTENANCE' | 'OUT_OF_SERVICE'): Observable<unknown> {
+    return this.http.patch(API_ENDPOINTS.distributor.vehicleStatus(id), { status }).pipe(tap(() => this.refresh()));
+  }
+
+  private mapDriver(row: DriverApiRow): DistributorDriver {
+    const operationalStatus = row.operationalStatus ?? 'OFF_DUTY';
+    return { id: row.id, name: row.fullName ?? row.name ?? '', email: row.email ?? '', phone: row.phoneNumber ?? row.phone ?? '',
+      license: row.licenseNumber ?? row.license ?? '', accountStatus: row.accountStatus ?? 'INVITED', operationalStatus,
+      status: operationalStatus === 'AVAILABLE' ? 'STANDBY' : operationalStatus === 'ON_TRIP' ? 'ON_TRIP' : 'OFF_DUTY',
+      baseWarehouseId: row.baseWarehouseId ?? null, invitationResends: 0, invitationStatus: row.invitationStatus, locationLabel: '', createdAt: row.createdAt ?? '', vehicleId: row.vehicleId };
+  }
+
+  private mapVehicle(row: VehicleApiRow): DistributorVehicle {
+    return { id: row.id, model: row.model ?? row.type ?? '', plate: row.plate ?? row.registrationNumber ?? '', status: row.status ?? 'AVAILABLE', locationLabel: row.locationLabel ?? '', latitude: row.latitude ?? 0, longitude: row.longitude ?? 0 };
+  }
 
   refresh(): void {
     this.loading.set(true);

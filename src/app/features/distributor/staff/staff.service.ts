@@ -1,14 +1,32 @@
+import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
+import { Observable, map, tap } from 'rxjs';
+import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import { DistributorStaffMember, DistributorStaffStatus } from './staff.models';
 import { DistributorFleetService } from '../fleet/fleet.service';
 import { DriverAccountStatus } from '../fleet/fleet.models';
 import { DistributorCatalogService } from '../catalog/catalog.service';
+interface ApiMember { id: string; fullName?: string; name?: string; email: string; status?: DistributorStaffStatus; createdAt?: string; lastActiveAt?: string; }
+interface ApiPage<T> { content?: T[]; }
 
 @Injectable({ providedIn: 'root' })
 export class DistributorStaffService {
+  private readonly http = inject(HttpClient);
   private readonly fleet = inject(DistributorFleetService);
   private readonly catalog = inject(DistributorCatalogService);
   private readonly records = signal<DistributorStaffMember[]>([]);
+  constructor() { this.refresh(); }
+
+  refresh(): void {
+    this.http.get<ApiPage<ApiMember> | ApiMember[]>(`${API_ENDPOINTS.distributor.members}?size=100`).subscribe({
+      next: result => this.records.set((Array.isArray(result) ? result : result.content ?? []).map(row => ({
+        id: row.id, name: row.fullName ?? row.name ?? '', email: row.email, role: 'DISTRIBUTOR_STAFF', status: row.status ?? 'PENDING',
+        joinedAt: row.createdAt ?? '', jobTitle: 'Team Member', accessRole: 'Distributor Staff', warehouseName: 'Unassigned', category: 'EMPLOYEE',
+        lastActive: row.lastActiveAt ?? (row.status === 'PENDING' ? 'Invite pending' : '—')
+      }))),
+      error: () => undefined
+    });
+  }
   readonly members = computed<DistributorStaffMember[]>(() => [
     ...this.records().map((member) => ({
       ...member,
@@ -39,32 +57,15 @@ export class DistributorStaffService {
     }),
   ]);
 
-  invite(details: { name: string; email: string }): DistributorStaffMember {
-    const email = details.email.trim().toLowerCase();
-    if (this.records().some((row) => row.email === email))
-      throw new Error('This email is already in the staff directory.');
-    const member: DistributorStaffMember = {
-      id: `staff-${Date.now()}`,
-      name: details.name.trim(),
-      email,
-      role: 'DISTRIBUTOR_STAFF',
-      status: 'PENDING',
-      joinedAt: new Date().toISOString(),
-      jobTitle: 'Team Member',
-      accessRole: 'Distributor Staff',
-      warehouseName: 'Unassigned',
-      category: 'EMPLOYEE',
-      lastActive: 'Invite pending',
-    };
-    this.records.update((rows) => [...rows, member]);
-    return member;
+  invite(details: { name: string; email: string }): Observable<DistributorStaffMember> {
+    return this.http.post<{ id: string; fullName?: string; name?: string; email: string; status?: DistributorStaffStatus; createdAt?: string }>(API_ENDPOINTS.distributor.memberInvitations, {
+      fullName: details.name.trim(), email: details.email.trim().toLowerCase()
+    }).pipe(map(row => ({ id: row.id, name: row.fullName ?? row.name ?? details.name, email: row.email,
+      role: 'DISTRIBUTOR_STAFF' as const, status: row.status ?? 'INVITED', joinedAt: row.createdAt ?? '', jobTitle: 'Team Member',
+      accessRole: 'Distributor Staff', warehouseName: 'Unassigned', category: 'EMPLOYEE' as const, lastActive: 'Invite pending' })), tap(member => this.records.update(rows => [member, ...rows])));
   }
 
-  updateStatus(id: string, status: DistributorStaffStatus): boolean {
-    if (!this.records().some((member) => member.id === id)) return false;
-    this.records.update((rows) =>
-      rows.map((member) => (member.id === id ? { ...member, status } : member)),
-    );
-    return true;
+  updateStatus(id: string, status: DistributorStaffStatus): Observable<unknown> {
+    return this.http.patch(API_ENDPOINTS.distributor.memberStatus(id), { status }).pipe(tap(() => this.refresh()));
   }
 }

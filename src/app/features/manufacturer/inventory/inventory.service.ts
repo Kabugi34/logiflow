@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
+import { Observable, tap } from 'rxjs';
 import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import { InventoryRow, InventoryTerminal, TerminalInventoryRecord } from './inventory.models';
 
@@ -42,6 +43,9 @@ export class ManufacturerInventoryService {
         return { ...record, availableNet, alert: availableNet <= 20 ? 'CRITICAL STOCK HOLD' : 'HEALTHY LEVEL' };
       });
   }
-  requestAudit(): never { throw new Error('Stock audit requests are not supported by the backend API yet.'); }
+  requestAudit(): Observable<unknown> {
+    return this.http.post(API_ENDPOINTS.manufacturer.stockAudits, { scope: 'ORGANIZATION', terminalId: this.activeTerminalId() })
+      .pipe(tap(() => this.auditRequestSubmitted.set(true)));
+  }
   private readonly http = inject(HttpClient);
 }

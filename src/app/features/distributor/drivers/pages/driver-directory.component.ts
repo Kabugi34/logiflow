@@ -14,6 +14,7 @@ import {
   personName,
   trimmedRequired,
 } from '../../../../core/forms/form-validators';
+import { finalize } from 'rxjs';
 
 type DriverAction = 'APPROVE' | 'REJECT' | 'RESEND' | 'REVOKE' | 'SUSPEND' | 'REACTIVATE';
 @Component({
@@ -36,6 +37,7 @@ export class DriverDirectoryComponent {
   protected readonly editingId = signal('');
   protected readonly formError = signal('');
   protected readonly notice = signal('');
+  protected readonly saving = signal(false);
   protected readonly confirmation = signal<{
     driver: DistributorDriver;
     action: DriverAction;
@@ -95,6 +97,7 @@ export class DriverDirectoryComponent {
     this.editingId.set('');
     this.form.reset({ name: '', email: '', phone: '', license: '', baseWarehouseId: '' });
     this.formError.set('');
+    this.form.controls.email.enable();
     this.dialogOpen.set(true);
   }
   protected edit(driver: DistributorDriver): void {
@@ -110,6 +113,7 @@ export class DriverDirectoryComponent {
       license: driver.license,
       baseWarehouseId: driver.baseWarehouseId ?? '',
     });
+    this.form.controls.email.disable();
     this.formError.set('');
     this.dialogOpen.set(true);
   }
@@ -117,24 +121,30 @@ export class DriverDirectoryComponent {
     this.dialogOpen.set(false);
   }
   protected saveDriver(): void {
+    if (this.saving()) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-    try {
-      const value = this.form.getRawValue();
-      if (this.editingId()) this.fleet.updateDriverProfile(this.editingId(), value);
-      else {
-        const driver = this.fleet.onboardDriver(value);
+    const value = this.form.getRawValue();
+    this.saving.set(true);
+    const request = this.editingId()
+      ? this.fleet.saveDriverProfile(this.editingId(), value)
+      : this.fleet.createDriver(value);
+    request.pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: driver => {
+        if (!this.editingId()) {
         this.selectedId.set(driver.id);
         this.statusFilter.set('ALL');
         this.query.set('');
-        this.notice.set('Driver added with Invited account status.');
-      }
-      this.dialogOpen.set(false);
-    } catch (error) {
-      this.formError.set(error instanceof Error ? error.message : 'Unable to save driver details.');
-    }
+        this.notice.set(driver.invitationStatus === 'FAILED'
+          ? 'Driver profile was saved, but the invitation email failed. Retry with Resend invitation.'
+          : 'Driver saved. The backend has queued or sent an activation invitation to the email provided.');
+        } else this.notice.set('Driver profile updated.');
+        this.dialogOpen.set(false);
+      },
+      error: error => this.formError.set(error?.error?.message ?? 'Driver could not be saved. Check the driver API and organization permission.'),
+    });
   }
   protected ask(driver: DistributorDriver, action: DriverAction): void {
     this.confirmation.set({ driver, action });
@@ -145,7 +155,8 @@ export class DriverDirectoryComponent {
   protected confirmAction(): void {
     const pending = this.confirmation();
     if (!pending) return;
-    const ok = this.fleet.transitionDriverAccount(pending.driver.id, pending.action);
+    if (this.saving()) return;
+    this.saving.set(true);
     const messages: Record<DriverAction, string> = {
       APPROVE: 'Driver approved and account activated.',
       REJECT: 'Pending application rejected and removed.',
@@ -154,21 +165,22 @@ export class DriverDirectoryComponent {
       SUSPEND: 'Driver access suspended.',
       REACTIVATE: 'Driver reactivated.',
     };
-    this.notice.set(
-      ok
-        ? messages[pending.action]
-        : 'The action is unavailable for this driver in its current state.',
-    );
-    if (pending.action === 'REJECT' || pending.action === 'REVOKE') this.selectedId.set('');
-    this.confirmation.set(null);
+    this.fleet.runDriverAction(pending.driver.id, pending.action).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: () => {
+        this.notice.set(messages[pending.action]);
+        if (pending.action === 'REJECT' || pending.action === 'REVOKE') this.selectedId.set('');
+        this.confirmation.set(null);
+      },
+      error: error => { this.notice.set(error?.error?.message ?? 'Driver action could not be completed.'); this.confirmation.set(null); }
+    });
   }
   protected updateOperationalStatus(driver: DistributorDriver, event: Event): void {
     const status = (event.target as HTMLSelectElement).value as DriverOperationalStatus;
-    this.notice.set(
-      this.fleet.updateDriverOperationalStatus(driver.id, status)
-        ? 'Operational availability updated.'
-        : 'Operational status cannot be changed during an active trip.',
-    );
+    if (status === 'ON_TRIP') return;
+    this.fleet.setDriverOperationalStatus(driver.id, status).subscribe({
+      next: () => this.notice.set('Operational availability updated.'),
+      error: error => this.notice.set(error?.error?.message ?? 'Operational status could not be updated.')
+    });
   }
   protected warehouseName(id: string | null): string {
     return this.warehouses().find((w) => w.id === id)?.name ?? 'No base warehouse';

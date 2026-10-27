@@ -1,11 +1,18 @@
-import { computed, Injectable, signal } from '@angular/core';
+﻿import { HttpClient } from '@angular/common/http';
+import { computed, inject, Injectable, signal } from '@angular/core';
+import { Observable, map, tap } from 'rxjs';
+import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import { DriverAccountStatus, DriverOperationalStatus, FleetDriver, FleetVehicle, NewFleetDriver, NewFleetVehicle, VehicleCondition, VehicleStatus } from './fleet.models';
 
 const initialDrivers: FleetDriver[] = [];
 const initialVehicles: FleetVehicle[] = [];
+interface DriverDto { id: string; fullName?: string; name?: string; email: string; phoneNumber?: string; phone?: string; licenseNumber?: string; license?: string; accountStatus?: DriverAccountStatus; operationalStatus?: DriverOperationalStatus; baseWarehouseId?: string | null; vehicleId?: string | null; activeTripId?: string | null; createdAt?: string; invitationStatus?: 'QUEUED' | 'SENT' | 'FAILED'; }
+interface VehicleDto { id: string; plate: string; type?: string; model?: string; maxWeightCapacity?: number; status?: string; condition?: VehicleCondition; driverId?: string | null; activeTripId?: string | null; }
+interface Page<T> { content?: T[]; }
 
 @Injectable({ providedIn: 'root' })
 export class ManufacturerFleetService {
+  private readonly http = inject(HttpClient);
   private readonly driverRecords = signal(initialDrivers);
   private readonly vehicleRecords = signal(initialVehicles);
   private readonly lastPingedDriverId = signal<string | null>(null);
@@ -13,6 +20,57 @@ export class ManufacturerFleetService {
   readonly drivers = this.driverRecords.asReadonly();
   readonly vehicles = this.vehicleRecords.asReadonly();
   readonly pingedDriverId = this.lastPingedDriverId.asReadonly();
+
+  constructor() { this.refresh(); }
+
+  refresh(): void {
+    this.http.get<Page<DriverDto> | DriverDto[]>(`${API_ENDPOINTS.manufacturer.drivers}?size=100`).subscribe({
+      next: result => this.driverRecords.set((Array.isArray(result) ? result : result.content ?? []).map(row => this.mapDriver(row))),
+    });
+    this.http.get<Page<VehicleDto> | VehicleDto[]>(`${API_ENDPOINTS.manufacturer.vehicles}?size=100`).subscribe({
+      next: result => this.vehicleRecords.set((Array.isArray(result) ? result : result.content ?? []).map(row => this.mapVehicle(row))),
+    });
+  }
+
+  createDriverApi(details: NewFleetDriver): Observable<FleetDriver> {
+    return this.http.post<DriverDto>(API_ENDPOINTS.manufacturer.drivers, { fullName: details.name.trim(), email: details.email.trim().toLowerCase(), phoneNumber: details.phone.trim(), licenseNumber: details.license.trim().toUpperCase(), baseWarehouseId: details.baseWarehouseId || null })
+      .pipe(map(row => this.mapDriver(row)), tap(row => this.driverRecords.update(rows => [row, ...rows])));
+  }
+
+  driverActionApi(id: string, action: 'APPROVE' | 'REJECT' | 'RESEND' | 'REVOKE' | 'SUSPEND' | 'REACTIVATE'): Observable<unknown> {
+    if (action === 'RESEND') return this.http.post(API_ENDPOINTS.manufacturer.driverInvitationResend(id), {}).pipe(tap(() => this.refresh()));
+    if (action === 'REVOKE') return this.http.delete(API_ENDPOINTS.manufacturer.driverInvitation(id)).pipe(tap(() => this.refresh()));
+    if (action === 'SUSPEND' || action === 'REACTIVATE') return this.http.patch(API_ENDPOINTS.manufacturer.driverStatus(id), { status: action === 'SUSPEND' ? 'SUSPENDED' : 'ACTIVE' }).pipe(tap(() => this.refresh()));
+    return this.http.patch(API_ENDPOINTS.manufacturer.driverApplicationDecision(id), { decision: action === 'APPROVE' ? 'APPROVED' : 'REJECTED' }).pipe(tap(() => this.refresh()));
+  }
+
+  setOperationalStatusApi(id: string, status: 'AVAILABLE' | 'OFF_DUTY'): Observable<unknown> {
+    return this.http.patch(API_ENDPOINTS.manufacturer.driverOperationalStatus(id), { status }).pipe(tap(() => this.refresh()));
+  }
+
+  createVehicleApi(vehicle: NewFleetVehicle): Observable<FleetVehicle> {
+    return this.http.post<VehicleDto>(API_ENDPOINTS.manufacturer.vehicles, { plate: vehicle.plate.trim().toUpperCase(), type: vehicle.type.trim(), maxWeightCapacity: vehicle.maxWeightCapacity })
+      .pipe(map(row => this.mapVehicle(row)), tap(row => this.vehicleRecords.update(rows => [row, ...rows])));
+  }
+
+  assignDriverApi(vehicleId: string, driverId: string | null): Observable<unknown> {
+    return this.http.patch(API_ENDPOINTS.manufacturer.vehicle(vehicleId), { driverId }).pipe(tap(() => this.refresh()));
+  }
+
+  updateVehicleStatusApi(vehicleId: string, condition: VehicleCondition): Observable<unknown> {
+    const status = condition === 'READY' ? 'AVAILABLE' : condition;
+    return this.http.patch(API_ENDPOINTS.manufacturer.vehicleStatus(vehicleId), { status }).pipe(tap(() => this.refresh()));
+  }
+
+  private mapDriver(row: DriverDto): FleetDriver {
+    const operationalStatus = row.operationalStatus ?? 'OFF_DUTY';
+    return { id: row.id, name: row.fullName ?? row.name ?? '', email: row.email, phone: row.phoneNumber ?? row.phone ?? '', license: row.licenseNumber ?? row.license ?? '', accountStatus: row.accountStatus ?? 'INVITED', operationalStatus, status: operationalStatus === 'ON_TRIP' ? 'ACTIVE' : operationalStatus === 'AVAILABLE' ? 'STANDBY' : 'OFF_DUTY', baseWarehouseId: row.baseWarehouseId ?? null, invitationResends: 0, invitationStatus: row.invitationStatus, vehicleId: row.vehicleId ?? null, currentTripId: row.activeTripId ?? null, currentLocation: '', latitude: 0, longitude: 0, routeZone: '', slaPerformance: 0, deliveriesCompleted: 0, deliveriesPending: 0, recentActivity: [] };
+  }
+
+  private mapVehicle(row: VehicleDto): FleetVehicle {
+    const status = row.status ?? 'AVAILABLE';
+    return { id: row.id, plate: row.plate, type: row.type ?? row.model ?? '', maxWeightCapacity: row.maxWeightCapacity ?? 0, condition: row.condition ?? (status === 'MAINTENANCE' || status === 'OUT_OF_SERVICE' ? status : 'READY'), assignedDriverId: row.driverId ?? null, currentTripId: row.activeTripId ?? null };
+  }
 
   readonly driverMetrics = computed(() => {
     const drivers = this.driverRecords();

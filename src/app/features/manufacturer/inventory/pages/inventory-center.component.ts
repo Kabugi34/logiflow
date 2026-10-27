@@ -17,6 +17,7 @@ export class InventoryCenterComponent {
   protected readonly categories = computed(() => this.inventoryService.getCategories());
   protected readonly rows = computed(() => this.inventoryService.getRows(this.selectedCategory()));
   protected readonly auditRequested = this.inventoryService.auditRequestSubmitted.asReadonly();
+  protected readonly auditMessage = signal('');
 
   protected selectTerminal(event: Event): void {
     const terminalId = (event.target as HTMLSelectElement).value;
@@ -29,6 +30,10 @@ export class InventoryCenterComponent {
   }
 
   protected requestAudit(): void {
-    this.inventoryService.requestAudit();
+    this.auditMessage.set('');
+    this.inventoryService.requestAudit().subscribe({
+      next: () => this.auditMessage.set('Stock audit request submitted.'),
+      error: error => this.auditMessage.set(error?.error?.message ?? 'Stock audit request could not be submitted.')
+    });
   }
 }

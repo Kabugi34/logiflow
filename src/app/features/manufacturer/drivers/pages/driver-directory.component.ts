@@ -14,6 +14,7 @@ import {
   personName,
   trimmedRequired,
 } from '../../../../core/forms/form-validators';
+import { finalize } from 'rxjs';
 type Action = 'APPROVE' | 'REJECT' | 'RESEND' | 'REVOKE' | 'SUSPEND' | 'REACTIVATE';
 @Component({
   selector: 'app-driver-directory',
@@ -30,6 +31,7 @@ export class DriverDirectoryComponent {
   protected search = signal('');
   protected filter = signal<DriverAccountStatus | 'ALL'>('ALL');
   protected notice = signal('');
+  protected saving = signal(false);
   protected showForm = signal(false);
   protected selected = signal('');
   protected confirm = signal<{ driver: FleetDriver; action: Action } | null>(null);
@@ -75,18 +77,16 @@ export class DriverDirectoryComponent {
     this.showForm.set(true);
   }
   protected save() {
+    if (this.saving()) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-    try {
-      const id = this.fleet.onboardDriver(this.form.getRawValue());
-      this.selected.set(id);
-      this.showForm.set(false);
-      this.notice.set('Driver added as Invited.');
-    } catch (e) {
-      this.notice.set(e instanceof Error ? e.message : 'Unable to save driver');
-    }
+    this.saving.set(true);
+    this.fleet.createDriverApi(this.form.getRawValue()).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: driver => { this.selected.set(driver.id); this.showForm.set(false); this.notice.set(driver.invitationStatus === 'FAILED' ? 'Driver profile was saved, but the invitation email failed. Retry with Resend invitation.' : 'Driver saved. The backend has queued or sent an activation invitation to the email provided.'); },
+      error: error => this.notice.set(error?.error?.message ?? 'Driver could not be saved. Check the driver API and organization permission.')
+    });
   }
   protected ask(driver: FleetDriver, action: Action) {
     this.confirm.set({ driver, action });
@@ -94,20 +94,19 @@ export class DriverDirectoryComponent {
   protected act() {
     const c = this.confirm();
     if (!c) return;
-    const ok = this.fleet.transitionDriverAccount(c.driver.id, c.action);
-    this.notice.set(
-      ok
-        ? `${c.action.toLowerCase()} completed.`
-        : 'This action is unavailable for the current status.',
-    );
-    if (['REJECT', 'REVOKE'].includes(c.action)) this.selected.set('');
-    this.confirm.set(null);
+    if (this.saving()) return;
+    this.saving.set(true);
+    this.fleet.driverActionApi(c.driver.id, c.action).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: () => { this.notice.set(`${c.action.toLowerCase()} completed.`); if (['REJECT', 'REVOKE'].includes(c.action)) this.selected.set(''); this.confirm.set(null); },
+      error: error => { this.notice.set(error?.error?.message ?? 'Driver action could not be completed.'); this.confirm.set(null); }
+    });
   }
   protected availability(driver: FleetDriver, e: Event) {
-    this.fleet.updateDriverOperationalStatus(
-      driver.id,
-      (e.target as HTMLSelectElement).value as DriverOperationalStatus,
-    );
+    const status = (e.target as HTMLSelectElement).value as DriverOperationalStatus;
+    if (status === 'ON_TRIP') return;
+    this.fleet.setOperationalStatusApi(driver.id, status).subscribe({
+      error: error => this.notice.set(error?.error?.message ?? 'Availability could not be updated.')
+    });
   }
   protected label(s: DriverAccountStatus) {
     return {

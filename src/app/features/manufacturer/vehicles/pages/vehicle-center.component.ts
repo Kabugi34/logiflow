@@ -6,6 +6,7 @@ import { RouterLink } from '@angular/router';
 import { FleetDriver, FleetVehicle, VehicleStatus } from '../../fleet/fleet.models';
 import { ManufacturerFleetService } from '../../fleet/fleet.service';
 import { trimmedRequired } from '../../../../core/forms/form-validators';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-vehicle-center',
@@ -28,6 +29,7 @@ export class VehicleCenterComponent {
   protected readonly isRegisterOpen = signal(false);
   protected readonly formError = signal('');
   protected readonly assignmentMessage = signal('');
+  protected readonly saving = signal(false);
   protected readonly filteredVehicles = computed(() =>
     this.vehicles().filter(
       (vehicle) =>
@@ -59,17 +61,16 @@ export class VehicleCenterComponent {
   }
 
   protected registerVehicle(): void {
+    if (this.saving()) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-    try {
-      this.fleetService.registerVehicle(this.form.getRawValue());
-      this.selectedStatus.set('ALL');
-      this.isRegisterOpen.set(false);
-    } catch (error) {
-      this.formError.set(error instanceof Error ? error.message : 'Unable to register vehicle.');
-    }
+    this.saving.set(true);
+    this.fleetService.createVehicleApi(this.form.getRawValue()).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: () => { this.selectedStatus.set('ALL'); this.isRegisterOpen.set(false); },
+      error: error => this.formError.set(error?.error?.message ?? 'Unable to register vehicle.')
+    });
   }
 
   protected availableDrivers(vehicleId: string): FleetDriver[] {
@@ -101,21 +102,19 @@ export class VehicleCenterComponent {
 
   protected assignDriver(vehicleId: string, event: Event): void {
     const driverId = (event.target as HTMLSelectElement).value;
-    const assigned = this.fleetService.assignDriver(vehicleId, driverId || null);
-    this.assignmentMessage.set(
-      assigned ? 'Vehicle assignment updated.' : 'Choose an unassigned driver and an idle vehicle.',
-    );
+    this.fleetService.assignDriverApi(vehicleId, driverId || null).subscribe({
+      next: () => this.assignmentMessage.set('Vehicle assignment updated.'),
+      error: error => this.assignmentMessage.set(error?.error?.message ?? 'Vehicle assignment could not be saved.')
+    });
   }
 
   protected updateCondition(vehicleId: string, event: Event): void {
     const condition = (event.target as HTMLSelectElement).value as
       'READY' | 'MAINTENANCE' | 'OUT_OF_SERVICE';
-    const updated = this.fleetService.updateVehicleCondition(vehicleId, condition);
-    this.assignmentMessage.set(
-      updated
-        ? 'Vehicle service status updated.'
-        : 'A vehicle on an active trip cannot be changed.',
-    );
+    this.fleetService.updateVehicleStatusApi(vehicleId, condition).subscribe({
+      next: () => this.assignmentMessage.set('Vehicle service status updated.'),
+      error: error => this.assignmentMessage.set(error?.error?.message ?? 'Vehicle service status could not be updated.')
+    });
   }
 
   protected statusLabel(status: VehicleStatus): string {

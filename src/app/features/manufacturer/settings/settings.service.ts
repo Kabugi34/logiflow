@@ -1,67 +1,41 @@
-import { Injectable, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject, signal } from '@angular/core';
+import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import { NotificationPreferences, OrganizationProfile } from './settings.models';
+import { Observable, tap } from 'rxjs';
 
-const PROFILE_STORAGE_KEY = 'logiflow.manufacturer.organizationProfile';
-const NOTIFICATION_STORAGE_KEY = 'logiflow.manufacturer.notificationPreferences';
-
-const defaultProfile: OrganizationProfile = {
-  registeredName: '',
-  taxRegistrationId: '',
-  timezone: '',
-  defaultWarehouseId: ''
-};
-
-const defaultNotifications: NotificationPreferences = {
-  dispatchExceptionsSms: false,
-  purchaseOrderApprovalsEmail: false,
-  weeklyCapacityForecasts: false
-};
+const defaultProfile: OrganizationProfile = { registeredName: '', taxRegistrationId: '', timezone: '', defaultWarehouseId: '' };
+const defaultNotifications: NotificationPreferences = { dispatchExceptionsSms: false, purchaseOrderApprovalsEmail: false, weeklyCapacityForecasts: false };
 
 @Injectable({ providedIn: 'root' })
 export class ManufacturerSettingsService {
+  private readonly http = inject(HttpClient);
   private readonly organizationProfile = signal(defaultProfile);
-  private readonly notificationPreferences = signal(this.readStored(NOTIFICATION_STORAGE_KEY, defaultNotifications));
-
+  private readonly notificationPreferences = signal(defaultNotifications);
   readonly profile = this.organizationProfile.asReadonly();
   readonly notifications = this.notificationPreferences.asReadonly();
 
-  updateProfile(profile: OrganizationProfile): void {
-    void profile;
-    throw new Error('Organization settings cannot be saved because the backend has no organization-settings endpoint yet.');
+  constructor() { this.refresh(); }
+
+  refresh(): void {
+    this.http.get<Partial<OrganizationProfile>>(API_ENDPOINTS.manufacturer.organization).subscribe({
+      next: value => this.organizationProfile.set({ ...defaultProfile, ...value }),
+      error: () => undefined
+    });
+    this.http.get<Partial<NotificationPreferences>>(API_ENDPOINTS.manufacturer.organizationNotificationPreferences).subscribe({
+      next: value => this.notificationPreferences.set({ ...defaultNotifications, ...value }),
+      error: () => undefined
+    });
   }
 
-  updateNotification<K extends keyof NotificationPreferences>(key: K, enabled: boolean): void {
+  updateProfile(profile: OrganizationProfile): Observable<OrganizationProfile> {
+    return this.http.patch<OrganizationProfile>(API_ENDPOINTS.manufacturer.organization, profile)
+      .pipe(tap(saved => this.organizationProfile.set({ ...defaultProfile, ...saved })));
+  }
+
+  updateNotification<K extends keyof NotificationPreferences>(key: K, enabled: boolean): Observable<NotificationPreferences> {
     const updated = { ...this.notificationPreferences(), [key]: enabled };
-    this.notificationPreferences.set(updated);
-    this.writeStored(NOTIFICATION_STORAGE_KEY, updated);
-  }
-
-  private readStored<T extends object>(key: string, fallback: T): T {
-    try {
-      if (typeof localStorage === 'undefined') return fallback;
-      const stored = localStorage.getItem(key);
-      if (!stored) return fallback;
-      const value = { ...fallback, ...JSON.parse(stored) as Partial<T> };
-
-      if (key === PROFILE_STORAGE_KEY) {
-        const profile = value as unknown as OrganizationProfile;
-        if (profile.defaultWarehouseId === 'CHI-A1') profile.defaultWarehouseId = 'NBO-A1';
-        if (profile.defaultWarehouseId === 'HOU-C4') profile.defaultWarehouseId = 'MBA-C4';
-        if (profile.timezone.startsWith('America/')) profile.timezone = 'Africa/Nairobi';
-        if (profile.taxRegistrationId.startsWith('US-')) profile.taxRegistrationId = 'P051234567X';
-      }
-
-      return value;
-    } catch {
-      return fallback;
-    }
-  }
-
-  private writeStored<T extends object>(key: string, value: T): void {
-    try {
-      if (typeof localStorage !== 'undefined') localStorage.setItem(key, JSON.stringify(value));
-    } catch {
-      return;
-    }
+    return this.http.patch<NotificationPreferences>(API_ENDPOINTS.manufacturer.organizationNotificationPreferences, updated)
+      .pipe(tap(saved => this.notificationPreferences.set({ ...defaultNotifications, ...saved })));
   }
 }

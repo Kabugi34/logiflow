@@ -1,37 +1,50 @@
-import { Injectable, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject, signal } from '@angular/core';
+import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import { ManufacturerShipment, ShipmentStatus } from './shipment.models';
-import { ManufacturerFleetService } from '../fleet/fleet.service';
-import { inject } from '@angular/core';
 
 export interface NewShipment {
-  poReference: string; destination: string; freightDetails: string; quantity: number;
-  assignedDriver: string; vehicle: string; tripId: string;
+  poReference: string;
+  destination: string;
+  freightDetails: string;
+  quantity: number;
+  driverId: string;
+  vehicleId: string;
 }
+interface Page<T> { content?: T[]; }
 
 @Injectable({ providedIn: 'root' })
 export class ManufacturerShipmentService {
-  private readonly fleetService = inject(ManufacturerFleetService);
+  private readonly http = inject(HttpClient);
   private readonly shipmentRecords = signal<ManufacturerShipment[]>([]);
   readonly shipments = this.shipmentRecords.asReadonly();
-  findById(id: string): ManufacturerShipment | undefined { return this.shipmentRecords().find(shipment => shipment.id === id); }
-  create(shipment: NewShipment): string {
-    const id = `SHP-${Date.now()}`;
-    this.shipmentRecords.update(rows => [...rows, {
-      id, poReference: shipment.poReference, destination: shipment.destination, freightDetails: shipment.freightDetails,
-      quantity: shipment.quantity, unit: 'units', status: 'IN_TRANSIT', tripId: shipment.tripId,
-      assignedDriver: shipment.assignedDriver, vehicle: shipment.vehicle,
-      origin: 'Manufacturer depot', destinationFacility: shipment.destination,
-      route: [{ label: shipment.destination, latitude: -1.2864, longitude: 36.8172 }],
-      timeline: [{ title: 'Dispatch started', detail: 'Shipment released to the fleet.', state: 'COMPLETE' }, { title: 'Delivery confirmation', detail: 'Awaiting receiving confirmation.', state: 'CURRENT' }],
-      carrier: 'Company Fleet'
-    }]);
-    return id;
+  readonly loading = signal(false);
+  readonly error = signal('');
+
+  constructor() { this.refresh(); }
+
+  refresh(): void {
+    this.loading.set(true);
+    this.http.get<Page<ManufacturerShipment> | ManufacturerShipment[]>(`${API_ENDPOINTS.manufacturer.shipments}?size=100`).subscribe({
+      next: response => { this.shipmentRecords.set(Array.isArray(response) ? response : response.content ?? []); this.error.set(''); this.loading.set(false); },
+      error: error => { this.error.set(error?.error?.message ?? 'Shipments could not be loaded.'); this.loading.set(false); }
+    });
   }
-  updateStatus(id: string, status: ShipmentStatus): void {
-    this.shipmentRecords.update(rows => rows.map(shipment => shipment.id === id ? { ...shipment, status } : shipment));
-    if (status === 'DELIVERED') {
-      const shipment = this.findById(id);
-      if (shipment) this.fleetService.completeTrip(shipment.tripId);
-    }
+
+  findById(id: string): ManufacturerShipment | undefined { return this.shipmentRecords().find(shipment => shipment.id === id); }
+
+  create(shipment: NewShipment) {
+    return this.http.post<ManufacturerShipment>(API_ENDPOINTS.manufacturer.shipments, {
+      purchaseOrderId: shipment.poReference,
+      destination: shipment.destination,
+      freightDetails: shipment.freightDetails,
+      quantity: shipment.quantity,
+      driverId: shipment.driverId,
+      vehicleId: shipment.vehicleId,
+    });
+  }
+
+  updateStatus(id: string, status: ShipmentStatus) {
+    return this.http.patch<ManufacturerShipment>(API_ENDPOINTS.manufacturer.shipmentStatus(id), { status });
   }
 }
