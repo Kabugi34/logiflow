@@ -110,6 +110,7 @@
             @for (product of filteredProducts(); track product.sku) {
               <tr class="text-slate-700 hover:bg-slate-50">
                 <td class="px-4 py-3">
+                  @if (product.imageUrl) { <img [src]="product.imageUrl" [alt]="product.name" class="mb-2 h-16 w-16 rounded-md border border-slate-200 object-cover"> }
                   <div class="font-medium text-slate-900">{{ product.name }}</div>
                   <div class="mt-1 text-[10px] text-slate-500">{{ product.description }}</div>
                 </td>

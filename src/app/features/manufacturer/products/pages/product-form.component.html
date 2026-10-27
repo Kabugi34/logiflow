@@ -15,6 +15,7 @@
         <label class="space-y-1.5"><span class="block text-xs font-medium text-slate-700">Brand</span><input formControlName="brand" class="h-10 w-full rounded-md border border-slate-200 px-3 text-xs"></label>
         <label class="space-y-1.5"><span class="block text-xs font-medium text-slate-700">Base Unit</span><input formControlName="unit" class="h-10 w-full rounded-md border border-slate-200 px-3 text-xs"></label>
         <label class="space-y-1.5 sm:col-span-2"><span class="block text-xs font-medium text-slate-700">Description</span><textarea formControlName="description" rows="3" class="w-full rounded-md border border-slate-200 px-3 py-2 text-xs"></textarea></label>
+        <label class="space-y-1.5 sm:col-span-2"><span class="block text-xs font-medium text-slate-700">Product image {{ productSku ? '(optional replacement)' : '(required)' }}</span><input type="file" accept="image/png,image/jpeg,image/webp" (change)="chooseImage($event)" class="block w-full text-xs text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-xs"><span class="text-[10px] text-slate-500">PNG, JPEG, or WebP up to 5 MB. {{ selectedImage() || 'Choose one clear product image.' }}</span>@if (imageError()) { <span role="alert" class="block text-[10px] text-red-600">{{ imageError() }}</span> }</label>
         <label class="space-y-1.5"><span class="block text-xs font-medium text-slate-700">Unique SKU Code</span><input formControlName="sku" placeholder="e.g. CRS-901-X" class="h-10 w-full rounded-md border border-slate-200 px-3 text-xs outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"><span class="text-[10px] text-red-600" [hidden]="!form.controls.sku.touched || !form.controls.sku.hasError('required')">SKU is required.</span></label>
         <label class="space-y-1.5"><span class="block text-xs font-medium text-slate-700">Unit Price</span><input type="number" min="0.01" formControlName="unitPrice" class="h-10 w-full rounded-md border border-slate-200 px-3 text-xs"></label>
         <label class="space-y-1.5"><span class="block text-xs font-medium text-slate-700">Initial Quantity</span><input type="number" min="0" formControlName="initialQuantity" class="h-10 w-full rounded-md border border-slate-200 px-3 text-xs"></label>
@@ -23,13 +24,13 @@
     </section>
 
     <div class="space-y-4">
-      <p class="rounded-lg border border-slate-200 bg-white p-4 text-xs text-slate-600">Product data is saved through the stock API for this organization.</p>
+      <p class="rounded-lg border border-slate-200 bg-white p-4 text-xs text-slate-600">Product details and the image are saved to the manufacturer catalog. Stock remains a separate inventory value.</p>
       <section class="rounded-lg border border-slate-200 bg-white p-4 sm:p-5">
         <h2 class="text-sm font-semibold text-slate-900">Publishing Status</h2>
-        <p class="mt-2 text-xs leading-5 text-slate-600">New products are saved as drafts. Publish them after their canonical details and stock are ready. Publication does not grant a distributor authorization.</p>
+        <p class="mt-2 text-xs leading-5 text-slate-600">As a manufacturer admin, saving a new product publishes it to distributor discovery immediately. Distributors may still need manufacturer approval before creating an offer. Editing an existing product does not change its publication status.</p>
       </section>
       @if (errorMessage()) { <p role="alert" class="text-xs text-red-600">{{ errorMessage() }}</p> }
-      <div class="grid grid-cols-2 gap-2"><button type="submit" [disabled]="isSubmitting()" class="inline-flex min-h-10 items-center justify-center rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60">@if (isSubmitting()) { <app-loading-indicator label="Saving…" [small]="true" /> } @else { {{ productSku ? 'Save Changes' : 'Save Draft' }} }</button><a routerLink="/manufacturer/products" queryParamsHandling="preserve" class="grid min-h-10 place-items-center rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50">Cancel</a></div>
+      <div class="grid grid-cols-2 gap-2"><button type="submit" [disabled]="isSubmitting()" class="inline-flex min-h-10 items-center justify-center rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60">@if (isSubmitting()) { <app-loading-indicator label="Saving…" [small]="true" /> } @else { {{ productSku ? 'Save Changes' : 'Save & Publish' }} }</button><a routerLink="/manufacturer/products" queryParamsHandling="preserve" class="grid min-h-10 place-items-center rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50">Cancel</a></div>
     </div>
   </form>
 </section>

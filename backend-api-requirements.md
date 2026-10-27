@@ -23,7 +23,7 @@ Use this as the implementation checklist for the backend work required by the fr
 
 | Method | Route | Purpose |
 |---|---|---|
-| `GET`, `POST` | `/api/v1/products` | List and create canonical products (new products are drafts). |
+| `GET`, `POST` | `/api/v1/products` | List and create canonical products; manufacturer-admin save publishes a new product immediately. |
 | `GET`, `PATCH` | `/api/v1/products/{productId}` | Read and edit product metadata. |
 | `PATCH` | `/api/v1/products/{productId}/publication` | Publish, return to draft, or discontinue a product. |
 | `GET` | `/api/stock/items?size=100` | Read organization stock and availability. |
@@ -85,8 +85,8 @@ Tenant ownership must always be derived from the authenticated principal. Role a
 
 ### 1. Manufacturer product master and publication
 
-1. A manufacturer user creates a canonical product draft with SKU, name, category, brand, unit, description, and price/listing metadata. New products start as `DRAFT` and are not visible in the distributor catalog.
-2. Manufacturer users with product-edit permission update drafts. Only a `MANUFACTURER_ADMIN` (or explicitly authorized product publisher role) may publish, discontinue, or republish a product.
+1. A manufacturer administrator creates a canonical product with SKU, name, category, brand, unit, description, price/listing metadata, and at least one product image. Saving publishes the product immediately so distributors can discover it.
+2. Manufacturer users with product-edit permission update product details. Only a `MANUFACTURER_ADMIN` (or explicitly authorized product publisher role) may publish, unpublish, discontinue, or republish a product. Distributor authorization is still required before an offer can be created.
 3. Publication status is independent from physical inventory: `DRAFT`, `PUBLISHED`, and `DISCONTINUED` are catalog states; on-hand, reserved, available, and low-stock values are stock state. Zero stock must not silently unpublish an otherwise published product.
 4. Manufacturer stock levels and movements remain organization/warehouse-scoped. Purchase-order review checks actual available stock (`onHand - reserved`, or an authoritative `availableQuantity`) and rejects approval when requested quantities cannot be fulfilled.
 
@@ -123,7 +123,7 @@ Distributor purchase orders to manufacturers are a separate B2B procurement flow
 ## Current frontend implementation and gaps
 
 - Mock auth remains enabled by design in `src/app/core/api/api.config.ts`; no change is requested to that switch.
-- Manufacturer product service now separates canonical `/api/v1/products` data from `/api/stock/items` quantities, supports create/edit/publication calls, and treats API errors as load errors. Product publication requires the proposed publication field/endpoint described below.
+- Manufacturer product service separates canonical `/api/v1/products` data from `/api/stock/items` quantities. Creating a product submits its image and `PUBLISHED` state in the create request; edits and later publication changes use their respective API calls.
 - Manufacturer product list has publication controls gated to `MANUFACTURER_ADMIN`; distribution request review has the same role gate. Backend must enforce both.
 - Distributor catalog filters to `PUBLISHED`, adds request/approval state UI, and will only expose Add to catalog after approval. Backend authorization and publication APIs are currently **proposed/unverified**; if they are unavailable, the catalog displays the API error and listing must remain denied.
 - Distributor offers, warehouses, procurement, inventory/restock, purchase orders, customer order reads, and trips use existing route families noted below. Verify every route against backend role rules and DTOs.
@@ -155,16 +155,16 @@ The following routes are **PROPOSED** where no matching backend route has been c
 | Method / path | Purpose |
 |---|---|
 | `GET /api/v1/products?publicationStatus=&page=&size=` | Product list scoped to caller's manufacturer organization; distributor discovery returns only discoverable published products |
-| `POST /api/v1/products` | Create product draft; organization ID comes from principal; return stable ID and `publicationStatus: DRAFT` |
-| `GET /api/v1/products/{productId}` | Tenant-authorized detail |
-| `PATCH /api/v1/products/{productId}` | Edit permitted product fields; do not mutate stock quantities through product metadata update |
+| `POST /api/v1/products` | Create and publish product; accept `multipart/form-data` with product fields, initial stock fields, `publicationStatus=PUBLISHED`, and required `image` file; organization ID comes from principal |
+| `GET /api/v1/products/{productId}` | Tenant-authorized detail including `imageUrl` |
+| `PATCH /api/v1/products/{productId}` | Edit permitted product fields and optional replacement `image`; preserve publication state and do not mutate stock quantities through metadata update |
 | `PATCH /api/v1/products/{productId}/publication` | Body `{ "status": "PUBLISHED" | "DRAFT" | "DISCONTINUED" }`; authorized publisher only |
 | `GET /api/v1/products/authorizations?status=&page=&size=` | Caller-organization requests, role/tenant scoped; manufacturer side receives requests for its products, distributor side receives its requests/relationships |
 | `POST /api/v1/products/{productId}/authorization-requests` | Distributor asks to list a product; body may include business note; backend derives distributor org |
 | `PATCH /api/v1/products/authorizations/{authorizationId}/decision` | Manufacturer admin body `{ "decision": "APPROVED" | "REJECTED", "note": "..." }`; record actor/time |
 | `PATCH /api/v1/products/authorizations/{authorizationId}/revocation` | Manufacturer admin revokes approved relationship; audit reason required |
 
-Canonical product DTO needs `id`, `organizationId`, `sku`, `name`, `category`, `brand`, `unit`, `description`, `publicationStatus`, created/updated timestamps. Authorization DTO needs `id`, product/manufacturer/distributor IDs and display names, `status` (`PENDING`, `APPROVED`, `REJECTED`, `REVOKED`), request/decision timestamps, and optional decision note. Product response must not substitute organization IDs for organization names without documenting that fallback.
+Canonical product DTO needs `id`, `organizationId`, `sku`, `name`, `category`, `brand`, `unit`, `description`, `imageUrl`, `publicationStatus`, created/updated timestamps. Product creation must validate the uploaded image's actual media type and size (PNG, JPEG, or WebP; maximum 5 MB), store it durably, and return its usable `imageUrl`; create the product, initial stock, image reference, and `PUBLISHED` state atomically. Authorization DTO needs `id`, product/manufacturer/distributor IDs and display names, `status` (`PENDING`, `APPROVED`, `REJECTED`, `REVOKED`), request/decision timestamps, and optional decision note. Product response must not substitute organization IDs for organization names without documenting that fallback.
 
 ## Required API contract — stock, offers, fleet, trips, delivery, payments
 
@@ -211,7 +211,7 @@ Keep existing distributor `POST /api/v1/purchase-orders` and manufacturer queue/
 2. Use transaction boundaries for stock reservation, PO receipt, authorization decision, dispatch assignment, and one-time delivery verification. Require idempotency keys where clients/providers may retry.
 3. Use ISO-8601 timestamps, stable IDs, paginated `content` envelopes, consistent field-error payloads, and `400/401/403/404/409/429` semantics.
 4. Validate every state transition and return machine-readable conflict details. Preserve audit actor, time, and reason for product publication, authorization, order/payment, trip assignment, dispatch, delivery verification, and receipt.
-5. Test end-to-end: manufacturer drafts and publishes product -> distributor requests and receives approval -> distributor creates active offer -> customer places order and payment reconciles -> order becomes dispatch eligible -> dispatcher assigns driver/vehicle and dispatches -> customer receives unique code -> assigned driver verifies each stop -> individual order delivery states and trip aggregate remain correct -> manufacturer/distributor PO receipt remains a separate path.
+5. Test end-to-end: manufacturer admin saves an image-backed published product -> distributor requests and receives approval -> distributor creates active offer -> customer places order and payment reconciles -> order becomes dispatch eligible -> dispatcher assigns driver/vehicle and dispatches -> customer receives unique code -> assigned driver verifies each stop -> individual order delivery states and trip aggregate remain correct -> manufacturer/distributor PO receipt remains a separate path.
 6. Repeat the tests with mock auth still on for frontend usability, then with real auth enabled for tenant and role enforcement. Mock auth must not be mistaken for backend authorization coverage.
 
 ## Backend Codex implementation rules and frontend payload catalogue
@@ -299,7 +299,7 @@ Auth calls currently send: login `POST /api/auth/login` body `{ identifier, pass
 | Feature | Operation and current JSON body |
 |---|---|
 | Shared warehouse | `POST /api/v1/warehouses`: `{ code, name, address, city, postalCode, siteManager }`. Tenant comes from principal. `PATCH /api/v1/warehouses/{id}` currently sends `{ status }`. |
-| Manufacturer product | `POST /api/v1/products` and `PATCH /api/v1/products/{id}` receive `{ name, category, brand, unit, description, sku, unitPrice, initialQuantity, reorderThreshold }`. Product create must atomically create/link initial stock, or return a clear separate stock creation contract; don't silently discard inventory fields. Publication body: `{ status: "DRAFT" | "PUBLISHED" | "DISCONTINUED" }`. |
+| Manufacturer product | `POST /api/v1/products` receives multipart fields `name, category, brand, unit, description, sku, unitPrice, initialQuantity, reorderThreshold, publicationStatus=PUBLISHED` plus required `image` file. It must atomically persist product, initial stock, image, and published state, returning `imageUrl`. `PATCH /api/v1/products/{id}` accepts the editable fields and optional replacement `image`, preserving publication state. Publication body: `{ status: "DRAFT" | "PUBLISHED" | "DISCONTINUED" }`. |
 | Distributor catalog offer | `POST /api/stock/offers` receives `{ sourceStockItemId, warehouseId, sku, sellingPrice, reorderThreshold }`; verify approved authorization, source product, and distributor-owned warehouse. Pause/resume: `PATCH /api/stock/offers/{id}` body `{ active: boolean }`. |
 | Distributor restock | `POST /api/stock/restock-request` receives `{ stockItemId, manufacturerOrganizationId, requestedQuantity, note }`; validate product relationship and positive integer. Cancel: `PATCH /api/stock/restock-request/{id}/status` body `{ status: "CANCELLED" }`. |
 | Distributor purchase order | `POST /api/v1/purchase-orders` receives `{ supplierOrganizationId, items: [{ stockItemId, quantity }] }`. Validate supplier, availability, and snapshot price server-side. |

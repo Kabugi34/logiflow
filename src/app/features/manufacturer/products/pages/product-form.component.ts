@@ -19,6 +19,8 @@ export class ProductFormComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   protected readonly selectedImage = signal('');
+  protected readonly selectedImageFile = signal<File | null>(null);
+  protected readonly imageError = signal('');
   protected readonly errorMessage = signal('');
   protected readonly isSubmitting = signal(false);
   protected readonly productSku = this.route.snapshot.paramMap.get('sku') ?? '';
@@ -49,8 +51,24 @@ export class ProductFormComponent {
   }
 
   protected chooseImage(event: Event): void {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (file) this.selectedImage.set(file.name);
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    this.imageError.set('');
+    if (!file) return;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      this.imageError.set('Choose an image file (PNG, JPEG, or WebP).');
+      this.selectedImageFile.set(null);
+      this.selectedImage.set('');
+      input.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      this.imageError.set('The image must be 5 MB or smaller.');
+      input.value = '';
+      return;
+    }
+    this.selectedImageFile.set(file);
+    this.selectedImage.set(file.name);
   }
 
   protected submit(): void {
@@ -60,10 +78,14 @@ export class ProductFormComponent {
       this.form.markAllAsTouched();
       return;
     }
+    if (!this.productSku && !this.selectedImageFile()) {
+      this.imageError.set('Add a product image before publishing.');
+      return;
+    }
     this.isSubmitting.set(true);
     const request = this.productSku
-      ? this.productService.update(String(this.productService.findBySku(this.productSku)?.id ?? ''), this.form.getRawValue())
-      : this.productService.create(this.form.getRawValue());
+      ? this.productService.update(String(this.productService.findBySku(this.productSku)?.id ?? ''), this.form.getRawValue(), this.selectedImageFile() ?? undefined)
+      : this.productService.create({ ...this.form.getRawValue(), publicationStatus: 'PUBLISHED' }, this.selectedImageFile()!);
     if (this.productSku && !this.productService.findBySku(this.productSku)) {
       this.isSubmitting.set(false);
       this.errorMessage.set('This product is not available to edit. Refresh the product list and try again.');

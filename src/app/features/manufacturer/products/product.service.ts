@@ -14,6 +14,7 @@ interface ApiProduct {
   brand?: string | null;
   unit?: string | null;
   description?: string | null;
+  imageUrl?: string | null;
   publicationStatus: ProductPublicationStatus;
 }
 interface StockItemResponse {
@@ -39,6 +40,7 @@ export interface ManufacturerProductDraft {
   unitPrice: number;
   initialQuantity: number;
   reorderThreshold: number;
+  publicationStatus?: ProductPublicationStatus;
 }
 
 function rows<T>(response: ApiPage<T> | T[]): T[] {
@@ -76,12 +78,12 @@ export class ManufacturerProductService {
     return this.productRecords().find(product => product.sku === sku);
   }
 
-  create(product: ManufacturerProductDraft) {
-    return this.http.post<ApiProduct>(API_ENDPOINTS.manufacturer.products, product);
+  create(product: ManufacturerProductDraft, image: File) {
+    return this.http.post<ApiProduct>(API_ENDPOINTS.manufacturer.products, this.toFormData(product, image));
   }
 
-  update(id: string, product: ManufacturerProductDraft) {
-    return this.http.patch<ApiProduct>(API_ENDPOINTS.manufacturer.product(id), product);
+  update(id: string, product: ManufacturerProductDraft, image?: File) {
+    return this.http.patch<ApiProduct>(API_ENDPOINTS.manufacturer.product(id), this.toFormData(product, image));
   }
 
   setPublicationStatus(id: string, status: ProductPublicationStatus) {
@@ -103,10 +105,18 @@ export class ManufacturerProductService {
       stock: quantity,
       status,
       publicationStatus: product.publicationStatus,
-      image: '',
+      image: product.imageUrl ?? '',
       description: product.description ?? '',
       inventory: stock ? [{ terminal: 'Organization stock', reserved: stock.reservedQuantity ?? 0, available: stock.availableQuantity ?? Math.max(0, quantity - (stock.reservedQuantity ?? 0)) }] : [],
       movements: [],
     };
+  }
+
+  private toFormData(product: ManufacturerProductDraft, image?: File): FormData {
+    const data = new FormData();
+    for (const [key, value] of Object.entries(product)) data.append(key, String(value));
+    if (image) data.append('image', image, image.name);
+    if (product.publicationStatus) data.set('publicationStatus', product.publicationStatus);
+    return data;
   }
 }
