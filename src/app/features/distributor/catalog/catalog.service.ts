@@ -22,6 +22,7 @@ interface ApiProduct {
   active: boolean;
   inStock?: boolean;
   publicationStatus?: string;
+  imageUrl?: string | null;
 }
 interface ApiStockItem {
   id: string;
@@ -92,6 +93,7 @@ export class DistributorCatalogService {
                 unit: '\u2014',
                 stock: row.inStock ?? false,
                 description: '',
+                imageUrl: row.imageUrl ?? '',
                 authorizationStatus: catalogAuthorizationStatus(this.authorizationRecords().find(a => a.productId === row.id)?.status),
               })),
           );
