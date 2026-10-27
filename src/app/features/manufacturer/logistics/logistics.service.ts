@@ -1,4 +1,7 @@
+import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable } from '@angular/core';
+import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
+import { Observable } from 'rxjs';
 import { ManufacturerShipmentService } from '../shipments/shipment.service';
 import { ManufacturerFleetService } from '../fleet/fleet.service';
 import { LogisticsTrip, LogisticsTripStatus } from './logistics.models';
@@ -7,6 +10,15 @@ import { LogisticsTrip, LogisticsTripStatus } from './logistics.models';
 export class ManufacturerLogisticsService {
   private readonly shipmentService = inject(ManufacturerShipmentService);
   private readonly fleetService = inject(ManufacturerFleetService);
+  private readonly http = inject(HttpClient);
+
+  pingDriver(tripId: string): Observable<unknown> {
+    return this.http.post(API_ENDPOINTS.manufacturer.tripDriverPing(tripId), {});
+  }
+
+  proposeReroute(tripId: string): Observable<unknown> {
+    return this.http.post(API_ENDPOINTS.manufacturer.tripRerouteProposals(tripId), {});
+  }
 
   readonly trips = computed<LogisticsTrip[]>(() => this.shipmentService.shipments().map(shipment => {
     const progress = { totalStops: shipment.route.length, completedStops: 0, currentLocation: shipment.route[0]?.label ?? '—' };

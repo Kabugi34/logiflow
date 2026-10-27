@@ -23,6 +23,7 @@ export interface FleetDriver {
   status: DriverStatus;
   baseWarehouseId: string | null;
   invitationResends: number;
+  invitationStatus?: 'QUEUED' | 'SENT' | 'FAILED';
   vehicleId: string | null;
   currentTripId: string | null;
   currentLocation: string;

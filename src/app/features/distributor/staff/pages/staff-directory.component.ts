@@ -7,6 +7,7 @@ import { DistributorStaffService } from '../staff.service';
 import { personName, trimmedRequired } from '../../../../core/forms/form-validators';
 import { DistributorFleetService } from '../../fleet/fleet.service';
 import { DriverAccountStatus } from '../../fleet/fleet.models';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-distributor-staff-directory',
@@ -25,6 +26,7 @@ export class StaffDirectoryComponent {
   protected readonly selectedMemberId = signal<string | null>(null);
   protected readonly isInviteOpen = signal(false);
   protected readonly inviteError = signal('');
+  protected readonly saving = signal(false);
   protected readonly driverActionMessage = signal('');
   protected readonly selectedMember = computed(
     () => this.staff().find((member) => member.id === this.selectedMemberId()) ?? null,
@@ -54,14 +56,13 @@ export class StaffDirectoryComponent {
   protected openInvite(): void { this.form.reset({ name: '', email: '' }); this.inviteError.set(''); this.isInviteOpen.set(true); }
   protected closeInvite(): void { this.isInviteOpen.set(false); }
   protected sendInvitation(): void {
+    if (this.saving()) return;
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
-    try {
-      const member = this.service.invite(this.form.getRawValue());
-      this.selectedCategory.set('ALL'); this.selectedStatus.set('ALL'); this.searchTerm.set('');
-      this.selectedMemberId.set(member.id); this.isInviteOpen.set(false);
-    } catch (error) {
-      this.inviteError.set(error instanceof Error ? error.message : 'Unable to send this invitation.');
-    }
+    this.saving.set(true);
+    this.service.invite(this.form.getRawValue()).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: member => { this.selectedCategory.set('ALL'); this.selectedStatus.set('ALL'); this.searchTerm.set(''); this.selectedMemberId.set(member.id); this.isInviteOpen.set(false); },
+      error: error => this.inviteError.set(error?.error?.message ?? 'Unable to send this invitation.')
+    });
   }
   protected manage(member: DistributorStaffMember): void {
     this.selectedMemberId.set(this.selectedMemberId() === member.id ? null : member.id);
@@ -70,18 +71,20 @@ export class StaffDirectoryComponent {
   protected updateEmployeeStatus(event: Event): void {
     const member = this.selectedMember();
     if (!member || member.category !== 'EMPLOYEE') return;
-    this.service.updateStatus(member.id, (event.target as HTMLSelectElement).value as DistributorStaffStatus);
+    this.service.updateStatus(member.id, (event.target as HTMLSelectElement).value as DistributorStaffStatus).subscribe({ error: error => this.driverActionMessage.set(error?.error?.message ?? 'Employee status could not be updated.') });
   }
   protected driverAction(member: DistributorStaffMember, action: 'APPROVE' | 'REJECT' | 'RESEND' | 'REVOKE' | 'SUSPEND' | 'REACTIVATE'): void {
-    if (!member.driverId) return;
-    const ok = this.fleet.transitionDriverAccount(member.driverId, action);
+    if (!member.driverId || this.saving()) return;
+    this.saving.set(true);
     const messages: Record<typeof action, string> = {
       APPROVE: 'Driver approved and account activated.', REJECT: 'Driver application rejected.',
       RESEND: 'Driver invitation resent.', REVOKE: 'Driver invitation revoked.',
       SUSPEND: 'Driver access suspended.', REACTIVATE: 'Driver access reactivated.',
     };
-    this.driverActionMessage.set(ok ? messages[action] : 'This action is unavailable for the driver’s current status.');
-    if (action === 'REJECT' || action === 'REVOKE') this.selectedMemberId.set(null);
+    this.fleet.runDriverAction(member.driverId, action).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: () => { this.driverActionMessage.set(messages[action]); if (action === 'REJECT' || action === 'REVOKE') this.selectedMemberId.set(null); },
+      error: error => this.driverActionMessage.set(error?.error?.message ?? 'Driver action could not be completed.')
+    });
   }
   protected isDriverStatus(status: DistributorStaffStatus): status is DriverAccountStatus {
     return ['INVITED', 'PENDING_APPROVAL', 'ACTIVE', 'SUSPENDED', 'INVITATION_EXPIRED'].includes(status);

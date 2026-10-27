@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { DistributorFleetService } from '../../fleet/fleet.service';
 import { VehicleStatus } from '../../fleet/fleet.models';
 import { trimmedRequired } from '../../../../core/forms/form-validators';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-distributor-vehicle-directory',
@@ -21,6 +22,7 @@ export class VehicleDirectoryComponent {
   protected readonly message = signal('');
   protected readonly error = signal('');
   protected readonly dialog = signal(false);
+  protected readonly saving = signal(false);
   protected readonly counts = computed(() => ({
     total: this.vehicles().length,
     available: this.vehicles().filter((v) => v.status === 'AVAILABLE').length,
@@ -50,28 +52,24 @@ export class VehicleDirectoryComponent {
     this.dialog.set(true);
   }
   protected add(): void {
+    if (this.saving()) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-    try {
-      const vehicle = this.fleet.registerVehicle(this.form.getRawValue());
-      this.dialog.set(false);
-      this.status.set('ALL');
-      this.filter.set('');
-      this.message.set(`${vehicle.plate} added to the fleet.`);
-    } catch (error) {
-      this.error.set(error instanceof Error ? error.message : 'Unable to add vehicle.');
-    }
+    this.saving.set(true);
+    this.fleet.createVehicle(this.form.getRawValue()).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: vehicle => { this.dialog.set(false); this.status.set('ALL'); this.filter.set(''); this.message.set(`${vehicle.plate} added to the fleet.`); },
+      error: error => this.error.set(error?.error?.message ?? 'Vehicle could not be created.')
+    });
   }
   protected update(vehicleId: string, event: Event): void {
     const value = (event.target as HTMLSelectElement).value as
       'AVAILABLE' | 'MAINTENANCE' | 'OUT_OF_SERVICE';
-    this.message.set(
-      this.fleet.updateVehicleStatus(vehicleId, value)
-        ? 'Vehicle status updated.'
-        : 'A vehicle on an active trip cannot be changed.',
-    );
+    this.fleet.setVehicleStatus(vehicleId, value).subscribe({
+      next: () => this.message.set('Vehicle status updated.'),
+      error: error => this.message.set(error?.error?.message ?? 'Vehicle status could not be updated.')
+    });
   }
   protected search(event: Event): void {
     this.filter.set((event.target as HTMLInputElement).value);

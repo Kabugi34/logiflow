@@ -23,6 +23,7 @@ export class SettingsCenterComponent {
   protected readonly profile = this.settingsService.profile;
   protected readonly notifications = this.settingsService.notifications;
   protected readonly savedMessage = signal('');
+  protected readonly saving = signal(false);
   protected readonly form = this.formBuilder.nonNullable.group({
     registeredName: [this.profile().registeredName, [trimmedRequired, Validators.maxLength(120)]],
     taxRegistrationId: [
@@ -45,19 +46,18 @@ export class SettingsCenterComponent {
       this.form.markAllAsTouched();
       return;
     }
-    try {
-      this.settingsService.updateProfile({ ...this.profile(), ...this.form.getRawValue() });
-      this.savedMessage.set('Organization settings saved.');
-    } catch (error) {
-      this.savedMessage.set(
-        error instanceof Error ? error.message : 'Organization settings could not be saved.',
-      );
-    }
+    this.saving.set(true);
+    this.settingsService.updateProfile({ ...this.profile(), ...this.form.getRawValue() }).subscribe({
+      next: () => { this.savedMessage.set('Organization settings saved.'); this.saving.set(false); },
+      error: error => { this.savedMessage.set(error?.error?.message ?? 'Organization settings could not be saved.'); this.saving.set(false); }
+    });
   }
 
   protected updateNotification(key: NotificationPreferenceKey, event: Event): void {
     const enabled = (event.target as HTMLInputElement).checked;
-    this.settingsService.updateNotification(key, enabled);
+    this.settingsService.updateNotification(key, enabled).subscribe({
+      error: error => { this.savedMessage.set(error?.error?.message ?? 'Notification preference could not be saved.'); }
+    });
   }
 
   protected saveRegionalDefaults(): void {
@@ -65,15 +65,11 @@ export class SettingsCenterComponent {
       this.regionalForm.markAllAsTouched();
       return;
     }
-    try {
-      this.settingsService.updateProfile({ ...this.profile(), ...this.regionalForm.getRawValue() });
-      this.form.patchValue(this.profile());
-      this.savedMessage.set('Regional defaults saved.');
-    } catch (error) {
-      this.savedMessage.set(
-        error instanceof Error ? error.message : 'Regional defaults could not be saved.',
-      );
-    }
+    this.saving.set(true);
+    this.settingsService.updateProfile({ ...this.profile(), ...this.regionalForm.getRawValue() }).subscribe({
+      next: saved => { this.form.patchValue(saved); this.savedMessage.set('Regional defaults saved.'); this.saving.set(false); },
+      error: error => { this.savedMessage.set(error?.error?.message ?? 'Regional defaults could not be saved.'); this.saving.set(false); }
+    });
   }
 
   protected toggleTheme(): void {

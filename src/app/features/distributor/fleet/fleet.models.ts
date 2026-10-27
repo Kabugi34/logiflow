@@ -27,6 +27,7 @@ export interface DistributorDriver {
   status: DriverStatus;
   baseWarehouseId: string | null;
   invitationResends: number;
+  invitationStatus?: 'QUEUED' | 'SENT' | 'FAILED';
   locationLabel: string;
   createdAt: string;
   vehicleId?: string;

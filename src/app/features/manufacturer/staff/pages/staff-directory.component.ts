@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { ManufacturerStaffService } from '../staff.service';
 import { ManufacturerStaffMember, StaffCategory, StaffStatus } from '../staff.models';
 import { personName, trimmedRequired } from '../../../../core/forms/form-validators';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-staff-directory',
@@ -24,6 +25,8 @@ export class StaffDirectoryComponent {
   protected readonly selectedMemberId = signal<string | null>(null);
   protected readonly isInviteOpen = signal(false);
   protected readonly inviteError = signal('');
+  protected readonly saving = signal(false);
+  protected readonly actionBusy = signal(false);
   protected readonly driverActionMessage = signal('');
   protected readonly selectedMember = computed(
     () => this.staff().find((member) => member.id === this.selectedMemberId()) ?? null,
@@ -82,23 +85,22 @@ export class StaffDirectoryComponent {
   }
 
   protected sendInvitation(): void {
+    if (this.saving()) return;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-    try {
-      this.staffService.inviteEmployee(this.form.getRawValue());
-      const invitedMember = this.staff().at(-1);
+    this.saving.set(true);
+    this.staffService.inviteEmployee(this.form.getRawValue()).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: invitedMember => {
       this.selectedCategory.set('ALL');
       this.selectedStatus.set('ALL');
       this.searchTerm.set('');
       this.selectedMemberId.set(invitedMember?.id ?? null);
       this.isInviteOpen.set(false);
-    } catch (error) {
-      this.inviteError.set(
-        error instanceof Error ? error.message : 'Unable to send this invitation.',
-      );
-    }
+      },
+      error: error => this.inviteError.set(error?.error?.message ?? 'Unable to send this invitation.')
+    });
   }
 
   protected manage(member: ManufacturerStaffMember): void {
@@ -111,7 +113,7 @@ export class StaffDirectoryComponent {
     this.staffService.updateEmployeeStatus(
       member.id,
       (event.target as HTMLSelectElement).value as StaffStatus,
-    );
+    ).subscribe({ error: error => this.driverActionMessage.set(error?.error?.message ?? 'Employee status could not be updated.') });
   }
 
   protected approveDriver(id: string): void {
@@ -127,13 +129,13 @@ export class StaffDirectoryComponent {
   }
 
   private updateDriverStatus(id: string, status: 'ACTIVE' | 'SUSPENDED'): void {
+    if (this.actionBusy()) return;
     this.driverActionMessage.set('');
-    const updated = this.staffService.updateDriverStatus(id, status);
-    this.driverActionMessage.set(
-      updated
-        ? `Driver status updated to ${status === 'ACTIVE' ? 'active' : 'suspended'}.`
-        : 'This driver has an active trip. Complete or reassign it before changing to this status.',
-    );
+    this.actionBusy.set(true);
+    this.staffService.updateDriverStatus(id, status).pipe(finalize(() => this.actionBusy.set(false))).subscribe({
+      next: () => this.driverActionMessage.set(`Driver status updated to ${status === 'ACTIVE' ? 'active' : 'suspended'}.`),
+      error: error => this.driverActionMessage.set(error?.error?.message ?? 'Driver status could not be updated.')
+    });
   }
 
   protected statusClass(status: StaffStatus): string {

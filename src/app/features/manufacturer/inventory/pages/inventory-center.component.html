@@ -16,6 +16,8 @@
       @for (category of categories(); track category) { <option [value]="category">{{ category }}</option> }
     </select>
   </div>
+  <div class="flex flex-wrap items-center justify-between gap-3"><span class="text-xs text-slate-500">Request a physical stock count for the selected scope.</span><button type="button" (click)="requestAudit()" class="min-h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50">Request Stock Audit</button></div>
+  @if (auditMessage()) { <p role="status" class="text-xs text-slate-600">{{ auditMessage() }}</p> }
   @if (inventoryService.loading()) { <app-loading-skeleton variant="cards" [rows]="4" /> <app-loading-skeleton [rows]="6" [columns]="5" /> }
   @if (inventoryService.error()) { <p role="alert" class="text-xs text-red-600">{{ inventoryService.error() }}</p> }
   <app-inventory-table [rows]="rows()" />
