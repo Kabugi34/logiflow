@@ -1,9 +1,10 @@
-import { computed, effect, Injectable, signal } from '@angular/core';
+import { computed, DestroyRef, effect, inject, Injectable, signal } from '@angular/core';
 
 const SIDEBAR_STORAGE_KEY = 'logiflow.layout.sidebarOpen';
 
 @Injectable({ providedIn: 'root' })
 export class LayoutService {
+  private readonly destroyRef = inject(DestroyRef);
   readonly isSidebarOpen = signal(this.readInitialPreference());
   readonly isMobileNavOpen = signal(false);
   readonly isMobileViewport = signal(false);
@@ -13,7 +14,10 @@ export class LayoutService {
 
   constructor() {
     this.syncViewport();
-    if (typeof window !== 'undefined') window.addEventListener('resize', this.syncViewport);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', this.syncViewport);
+      this.destroyRef.onDestroy(() => window.removeEventListener('resize', this.syncViewport));
+    }
     effect(() => {
       const isSidebarOpen = this.isSidebarOpen();
       try {

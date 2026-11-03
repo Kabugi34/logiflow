@@ -11,13 +11,21 @@
         Manage distributor sites used for stock offers and operations.
       </p>
     </div>
-    <button
-      type="button"
-      (click)="dialog.set(true); message.set('')"
-      class="h-9 rounded-md bg-blue-600 px-3 text-xs font-medium text-white"
-    >
-      + Create warehouse
-    </button>
+    <div class="flex flex-wrap gap-2">
+      <a
+        routerLink="/distributor/warehouses/operations"
+        class="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
+      >
+        Warehouse operations
+      </a>
+      <button
+        type="button"
+        (click)="dialog.set(true); message.set('')"
+        class="h-9 rounded-md bg-blue-600 px-3 text-xs font-medium text-white"
+      >
+        + Create warehouse
+      </button>
+    </div>
   </header>
   @if (message()) {
     <p role="status" class="rounded-md bg-blue-50 px-3 py-2 text-xs text-blue-800">
@@ -34,7 +42,7 @@
   }
   <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
     <div class="flex items-center justify-between border-b px-4 py-3">
-      <h2 class="text-sm font-semibold">Active warehouses</h2>
+      <h2 class="text-sm font-semibold">Warehouses</h2>
       <button type="button" (click)="service.refresh()" class="text-xs font-medium text-blue-600">
         Refresh
       </button>
@@ -50,6 +58,7 @@
               <th class="px-3 py-3">Warehouse</th>
               <th class="px-3 py-3">Address</th>
               <th class="px-3 py-3">Status</th>
+              <th class="px-3 py-3 text-right">Action</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
@@ -60,15 +69,37 @@
                 <td class="px-3 py-3 text-slate-500">{{ warehouse.address }}</td>
                 <td class="px-3 py-3">
                   <span
-                    class="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-[9px] text-emerald-700"
-                    >Active</span
+                    class="rounded border px-2 py-1 text-[9px]"
+                    [class.border-emerald-200]="warehouse.active"
+                    [class.bg-emerald-50]="warehouse.active"
+                    [class.text-emerald-700]="warehouse.active"
+                    [class.border-slate-200]="!warehouse.active"
+                    [class.bg-slate-50]="!warehouse.active"
+                    [class.text-slate-600]="!warehouse.active"
+                    >{{ warehouse.active ? 'Active' : 'Archived' }}</span
                   >
+                </td>
+                <td class="px-3 py-3 text-right">
+                  <button
+                    type="button"
+                    class="text-xs font-medium text-blue-700 disabled:opacity-50"
+                    [disabled]="updatingWarehouseId() === warehouse.id"
+                    (click)="archiveTargetId.set(warehouse.id); actionError.set('')"
+                  >
+                    {{
+                      updatingWarehouseId() === warehouse.id
+                        ? 'Saving…'
+                        : warehouse.active
+                          ? 'Archive'
+                          : 'Reactivate'
+                    }}
+                  </button>
                 </td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="4" class="px-4 py-10 text-center text-slate-500">
-                  No active warehouses. Create a location to use it when publishing offers.
+                <td colspan="5" class="px-4 py-10 text-center text-slate-500">
+                  No warehouses. Create a location to use it when publishing offers.
                 </td>
               </tr>
             }
@@ -78,6 +109,47 @@
     }
   </section>
 </section>
+@if (archiveTarget(); as warehouse) {
+  <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4">
+    <section
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="warehouse-status-title"
+      class="w-full max-w-sm rounded-lg bg-white p-5 shadow-xl"
+    >
+      <h2 id="warehouse-status-title" class="text-base font-semibold">
+        {{ warehouse.active ? 'Archive warehouse?' : 'Reactivate warehouse?' }}
+      </h2>
+      <p class="mt-2 text-sm text-slate-600">
+        {{
+          warehouse.active
+            ? 'This preserves warehouse history but removes it from active offer workflows. The server may reject this if operational dependencies remain.'
+            : 'This warehouse will be available for active offer workflows again.'
+        }}
+      </p>
+      @if (actionError()) {
+        <p role="alert" class="mt-3 text-xs text-red-700">{{ actionError() }}</p>
+      }
+      <div class="mt-4 flex justify-end gap-2">
+        <button
+          type="button"
+          class="rounded border px-3 py-2 text-xs"
+          (click)="archiveTargetId.set(''); actionError.set('')"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="rounded bg-blue-600 px-3 py-2 text-xs text-white disabled:opacity-50"
+          [disabled]="updatingWarehouseId() === warehouse.id"
+          (click)="confirmWarehouseStatusChange()"
+        >
+          {{ updatingWarehouseId() === warehouse.id ? 'Saving…' : 'Confirm' }}
+        </button>
+      </div>
+    </section>
+  </div>
+}
 @if (dialog()) {
   <div
     class="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4"
@@ -105,8 +177,19 @@
           ><span class="text-xs">Address</span
           ><input formControlName="address" class="h-9 w-full rounded border px-3 text-xs"
         /></label>
-        <div class="grid grid-cols-2 gap-2"><label class="block space-y-1"><span class="text-xs">City</span><input formControlName="city" class="h-9 w-full rounded border px-3 text-xs"></label><label class="block space-y-1"><span class="text-xs">Postal code</span><input formControlName="postalCode" class="h-9 w-full rounded border px-3 text-xs"></label></div>
-        <label class="block space-y-1"><span class="text-xs">Site manager</span><input formControlName="siteManager" class="h-9 w-full rounded border px-3 text-xs"></label>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="block space-y-1"
+            ><span class="text-xs">City</span
+            ><input formControlName="city" class="h-9 w-full rounded border px-3 text-xs" /></label
+          ><label class="block space-y-1"
+            ><span class="text-xs">Postal code</span
+            ><input formControlName="postalCode" class="h-9 w-full rounded border px-3 text-xs"
+          /></label>
+        </div>
+        <label class="block space-y-1"
+          ><span class="text-xs">Site manager</span
+          ><input formControlName="siteManager" class="h-9 w-full rounded border px-3 text-xs"
+        /></label>
         <div class="flex justify-end gap-2">
           <button type="button" (click)="dialog.set(false)" class="h-9 rounded border px-3 text-xs">
             Cancel</button

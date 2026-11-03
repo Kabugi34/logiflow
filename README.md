@@ -19,6 +19,10 @@ Auth API requests are simulated locally by `mockAuthInterceptor` while
 the same response shapes used by `AuthApiService` and `AuthService`; it does
 not replace those services or change their HTTP contract.
 
+The checked-in workspace setting is currently `false`, so authentication calls
+use the configured backend. Set it to `true` only for a local demo; operational
+feature API calls continue to use the configured backend in either mode.
+
 Use either seeded account with password `LogiflowDemo1!`:
 
 | Workspace | Email |

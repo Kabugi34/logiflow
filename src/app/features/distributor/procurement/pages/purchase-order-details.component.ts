@@ -5,10 +5,13 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { printPurchaseOrderPdf } from '../purchase-order-pdf';
 import { DistributorProcurementService } from '../procurement.service';
+import { PaymentInitiationComponent } from '../../../payments/payment-initiation.component';
+import { AuthService } from '../../../../core/auth/auth.service';
+import { PaymentStatus } from '../../../../core/models/payment.model';
 
 @Component({
   selector: 'app-purchase-order-details',
-  imports: [CurrencyPipe, DatePipe, DecimalPipe, RouterLink],
+  imports: [CurrencyPipe, DatePipe, DecimalPipe, RouterLink, PaymentInitiationComponent],
   templateUrl: './purchase-order-details.component.html',
 })
 export class PurchaseOrderDetailsComponent {
@@ -17,6 +20,7 @@ export class PurchaseOrderDetailsComponent {
     initialValue: this.route.snapshot.paramMap,
   });
   protected readonly procurement = inject(DistributorProcurementService);
+  private readonly auth = inject(AuthService);
   protected readonly order = computed(() =>
     this.procurement.findOrder(this.routeParams().get('id') ?? ''),
   );
@@ -31,6 +35,9 @@ export class PurchaseOrderDetailsComponent {
     }[]
   >([]);
   protected readonly exportError = signal('');
+  protected readonly canInitiatePayment = computed(
+    () => this.auth.hasRole('DISTRIBUTOR_ADMIN') || this.auth.hasRole('DISTRIBUTOR_STAFF'),
+  );
 
   constructor() {
     effect(() => {
@@ -60,5 +67,9 @@ export class PurchaseOrderDetailsComponent {
     if (!printPurchaseOrderPdf(order, this.procurement.total(order))) {
       this.exportError.set('Allow pop-ups for LogiFlow to export this purchase order as a PDF.');
     }
+  }
+
+  protected updatePaymentStatus(orderId: string, status: PaymentStatus): void {
+    this.procurement.recordPaymentStatus(orderId, status);
   }
 }

@@ -27,6 +27,11 @@ export class OrderListComponent {
     { value: 'ALL', label: 'All' },
     { value: 'PAID', label: 'Paid' },
     { value: 'PENDING', label: 'Pending' },
+    { value: 'FAILED', label: 'Failed' },
+    { value: 'EXPIRED', label: 'Expired' },
+    { value: 'REVERSED', label: 'Reversed' },
+    { value: 'REFUNDED', label: 'Refunded' },
+    { value: 'UNKNOWN', label: 'Unknown' },
   ];
   protected readonly filteredOrders = computed(() =>
     this.orderService.orders().filter((order) => {

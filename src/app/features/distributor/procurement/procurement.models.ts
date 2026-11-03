@@ -1,4 +1,5 @@
 import { LogisticsRoutePoint } from '../../../core/logistics/logistics.models';
+import { PaymentStatus } from '../../../core/models/payment.model';
 
 export type ProcurementStatus = 'IN_TRANSIT' | 'PROCESSING' | 'PENDING' | 'DELIVERED' | 'REJECTED';
 
@@ -15,6 +16,7 @@ export interface ProcurementOrderLine {
   quantity: number;
   unit: string;
   unitCost: number;
+  shippedQuantity?: number;
 }
 
 export interface ProcurementTimelineEvent {
@@ -31,6 +33,7 @@ export interface DistributorPurchaseOrder {
   orderDate: string;
   expectedDelivery: string;
   status: ProcurementStatus;
+  paymentStatus: PaymentStatus;
   destination: string;
   logisticsCost: number;
   lines: ProcurementOrderLine[];

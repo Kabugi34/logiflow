@@ -223,18 +223,19 @@ export class DistributorLogisticsComponent {
       return;
     }
     this.pendingTripAction.set('assign');
-    this.tripService.assignDriver(tripId, driverId, vehicleId).pipe(
-      finalize(() => this.pendingTripAction.set('')),
-    ).subscribe({
-      next: () => {
-        this.tripService.refresh();
-        this.assignmentMessage.set('Driver assignment updated.');
-      },
-      error: (error) =>
-        this.assignmentMessage.set(
-          error?.error?.message ?? 'Driver assignment could not be saved.',
-        ),
-    });
+    this.tripService
+      .assignDriver(tripId, driverId, vehicleId)
+      .pipe(finalize(() => this.pendingTripAction.set('')))
+      .subscribe({
+        next: () => {
+          this.tripService.refresh();
+          this.assignmentMessage.set('Driver assignment updated.');
+        },
+        error: (error) =>
+          this.assignmentMessage.set(
+            error?.error?.message ?? 'Driver assignment could not be saved.',
+          ),
+      });
   }
 
   protected dispatchSelectedTrip(): void {
@@ -244,24 +245,54 @@ export class DistributorLogisticsComponent {
       this.assignmentMessage.set('Assign an available driver and vehicle before dispatch.');
       return;
     }
+    if (
+      trip.type === 'DELIVERY' &&
+      trip.stops
+        .map((stop) => stop.orderNumber)
+        .filter((orderNumber): orderNumber is string => !!orderNumber)
+        .some(
+          (orderNumber) =>
+            this.orderService
+              .orders()
+              .find((order) => order.orderNumber === orderNumber || order.id === orderNumber)
+              ?.paymentStatus !== 'PAID',
+        )
+    ) {
+      this.assignmentMessage.set(
+        'Every customer order on a delivery trip must have backend-confirmed payment before dispatch.',
+      );
+      return;
+    }
     this.pendingTripAction.set('dispatch');
     this.assignmentMessage.set('');
-    this.tripService.dispatch(tripId).pipe(finalize(() => this.pendingTripAction.set(''))).subscribe({
-      next: () => { this.tripService.refresh(); this.assignmentMessage.set('Trip dispatched. The backend will notify each customer with their delivery verification code.'); },
-      error: error => this.assignmentMessage.set(error?.error?.message ?? 'Trip dispatch could not be completed.')
-    });
+    this.tripService
+      .dispatch(tripId)
+      .pipe(finalize(() => this.pendingTripAction.set('')))
+      .subscribe({
+        next: () => {
+          this.tripService.refresh();
+          this.assignmentMessage.set(
+            'Trip dispatched. The backend will notify each customer with their delivery verification code.',
+          );
+        },
+        error: (error) =>
+          this.assignmentMessage.set(
+            error?.error?.message ?? 'Trip dispatch could not be completed.',
+          ),
+      });
   }
 
   protected updateTripStatus(id: string, status: 'ONGOING' | 'COMPLETED'): void {
     if (this.pendingTripAction()) return;
     this.pendingTripAction.set(id);
-    this.tripService.updateStatus(id, status).pipe(
-      finalize(() => this.pendingTripAction.set('')),
-    ).subscribe({
-      next: () => this.tripService.refresh(),
-      error: (error) =>
-        this.tripService.error.set(error?.error?.message ?? 'Trip status could not be updated.'),
-    });
+    this.tripService
+      .updateStatus(id, status)
+      .pipe(finalize(() => this.pendingTripAction.set('')))
+      .subscribe({
+        next: () => this.tripService.refresh(),
+        error: (error) =>
+          this.tripService.error.set(error?.error?.message ?? 'Trip status could not be updated.'),
+      });
   }
 
   selectInbound(id: string): void {

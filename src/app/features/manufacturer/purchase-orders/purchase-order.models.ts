@@ -1,4 +1,7 @@
+import { PaymentStatus } from '../../../core/models/payment.model';
+
 export type PurchaseOrderStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'FULFILLED';
+export type PurchasePaymentStatus = PaymentStatus;
 
 export interface PurchaseOrderLine {
   productName: string;
@@ -22,6 +25,7 @@ export interface ManufacturerPurchaseOrder {
   destinationHub: string;
   issueDate: string;
   status: PurchaseOrderStatus;
+  paymentStatus: PurchasePaymentStatus;
   lines: PurchaseOrderLine[];
   timeline: PurchaseOrderTimelineEvent[];
 }

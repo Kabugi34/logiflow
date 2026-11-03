@@ -87,6 +87,10 @@ import { Component, input } from '@angular/core';
           <path d="M5 8h14l1 13H4L5 8Z" />
           <path d="M9 9V6a3 3 0 0 1 6 0v3" />
         }
+        @case ('credit-card') {
+          <rect x="3" y="5" width="18" height="14" rx="2" />
+          <path d="M3 10h18M7 15h3" />
+        }
         @default {
           <circle cx="12" cy="12" r="9" />
           <path d="M12 8v8m-4-4h8" />

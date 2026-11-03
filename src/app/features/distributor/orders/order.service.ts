@@ -1,6 +1,9 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
+import { throwError } from 'rxjs';
 import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
+import { normalizePaymentStatus } from '../../../core/models/payment.model';
+import { PaymentService } from '../../payments/payment.service';
 import { DistributorTripService } from '../logistics/trip.service';
 import {
   CustomerOrder,
@@ -31,25 +34,12 @@ interface ApiStockItem {
   name: string;
   category: string | null;
 }
-interface PaymentInitiateResponse {
-  paymentId: string;
-  status: string;
-  customerMessage: string;
-}
-interface PaymentStatusResponse {
-  orderId: string;
-  paymentId: string | null;
-  status: string;
-  amount: number;
-  mpesaReceiptNumber: string | null;
-  failureReason: string | null;
-}
 @Injectable({ providedIn: 'root' })
 export class DistributorOrderService {
   private readonly http = inject(HttpClient);
   private readonly tripService = inject(DistributorTripService);
+  private readonly payments = inject(PaymentService);
   private readonly orderRecords = signal<CustomerOrder[]>([]);
-  private readonly paymentStatuses = signal<Record<string, PaymentStatus>>({});
   readonly orders = this.orderRecords.asReadonly();
   readonly loading = signal(false);
   readonly error = signal('');
@@ -79,12 +69,19 @@ export class DistributorOrderService {
         const latest = (this.tripService.tracking()[trip.id] ?? []).at(-1);
         if (latest)
           route.push({ latitude: latest.lat, longitude: latest.lng, label: 'Live location' });
-        const deliveredCount = orders.filter(order => order.status === 'DELIVERED' || order.status === 'COMPLETED').length;
-        const status: CustomerOrder['status'] = orders.length === 0 ? 'PREPARING'
-          : deliveredCount === orders.length ? 'DELIVERED'
-          : deliveredCount > 0 ? 'PARTIALLY_DELIVERED'
-          : orders.some(order => order.status === 'IN_TRANSIT') ? 'IN_TRANSIT'
-          : orders[0].status;
+        const deliveredCount = orders.filter(
+          (order) => order.status === 'DELIVERED' || order.status === 'COMPLETED',
+        ).length;
+        const status: CustomerOrder['status'] =
+          orders.length === 0
+            ? 'PREPARING'
+            : deliveredCount === orders.length
+              ? 'DELIVERED'
+              : deliveredCount > 0
+                ? 'PARTIALLY_DELIVERED'
+                : orders.some((order) => order.status === 'IN_TRANSIT')
+                  ? 'IN_TRANSIT'
+                  : orders[0].status;
         return {
           id: trip.id,
           routeKey: trip.tripNumber,
@@ -141,21 +138,32 @@ export class DistributorOrderService {
     status:
       'CONFIRMED' | 'PROCESSING' | 'AWAITING_DISPATCH' | 'IN_TRANSIT' | 'DELIVERED' | 'CANCELLED',
   ) {
+    const order = this.findById(id);
+    if (
+      ['CONFIRMED', 'PROCESSING', 'AWAITING_DISPATCH', 'IN_TRANSIT', 'DELIVERED'].includes(
+        status,
+      ) &&
+      order?.paymentStatus !== 'PAID'
+    ) {
+      return throwError(
+        () => new Error('Backend-confirmed payment is required before fulfillment can proceed.'),
+      );
+    }
     return this.http.patch<ApiOrder>(API_ENDPOINTS.distributor.orderStatus(id), { status });
   }
   initiatePayment(orderId: string, phoneNumber: string) {
-    return this.http.post<PaymentInitiateResponse>(API_ENDPOINTS.distributor.paymentInitiate, {
+    return this.payments.initiate({
       orderId,
+      orderType: 'CUSTOMER_ORDER',
+      provider: 'MPESA',
       phoneNumber,
     });
   }
   getPaymentStatus(orderId: string) {
-    return this.http.get<PaymentStatusResponse>(API_ENDPOINTS.distributor.paymentStatus(orderId));
+    return this.payments.verifyOrderPayment('CUSTOMER_ORDER', orderId);
   }
   recordPaymentStatus(orderId: string, status: string): void {
-    const mapped: PaymentStatus =
-      status === 'CONFIRMED' || status === 'RECONCILED' ? 'PAID' : 'PENDING';
-    this.paymentStatuses.update((rows) => ({ ...rows, [orderId]: mapped }));
+    const mapped = this.mapPaymentStatus(status);
     this.orderRecords.update((rows) =>
       rows.map((order) => (order.id === orderId ? { ...order, paymentStatus: mapped } : order)),
     );
@@ -173,21 +181,19 @@ export class DistributorOrderService {
       ...new Set(rows.flatMap((row) => (row.items ?? []).map((item) => item.stockItemId))),
     ];
     for (const productId of productIds) {
-      this.http
-        .get<ApiStockItem>(API_ENDPOINTS.distributor.stockItem(productId))
-        .subscribe({
-          next: (product) =>
-            this.orderRecords.update((orders) =>
-              orders.map((order) => ({
-                ...order,
-                lines: order.lines.map((line) =>
-                  line.sku === productId
-                    ? { ...line, sku: product.sku, productName: product.name }
-                    : line,
-                ),
-              })),
-            ),
-        });
+      this.http.get<ApiStockItem>(API_ENDPOINTS.distributor.stockItem(productId)).subscribe({
+        next: (product) =>
+          this.orderRecords.update((orders) =>
+            orders.map((order) => ({
+              ...order,
+              lines: order.lines.map((line) =>
+                line.sku === productId
+                  ? { ...line, sku: product.sku, productName: product.name }
+                  : line,
+              ),
+            })),
+          ),
+      });
     }
   }
   private toOrder(row: ApiOrder): CustomerOrder {
@@ -207,16 +213,16 @@ export class DistributorOrderService {
       destinationName: row.deliveryAddress,
       destinationAddress: row.deliveryAddress,
       orderDate: row.placedAt,
-      paymentStatus:
-        this.paymentStatuses()[row.id] ??
-        (row.paymentStatus === 'PAID' || row.paymentStatus === 'PENDING'
-          ? row.paymentStatus
-          : 'UNKNOWN'),
+      paymentStatus: normalizePaymentStatus(row.paymentStatus),
       status,
       deliveryStatus:
         status === 'DELIVERED' ? 'DELIVERED' : status === 'IN_TRANSIT' ? 'ON_ROUTE' : 'UNKNOWN',
       lines,
       log: [],
     };
+  }
+
+  private mapPaymentStatus(status: string | null | undefined): PaymentStatus {
+    return normalizePaymentStatus(status);
   }
 }

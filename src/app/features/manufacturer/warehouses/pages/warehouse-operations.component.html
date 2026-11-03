@@ -1,0 +1,675 @@
+<section class="space-y-5">
+  <header class="flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-4">
+    <div>
+      <nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-xs text-slate-400">
+        <a routerLink="/manufacturer/dashboard" class="hover:text-blue-600">LogiFlow</a>
+        <span aria-hidden="true">›</span>
+        <a routerLink="/manufacturer/warehouses" class="hover:text-blue-600">Warehouses</a>
+        <span aria-hidden="true">›</span>
+        <span class="font-medium text-slate-600">Operations</span>
+      </nav>
+      <h1 class="text-xl font-semibold text-slate-900">Warehouse operations</h1>
+      <p class="mt-1 text-sm text-slate-500">
+        Put manufactured stock away, fulfill paid distributor purchase orders, and dispatch
+        shipments.
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <a
+        routerLink="/manufacturer/shipments"
+        class="inline-flex h-9 items-center rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
+      >
+        Shipments
+      </a>
+      <button
+        type="button"
+        (click)="refresh()"
+        class="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
+      >
+        Refresh data
+      </button>
+    </div>
+  </header>
+
+  @if (feedback()) {
+    <p
+      role="status"
+      class="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800"
+    >
+      {{ feedback() }}
+    </p>
+  }
+  @if (error()) {
+    <p
+      role="alert"
+      class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800"
+    >
+      {{ error() }}
+    </p>
+  }
+  @if (inventory.error() || purchaseOrders.error() || shipments.error()) {
+    <div
+      role="alert"
+      class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+    >
+      @if (inventory.error()) {
+        <p>{{ inventory.error() }}</p>
+      }
+      @if (purchaseOrders.error()) {
+        <p>{{ purchaseOrders.error() }}</p>
+      }
+      @if (shipments.error()) {
+        <p>{{ shipments.error() }}</p>
+      }
+    </div>
+  }
+  <p class="rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+    Manufacturers produce and store goods; incoming stock receiving does not apply here. Purchase
+    orders enter picking only when the backend reports verified payment. Put-away, picking, packing,
+    adjustments, and movement history currently use a browser-session ledger and are not persisted.
+  </p>
+
+  <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Warehouse summary">
+    <article class="rounded-lg border border-slate-200 bg-white p-4">
+      <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">Inventory items</p>
+      <p class="mt-2 text-2xl font-semibold text-slate-900">{{ stats().inventoryItems }}</p>
+      <p class="mt-1 text-[10px] text-slate-500">Distinct stocked products</p>
+    </article>
+    <article class="rounded-lg border border-slate-200 bg-white p-4">
+      <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+        Payment not verified
+      </p>
+      <p class="mt-2 text-2xl font-semibold text-amber-700">{{ stats().awaitingPayment }}</p>
+      <p class="mt-1 text-[10px] text-slate-500">
+        Accepted purchase orders blocked from fulfillment
+      </p>
+    </article>
+    <article class="rounded-lg border border-slate-200 bg-white p-4">
+      <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">Awaiting picking</p>
+      <p class="mt-2 text-2xl font-semibold text-blue-700">{{ stats().awaitingPicking }}</p>
+      <p class="mt-1 text-[10px] text-slate-500">Accepted distributor purchase orders</p>
+    </article>
+    <article class="rounded-lg border border-slate-200 bg-white p-4">
+      <p class="text-[10px] font-medium uppercase tracking-wide text-slate-500">
+        Ready for dispatch
+      </p>
+      <p class="mt-2 text-2xl font-semibold text-emerald-700">{{ stats().readyForDispatch }}</p>
+      <p class="mt-1 text-[10px] text-slate-500">Packed purchase orders</p>
+    </article>
+  </section>
+
+  @if (inventory.loading() || purchaseOrders.loading()) {
+    <p
+      role="status"
+      class="rounded-md border border-slate-200 bg-white px-4 py-6 text-center text-xs text-slate-500"
+    >
+      Loading manufacturer stock and accepted purchase orders…
+    </p>
+  }
+
+  <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <div
+      class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3"
+    >
+      <div>
+        <h2 class="text-sm font-semibold text-slate-900">Inventory and storage locations</h2>
+        <p class="mt-1 text-[10px] text-slate-500">
+          Available stock excludes reserved and picked quantities.
+        </p>
+      </div>
+      <div class="flex items-center gap-2">
+        <label class="sr-only" for="manufacturer-stock-search">Search inventory</label>
+        <input
+          id="manufacturer-stock-search"
+          type="search"
+          [value]="searchStock()"
+          (input)="updateStockSearch($event)"
+          placeholder="Search product or SKU"
+          class="h-8 rounded border border-slate-200 px-2 text-xs"
+        />
+      </div>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[780px] text-xs">
+        <thead class="bg-slate-50 text-left text-[10px] text-slate-600">
+          <tr>
+            <th scope="col" class="px-4 py-3">Product</th>
+            <th scope="col" class="px-3 py-3">On hand</th>
+            <th scope="col" class="px-3 py-3">Allocated</th>
+            <th scope="col" class="px-3 py-3">Available</th>
+            <th scope="col" class="px-3 py-3">Storage locations</th>
+            <th scope="col" class="px-3 py-3">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          @for (item of filteredStock(); track item.sku) {
+            <tr>
+              <td class="px-4 py-3">
+                <p class="font-medium text-slate-800">{{ item.product }}</p>
+                <p class="mt-0.5 text-[10px] text-slate-500">{{ item.sku }}</p>
+              </td>
+              <td class="px-3 py-3">{{ item.onHand }}</td>
+              <td class="px-3 py-3">{{ item.allocated }}</td>
+              <td class="px-3 py-3 font-medium text-slate-800">
+                {{ item.onHand - item.allocated }}
+              </td>
+              <td class="max-w-[260px] px-3 py-3 text-slate-500">{{ locationsSummary(item) }}</td>
+              <td class="px-3 py-3">
+                <div class="flex gap-1">
+                  <button
+                    type="button"
+                    (click)="openPutAway(item.sku)"
+                    class="rounded border border-slate-200 px-2 py-1 text-[10px] hover:bg-slate-50"
+                  >
+                    Put away
+                  </button>
+                  @if (canAdjust()) {
+                    <button
+                      type="button"
+                      (click)="openAdjustment(item.sku)"
+                      class="rounded border border-slate-200 px-2 py-1 text-[10px] hover:bg-slate-50"
+                    >
+                      Adjust
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6" class="px-4 py-8 text-center text-slate-500">
+                No inventory items match your search.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <div
+      class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3"
+    >
+      <div>
+        <h2 class="text-sm font-semibold text-slate-900">Distributor purchase order fulfillment</h2>
+        <p class="mt-1 text-[10px] text-slate-500">
+          Accepted purchase orders only. Shipment creation uses the existing manufacturer shipment
+          workflow.
+        </p>
+      </div>
+      <div class="flex gap-2">
+        <label class="sr-only" for="manufacturer-order-status"
+          >Filter purchase orders by status</label
+        >
+        <select
+          id="manufacturer-order-status"
+          [value]="orderStatusFilter()"
+          (change)="updateOrderStatus($event)"
+          class="h-8 rounded border border-slate-200 px-2 text-xs"
+        >
+          <option value="ALL">All statuses</option>
+          <option value="AWAITING_PICK">Awaiting pick</option>
+          <option value="PICKING">Picking</option>
+          <option value="READY_TO_PACK">Ready to pack</option>
+          <option value="READY_TO_DISPATCH">Ready to dispatch</option>
+          <option value="DISPATCHED">Dispatched</option>
+        </select>
+        <label class="sr-only" for="manufacturer-order-search">Search purchase orders</label>
+        <input
+          id="manufacturer-order-search"
+          type="search"
+          [value]="searchOrders()"
+          (input)="updateOrderSearch($event)"
+          placeholder="Search PO number"
+          class="h-8 rounded border border-slate-200 px-2 text-xs"
+        />
+      </div>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[760px] text-xs">
+        <thead class="bg-slate-50 text-left text-[10px] text-slate-600">
+          <tr>
+            <th scope="col" class="px-4 py-3">Purchase order</th>
+            <th scope="col" class="px-3 py-3">Items</th>
+            <th scope="col" class="px-3 py-3">Picking progress</th>
+            <th scope="col" class="px-3 py-3">Status</th>
+            <th scope="col" class="px-3 py-3">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          @for (order of filteredOrders(); track order.id) {
+            <tr>
+              <td class="whitespace-nowrap px-4 py-3 font-medium text-slate-800">
+                {{ order.orderNumber }}
+              </td>
+              <td class="px-3 py-3">
+                @for (line of order.lines; track line.id) {
+                  <p>{{ line.product }} · {{ line.requested }} requested</p>
+                }
+              </td>
+              <td class="px-3 py-3 text-slate-500">{{ progress(order) }}</td>
+              <td class="px-3 py-3">
+                <span
+                  class="rounded-full px-2 py-1 text-[9px] font-semibold"
+                  [class]="
+                    order.status === 'DISPATCHED'
+                      ? 'bg-slate-100 text-slate-700'
+                      : order.status === 'READY_TO_DISPATCH'
+                        ? 'bg-emerald-50 text-emerald-700'
+                        : order.status === 'READY_TO_PACK'
+                          ? 'bg-violet-50 text-violet-700'
+                          : 'bg-blue-50 text-blue-700'
+                  "
+                >
+                  {{ order.status.replaceAll('_', ' ') }}
+                </span>
+              </td>
+              <td class="px-3 py-3">
+                @if (order.status === 'AWAITING_PICK' || order.status === 'PICKING') {
+                  <button
+                    type="button"
+                    (click)="openPick(order)"
+                    class="rounded border border-blue-200 px-2 py-1 text-[10px] font-medium text-blue-700 hover:bg-blue-50"
+                  >
+                    Pick items
+                  </button>
+                } @else if (order.status === 'READY_TO_PACK') {
+                  <button
+                    type="button"
+                    (click)="openPack(order)"
+                    class="rounded border border-violet-200 px-2 py-1 text-[10px] font-medium text-violet-700 hover:bg-violet-50"
+                  >
+                    Pack order
+                  </button>
+                } @else if (order.status === 'READY_TO_DISPATCH') {
+                  <button
+                    type="button"
+                    (click)="openDispatch(order)"
+                    class="rounded bg-blue-600 px-2 py-1 text-[10px] font-medium text-white hover:bg-blue-700"
+                  >
+                    Create shipment
+                  </button>
+                } @else if (order.status === 'DISPATCHED') {
+                  <span class="text-[10px] text-slate-500">{{ order.packages }} package(s)</span>
+                }
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5" class="px-4 py-8 text-center text-slate-500">
+                No accepted distributor purchase orders are awaiting warehouse fulfillment.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <div class="border-b border-slate-200 px-4 py-3">
+      <h2 class="text-sm font-semibold text-slate-900">Recent warehouse activity</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[680px] text-xs">
+        <thead class="bg-slate-50 text-left text-[10px] text-slate-600">
+          <tr>
+            <th scope="col" class="px-4 py-3">Time</th>
+            <th scope="col" class="px-3 py-3">Movement</th>
+            <th scope="col" class="px-3 py-3">SKU</th>
+            <th scope="col" class="px-3 py-3">Quantity</th>
+            <th scope="col" class="px-3 py-3">Reference / reason</th>
+            <th scope="col" class="px-3 py-3">Responsible user</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          @for (movement of recentMovements(); track movement.id) {
+            <tr>
+              <td class="whitespace-nowrap px-4 py-3 text-slate-500">
+                {{ movement.at | date: 'short' }}
+              </td>
+              <td class="px-3 py-3 font-medium text-slate-800">
+                {{ movement.type.replaceAll('_', ' ') }}
+              </td>
+              <td class="px-3 py-3">{{ movement.sku }}</td>
+              <td
+                class="px-3 py-3"
+                [class]="movement.quantity < 0 ? 'text-red-700' : 'text-slate-800'"
+              >
+                {{ movement.quantity > 0 ? '+' : '' }}{{ movement.quantity }}
+              </td>
+              <td class="px-3 py-3">{{ movement.reference }} · {{ movement.reason }}</td>
+              <td class="px-3 py-3">{{ movement.user }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6" class="px-4 py-8 text-center text-slate-500">
+                No warehouse activity has been recorded yet.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>
+
+@if (stockDialog() === 'putaway') {
+  <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4">
+    <section
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="putaway-title"
+      class="w-full max-w-md rounded-lg bg-white p-5 shadow-xl"
+    >
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h2 id="putaway-title" class="text-base font-semibold text-slate-900">Put away stock</h2>
+          <p class="mt-1 text-xs text-slate-500">{{ adjustmentSku() }} · assign unlocated units.</p>
+        </div>
+        <button
+          type="button"
+          aria-label="Close dialog"
+          (click)="closeDialogs()"
+          class="text-slate-500 hover:text-slate-900"
+        >
+          ✕
+        </button>
+      </div>
+      <form [formGroup]="putAwayForm" (ngSubmit)="confirmPutAway()" class="mt-4 space-y-3">
+        <label class="block space-y-1"
+          ><span class="text-xs font-medium">Zone / shelf / location</span
+          ><input
+            formControlName="location"
+            maxlength="40"
+            placeholder="A-01"
+            class="h-9 w-full rounded border px-3 text-xs"
+        /></label>
+        <label class="block space-y-1"
+          ><span class="text-xs font-medium">Quantity</span
+          ><input
+            type="number"
+            min="1"
+            step="1"
+            formControlName="quantity"
+            class="h-9 w-full rounded border px-3 text-xs"
+        /></label>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" (click)="closeDialogs()" class="h-9 rounded border px-3 text-xs">
+            Cancel</button
+          ><button
+            type="submit"
+            class="h-9 rounded bg-blue-600 px-3 text-xs font-medium text-white"
+          >
+            Save location
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}
+
+@if (stockDialog() === 'adjustment') {
+  <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4">
+    <section
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="adjustment-title"
+      class="w-full max-w-md rounded-lg bg-white p-5 shadow-xl"
+    >
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h2 id="adjustment-title" class="text-base font-semibold text-slate-900">
+            Adjust inventory
+          </h2>
+          <p class="mt-1 text-xs text-slate-500">
+            {{ adjustmentSku() }} · positive to add; negative to correct a shortage.
+          </p>
+        </div>
+        <button
+          type="button"
+          aria-label="Close dialog"
+          (click)="closeDialogs()"
+          class="text-slate-500 hover:text-slate-900"
+        >
+          ✕
+        </button>
+      </div>
+      <form [formGroup]="adjustmentForm" (ngSubmit)="confirmAdjustment()" class="mt-4 space-y-3">
+        <label class="block space-y-1"
+          ><span class="text-xs font-medium">Signed quantity</span
+          ><input
+            type="number"
+            step="1"
+            formControlName="quantity"
+            class="h-9 w-full rounded border px-3 text-xs"
+        /></label>
+        <label class="block space-y-1"
+          ><span class="text-xs font-medium">Reason</span
+          ><textarea
+            formControlName="reason"
+            maxlength="240"
+            rows="3"
+            class="w-full rounded border px-3 py-2 text-xs"
+          ></textarea>
+        </label>
+        <p class="text-[10px] text-slate-500">
+          Recorded as {{ actor() || 'authenticated staff member' }} with a timestamp and movement
+          reference.
+        </p>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" (click)="closeDialogs()" class="h-9 rounded border px-3 text-xs">
+            Cancel</button
+          ><button
+            type="submit"
+            class="h-9 rounded bg-blue-600 px-3 text-xs font-medium text-white"
+          >
+            Record adjustment
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}
+
+@if (selectedPickOrder(); as order) {
+  <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4">
+    <section
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pick-title"
+      class="w-full max-w-md rounded-lg bg-white p-5 shadow-xl"
+    >
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h2 id="pick-title" class="text-base font-semibold text-slate-900">
+            Pick purchase order items
+          </h2>
+          <p class="mt-1 text-xs text-slate-500">{{ order.orderNumber }} · {{ progress(order) }}</p>
+        </div>
+        <button
+          type="button"
+          aria-label="Close dialog"
+          (click)="closeDialogs()"
+          class="text-slate-500 hover:text-slate-900"
+        >
+          ✕
+        </button>
+      </div>
+      <form [formGroup]="pickForm" (ngSubmit)="confirmPick()" class="mt-4 space-y-3">
+        <label class="block space-y-1"
+          ><span class="text-xs font-medium">Order item</span
+          ><select formControlName="lineId" class="h-9 w-full rounded border px-3 text-xs">
+            @for (line of order.lines; track line.id) {
+              <option [value]="line.id">
+                {{ line.product }} · {{ line.picked }}/{{ line.allocated }} allocated picked
+              </option>
+            }
+          </select></label
+        >
+        <label class="block space-y-1"
+          ><span class="text-xs font-medium">Quantity to pick</span
+          ><input
+            type="number"
+            min="1"
+            step="1"
+            formControlName="quantity"
+            class="h-9 w-full rounded border px-3 text-xs"
+        /></label>
+        <p class="text-[10px] text-slate-500">Picking is limited to allocated stock.</p>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" (click)="closeDialogs()" class="h-9 rounded border px-3 text-xs">
+            Cancel</button
+          ><button
+            type="submit"
+            class="h-9 rounded bg-blue-600 px-3 text-xs font-medium text-white"
+          >
+            Confirm picked quantity
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}
+
+@if (selectedPackOrder(); as order) {
+  <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4">
+    <section
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pack-title"
+      class="w-full max-w-lg rounded-lg bg-white p-5 shadow-xl"
+    >
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h2 id="pack-title" class="text-base font-semibold text-slate-900">
+            Pack purchase order
+          </h2>
+          <p class="mt-1 text-xs text-slate-500">
+            {{ order.orderNumber }} · confirm packed units and number of packages.
+          </p>
+        </div>
+        <button
+          type="button"
+          aria-label="Close dialog"
+          (click)="closeDialogs()"
+          class="text-slate-500 hover:text-slate-900"
+        >
+          ✕
+        </button>
+      </div>
+      <form [formGroup]="packForm" (ngSubmit)="confirmPack()" class="mt-4 space-y-3">
+        <div class="space-y-2">
+          @for (line of order.lines; track line.id) {
+            <label
+              class="flex items-center justify-between gap-3 rounded border border-slate-100 p-2 text-xs"
+              ><span
+                >{{ line.product }}
+                <span class="text-slate-500">· {{ line.picked }} picked</span></span
+              ><input
+                type="number"
+                min="0"
+                [max]="line.picked"
+                step="1"
+                [value]="packedQuantities()[line.id]"
+                (input)="setPackedQuantity(line.id, $event)"
+                [attr.aria-label]="'Packed quantity for ' + line.product"
+                class="h-8 w-24 rounded border px-2 text-xs"
+            /></label>
+          }
+        </div>
+        <label class="block space-y-1"
+          ><span class="text-xs font-medium">Package count</span
+          ><input
+            type="number"
+            min="1"
+            step="1"
+            formControlName="packages"
+            class="h-9 w-full rounded border px-3 text-xs"
+        /></label>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" (click)="closeDialogs()" class="h-9 rounded border px-3 text-xs">
+            Cancel</button
+          ><button
+            type="submit"
+            class="h-9 rounded bg-blue-600 px-3 text-xs font-medium text-white"
+          >
+            Confirm packing
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}
+
+@if (selectedDispatchOrder(); as order) {
+  <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4">
+    <section
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="dispatch-title"
+      class="w-full max-w-md rounded-lg bg-white p-5 shadow-xl"
+    >
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h2 id="dispatch-title" class="text-base font-semibold text-slate-900">
+            Create shipment
+          </h2>
+          <p class="mt-1 text-xs text-slate-500">
+            {{ order.orderNumber }} · {{ order.packages }} package(s)
+          </p>
+        </div>
+        <button
+          type="button"
+          aria-label="Close dialog"
+          [disabled]="saving()"
+          (click)="closeDialogs()"
+          class="text-slate-500 hover:text-slate-900"
+        >
+          ✕
+        </button>
+      </div>
+      <form [formGroup]="dispatchForm" (ngSubmit)="confirmDispatch()" class="mt-4 space-y-3">
+        <label class="block space-y-1"
+          ><span class="text-xs font-medium">Assigned driver and vehicle</span
+          ><select formControlName="driverId" class="h-9 w-full rounded border px-3 text-xs">
+            <option value="">Choose an available driver</option>
+            @for (driver of readyDrivers(); track driver.id) {
+              <option [value]="driver.id">
+                {{ driver.name }} · {{ fleet.getVehicleForDriver(driver.id)?.plate }} ·
+                {{ fleet.getVehicleForDriver(driver.id)?.type }}
+              </option>
+            }
+          </select></label
+        >
+        @if (!readyDrivers().length) {
+          <p class="text-[10px] text-amber-700">
+            No available driver with an assigned standby vehicle. Assign a driver in Fleet before
+            creating this shipment.
+          </p>
+        }
+        <p class="text-[10px] text-slate-500">
+          The existing shipment API creates the assigned manufacturer trip. Inventory is deducted
+          from the local ledger only after shipment creation succeeds.
+        </p>
+        <div class="flex justify-end gap-2 pt-2">
+          <button
+            type="button"
+            [disabled]="saving()"
+            (click)="closeDialogs()"
+            class="h-9 rounded border px-3 text-xs"
+          >
+            Cancel</button
+          ><button
+            type="submit"
+            [disabled]="saving() || !readyDrivers().length"
+            class="h-9 rounded bg-blue-600 px-3 text-xs font-medium text-white disabled:opacity-50"
+          >
+            {{ saving() ? 'Creating shipment…' : 'Create shipment' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

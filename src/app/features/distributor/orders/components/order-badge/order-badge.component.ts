@@ -24,6 +24,7 @@ export class OrderBadgeComponent {
       case 'HOLD':
         return 'border-red-200 bg-red-50 text-red-700';
       case 'PENDING':
+      case 'EXPIRED':
       case 'PREPARING':
       case 'REROUTED':
       case 'CONFIRMED':
@@ -32,6 +33,7 @@ export class OrderBadgeComponent {
       case 'UNASSIGNED':
         return 'border-amber-200 bg-amber-50 text-amber-700';
       case 'UNKNOWN':
+      case 'REVERSED':
       case 'CANCELLED':
       case 'REFUNDED':
       case 'FAILED':

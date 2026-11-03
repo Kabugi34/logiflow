@@ -12,7 +12,7 @@ export type CustomerOrderStatus =
   | 'CANCELLED'
   | 'REFUNDED'
   | 'FAILED';
-export type PaymentStatus = 'PAID' | 'PENDING' | 'UNKNOWN';
+export type { PaymentStatus } from '../../../core/models/payment.model';
 export type DeliveryStatus = 'UNASSIGNED' | 'ON_ROUTE' | 'HOLD' | 'DELIVERED' | 'UNKNOWN';
 export type OrderBadgeValue = CustomerOrderStatus | PaymentStatus | DeliveryStatus;
 
@@ -49,7 +49,6 @@ export interface CustomerOrder {
 
 export interface NewCustomerOrder {
   customerId: string;
-  paymentStatus: PaymentStatus;
   lines: { sku: string; quantity: number }[];
 }
 
@@ -67,3 +66,4 @@ export interface DistributorShipmentGroup {
   route: { latitude: number; longitude: number; label: string }[];
   currentRouteIndex: number;
 }
+import { PaymentStatus } from '../../../core/models/payment.model';

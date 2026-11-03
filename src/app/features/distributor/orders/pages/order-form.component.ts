@@ -7,7 +7,6 @@ import { Router, RouterLink } from '@angular/router';
 import { DistributorCustomerService } from '../../customers/customer.service';
 import { DistributorInventoryService } from '../../inventory/inventory.service';
 import { DistributorOrderService } from '../order.service';
-import { PaymentStatus } from '../order.models';
 
 @Component({
   selector: 'app-order-form',
@@ -31,7 +30,6 @@ export class OrderFormComponent {
   protected readonly errorMessage = signal('');
   protected readonly form = this.formBuilder.nonNullable.group({
     customerId: ['', Validators.required],
-    paymentStatus: ['PENDING' as PaymentStatus, Validators.required],
     lines: this.formBuilder.nonNullable.array([this.createLine()]),
   });
   private readonly formValue = toSignal(this.form.valueChanges, {
