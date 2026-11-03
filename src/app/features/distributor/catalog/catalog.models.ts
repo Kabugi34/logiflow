@@ -1,5 +1,6 @@
 export interface DistributorCatalogOffer {
   id: string;
+  sourceStockItemId: string;
   manufacturerId: string;
   manufacturerName: string;
   sku: string;
@@ -7,6 +8,10 @@ export interface DistributorCatalogOffer {
   category: string;
   brand: string;
   unit: string;
+  description: string;
+  imageUrl: string;
+  wholesalePrice: number | null;
+  availableQuantity: number | null;
   listPrice: number;
   reorderThreshold: number;
   status: 'ACTIVE' | 'PAUSED';
@@ -23,7 +28,9 @@ export interface DistributorCatalogProduct {
   category: string;
   brand: string;
   unit: string;
-  stock: boolean;
+  wholesalePrice: number | null;
+  availableQuantity: number | null;
+  inStock: boolean | null;
   description: string;
   imageUrl: string;
   authorizationStatus: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';

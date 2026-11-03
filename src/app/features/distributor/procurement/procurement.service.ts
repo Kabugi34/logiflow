@@ -2,6 +2,9 @@ import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
+import { normalizePaymentStatus } from '../../../core/models/payment.model';
+import { PaymentService } from '../../payments/payment.service';
+import { DistributorCatalogService } from '../catalog/catalog.service';
 import {
   DistributorPurchaseOrder,
   DraftProcurementLine,
@@ -13,7 +16,9 @@ interface ApiProduct {
   id: string;
   organizationId: string | null;
   manufacturerOrganizationId?: string | null;
+  manufacturerName?: string | null;
   sourceStockItemId?: string | null;
+  publicationStatus?: string | null;
   sku: string;
   name: string;
   category: string | null;
@@ -27,16 +32,26 @@ interface ApiPo {
   buyerOrganizationId: string;
   supplierOrganizationId: string;
   status: string;
+  paymentStatus?: string | null;
   totalAmount: number;
   submittedAt: string;
-  items: { stockItemId: string; sku: string; name: string; quantity: number; unitPrice: number }[];
+  items: {
+    stockItemId: string;
+    sku: string;
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    shippedQuantity?: number | null;
+  }[];
 }
 interface ApiPage<T> {
   content?: T[];
 }
 interface ProcurementProduct {
   id: string;
+  productId: string;
   organizationId: string;
+  manufacturerName: string;
   sku: string;
   name: string;
   description: string;
@@ -49,14 +64,24 @@ interface ProcurementProduct {
 @Injectable({ providedIn: 'root' })
 export class DistributorProcurementService {
   private readonly http = inject(HttpClient);
+  private readonly catalog = inject(DistributorCatalogService);
+  private readonly payments = inject(PaymentService);
   private readonly productRecords = signal<ProcurementProduct[]>([]);
   private readonly orderRecords = signal<DistributorPurchaseOrder[]>([]);
   readonly loading = signal(false);
   readonly error = signal('');
   readonly manufacturers = computed<ProcurementManufacturer[]>(() =>
-    [...new Set(this.productRecords().map((product) => product.organizationId))].map((id) => ({
+    [
+      ...new Set(
+        this.productRecords()
+          .filter((product) => this.catalog.authorizationStatus(product.productId) === 'APPROVED')
+          .map((product) => product.organizationId),
+      ),
+    ].map((id) => ({
       id,
-      name: id,
+      name:
+        this.productRecords().find((product) => product.organizationId === id)?.manufacturerName ??
+        'Manufacturer',
       productBrand: '',
       location: '',
     })),
@@ -82,12 +107,15 @@ export class DistributorProcurementService {
               .filter(
                 (product) =>
                   product.active &&
+                  product.publicationStatus === 'PUBLISHED' &&
                   typeof (product.manufacturerOrganizationId ?? product.organizationId) ===
                     'string',
               )
               .map((product) => ({
                 id: product.sourceStockItemId ?? product.id,
+                productId: product.id,
                 organizationId: product.manufacturerOrganizationId ?? product.organizationId!,
+                manufacturerName: product.manufacturerName?.trim() || 'Manufacturer',
                 sku: product.sku,
                 name: product.name,
                 description: '',
@@ -154,7 +182,11 @@ export class DistributorProcurementService {
     return this.productRecords().find((product) => product.sku === sku)?.unitPrice ?? 0;
   }
   productsForManufacturer(manufacturerId: string): ProcurementProduct[] {
-    return this.productRecords().filter((product) => product.organizationId === manufacturerId);
+    return this.productRecords().filter(
+      (product) =>
+        product.organizationId === manufacturerId &&
+        this.catalog.authorizationStatus(product.productId) === 'APPROVED',
+    );
   }
   findOrder(id: string): DistributorPurchaseOrder | undefined {
     return this.orderRecords().find((order) => order.id === id);
@@ -166,14 +198,34 @@ export class DistributorProcurementService {
     );
   }
 
+  initiatePayment(orderId: string, phoneNumber: string) {
+    return this.payments.initiate({
+      orderId,
+      orderType: 'PURCHASE_ORDER',
+      provider: 'MPESA',
+      phoneNumber,
+    });
+  }
+
+  recordPaymentStatus(orderId: string, status: string): void {
+    const paymentStatus = normalizePaymentStatus(status);
+    this.orderRecords.update((rows) =>
+      rows.map((order) => (order.id === orderId ? { ...order, paymentStatus } : order)),
+    );
+  }
+
   createDraft(manufacturerId: string, draftLines: DraftProcurementLine[]): Observable<string> {
-    const products = this.productsForManufacturer(manufacturerId);
-    if (!this.findManufacturer(manufacturerId))
-      throw new Error('Select a supplier from the live product catalog.');
+    const products = this.productRecords().filter(
+      (product) => product.organizationId === manufacturerId,
+    );
+    if (!products.length) throw new Error('Select a supplier from the live product catalog.');
     if (!draftLines.length) throw new Error('Add at least one product to the purchase order.');
     const items = draftLines.map((line) => {
       const product = products.find((item) => item.sku === line.sku);
       if (!product) throw new Error('Each selected product must belong to the selected supplier.');
+      if (this.catalog.authorizationStatus(product.productId) !== 'APPROVED') {
+        throw new Error('Manufacturer authorization is required before purchasing this product.');
+      }
       if (!Number.isInteger(line.quantity) || line.quantity < 1)
         throw new Error('Enter a valid quantity for every product.');
       return { stockItemId: product.id, quantity: line.quantity };
@@ -193,19 +245,22 @@ export class DistributorProcurementService {
 
   private toPurchaseOrder(po: ApiPo): DistributorPurchaseOrder {
     const status =
-      po.status === 'APPROVED'
-        ? 'PROCESSING'
-        : po.status === 'FULFILLED'
-          ? 'DELIVERED'
-          : po.status === 'REJECTED'
-            ? 'REJECTED'
-            : 'PENDING';
+      po.status === 'IN_TRANSIT' || po.status === 'SHIPPED' || po.status === 'DISPATCHED'
+        ? 'IN_TRANSIT'
+        : po.status === 'APPROVED'
+          ? 'PROCESSING'
+          : po.status === 'FULFILLED'
+            ? 'DELIVERED'
+            : po.status === 'REJECTED'
+              ? 'REJECTED'
+              : 'PENDING';
     const lines: ProcurementOrderLine[] = (po.items ?? []).map((item) => ({
       sku: item.sku,
       productName: item.name,
       quantity: item.quantity,
       unit: '\u2014',
       unitCost: item.unitPrice,
+      shippedQuantity: item.shippedQuantity ?? undefined,
     }));
     return {
       id: po.id,
@@ -215,6 +270,7 @@ export class DistributorProcurementService {
       orderDate: po.submittedAt,
       expectedDelivery: '',
       status,
+      paymentStatus: normalizePaymentStatus(po.paymentStatus),
       destination: '',
       logisticsCost: 0,
       lines,

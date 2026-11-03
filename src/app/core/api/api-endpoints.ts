@@ -2,6 +2,10 @@ import { API_CONFIG } from './api.config';
 
 /** Central route registry. Keep HTTP behavior and response mapping in services. */
 export const API_ENDPOINTS = {
+  payments: {
+    transactions: `${API_CONFIG.baseUrl}/payments`,
+    initiate: `${API_CONFIG.baseUrl}/payments/initiate`,
+  },
   auth: {
     accessRequest: `${API_CONFIG.apiRoot}/access-requests`,
     activate: `${API_CONFIG.apiRoot}/access-requests/activate`,
@@ -11,75 +15,97 @@ export const API_ENDPOINTS = {
     logout: `${API_CONFIG.apiRoot}/auth/logout`,
     me: `${API_CONFIG.apiRoot}/users/me`,
     passwordResetRequest: `${API_CONFIG.apiRoot}/auth/forgot-password`,
-    passwordReset: `${API_CONFIG.apiRoot}/auth/reset-password`
+    passwordReset: `${API_CONFIG.apiRoot}/auth/reset-password`,
   },
   manufacturer: {
     drivers: `${API_CONFIG.baseUrl}/drivers`,
     driver: (id: string) => `${API_CONFIG.baseUrl}/drivers/${encodeURIComponent(id)}`,
-    driverInvitationResend: (id: string) => `${API_CONFIG.baseUrl}/drivers/${encodeURIComponent(id)}/invitation/resend`,
-    driverInvitation: (id: string) => `${API_CONFIG.baseUrl}/drivers/${encodeURIComponent(id)}/invitation`,
+    driverInvitationResend: (id: string) =>
+      `${API_CONFIG.baseUrl}/drivers/${encodeURIComponent(id)}/invitation/resend`,
+    driverInvitation: (id: string) =>
+      `${API_CONFIG.baseUrl}/drivers/${encodeURIComponent(id)}/invitation`,
     driverStatus: (id: string) => `${API_CONFIG.baseUrl}/drivers/${encodeURIComponent(id)}/status`,
-    driverOperationalStatus: (id: string) => `${API_CONFIG.baseUrl}/drivers/${encodeURIComponent(id)}/operational-status`,
-    driverApplicationDecision: (id: string) => `${API_CONFIG.baseUrl}/driver-applications/${encodeURIComponent(id)}/decision`,
+    driverOperationalStatus: (id: string) =>
+      `${API_CONFIG.baseUrl}/drivers/${encodeURIComponent(id)}/operational-status`,
+    driverApplicationDecision: (id: string) =>
+      `${API_CONFIG.baseUrl}/driver-applications/${encodeURIComponent(id)}/decision`,
     vehicles: `${API_CONFIG.baseUrl}/vehicles`,
     vehicle: (id: string) => `${API_CONFIG.baseUrl}/vehicles/${encodeURIComponent(id)}`,
-    vehicleStatus: (id: string) => `${API_CONFIG.baseUrl}/vehicles/${encodeURIComponent(id)}/status`,
+    vehicleStatus: (id: string) =>
+      `${API_CONFIG.baseUrl}/vehicles/${encodeURIComponent(id)}/status`,
     members: `${API_CONFIG.baseUrl}/members`,
     memberInvitations: `${API_CONFIG.baseUrl}/members/invitations`,
     member: (id: string) => `${API_CONFIG.baseUrl}/members/${encodeURIComponent(id)}`,
     memberStatus: (id: string) => `${API_CONFIG.baseUrl}/members/${encodeURIComponent(id)}/status`,
     products: `${API_CONFIG.baseUrl}/products`,
     product: (id: string) => `${API_CONFIG.baseUrl}/products/${encodeURIComponent(id)}`,
-    productPublication: (id: string) => `${API_CONFIG.baseUrl}/products/${encodeURIComponent(id)}/publication`,
+    productPublication: (id: string) =>
+      `${API_CONFIG.baseUrl}/products/${encodeURIComponent(id)}/publication`,
     productAuthorizations: `${API_CONFIG.baseUrl}/products/authorizations`,
-    productAuthorizationDecision: (id: string) => `${API_CONFIG.baseUrl}/products/authorizations/${encodeURIComponent(id)}/decision`,
+    productAuthorizationDecision: (id: string) =>
+      `${API_CONFIG.baseUrl}/products/authorizations/${encodeURIComponent(id)}/decision`,
     stockItems: `${API_CONFIG.apiRoot}/stock/items`,
     warehouses: `${API_CONFIG.baseUrl}/warehouses`,
     warehouse: (id: string) => `${API_CONFIG.baseUrl}/warehouses/${encodeURIComponent(id)}`,
     purchaseOrders: `${API_CONFIG.baseUrl}/manufacturer/purchase-orders`,
-    purchaseOrderDecision: (id: string) => `${API_CONFIG.baseUrl}/manufacturer/purchase-orders/${encodeURIComponent(id)}/decision`,
+    purchaseOrderDecision: (id: string) =>
+      `${API_CONFIG.baseUrl}/manufacturer/purchase-orders/${encodeURIComponent(id)}/decision`,
     shipments: `${API_CONFIG.baseUrl}/shipments`,
     shipment: (id: string) => `${API_CONFIG.baseUrl}/shipments/${encodeURIComponent(id)}`,
-    shipmentStatus: (id: string) => `${API_CONFIG.baseUrl}/shipments/${encodeURIComponent(id)}/status`,
+    shipmentStatus: (id: string) =>
+      `${API_CONFIG.baseUrl}/shipments/${encodeURIComponent(id)}/status`,
     organization: `${API_CONFIG.baseUrl}/organization`,
     organizationNotificationPreferences: `${API_CONFIG.baseUrl}/organization/notification-preferences`,
     stockAudits: `${API_CONFIG.apiRoot}/stock/audits`,
-    tripDriverPing: (id: string) => `${API_CONFIG.baseUrl}/trips/${encodeURIComponent(id)}/driver-ping`,
-    tripRerouteProposals: (id: string) => `${API_CONFIG.baseUrl}/trips/${encodeURIComponent(id)}/reroute-proposals`,
+    tripDriverPing: (id: string) =>
+      `${API_CONFIG.baseUrl}/trips/${encodeURIComponent(id)}/driver-ping`,
+    tripRerouteProposals: (id: string) =>
+      `${API_CONFIG.baseUrl}/trips/${encodeURIComponent(id)}/reroute-proposals`,
     trips: `${API_CONFIG.baseUrl}/trips`,
     tripTracking: (id: string) => `${API_CONFIG.baseUrl}/trips/${encodeURIComponent(id)}/tracking`,
     tripAssignment: (id: string) => `${API_CONFIG.baseUrl}/trips/${encodeURIComponent(id)}/assign`,
     tripDispatch: (id: string) => `${API_CONFIG.baseUrl}/trips/${encodeURIComponent(id)}/dispatch`,
-    tripStatus: (id: string) => `${API_CONFIG.baseUrl}/trips/${encodeURIComponent(id)}/status`
+    tripStatus: (id: string) => `${API_CONFIG.baseUrl}/trips/${encodeURIComponent(id)}/status`,
   },
   distributor: {
     products: `${API_CONFIG.baseUrl}/products`,
     productAuthorizations: `${API_CONFIG.baseUrl}/products/authorizations`,
-    productAuthorizationRequest: (id: string) => `${API_CONFIG.baseUrl}/products/${encodeURIComponent(id)}/authorization-requests`,
+    productAuthorizationRequest: (id: string) =>
+      `${API_CONFIG.baseUrl}/products/${encodeURIComponent(id)}/authorization-requests`,
     purchaseOrders: `${API_CONFIG.baseUrl}/purchase-orders`,
-    purchaseOrder: (id: string) => `${API_CONFIG.baseUrl}/purchase-orders/${encodeURIComponent(id)}`,
-    purchaseOrderSettlements: (id: string) => `${API_CONFIG.baseUrl}/purchase-orders/${encodeURIComponent(id)}/settlements`,
+    purchaseOrder: (id: string) =>
+      `${API_CONFIG.baseUrl}/purchase-orders/${encodeURIComponent(id)}`,
+    purchaseOrderSettlements: (id: string) =>
+      `${API_CONFIG.baseUrl}/purchase-orders/${encodeURIComponent(id)}/settlements`,
     orders: `${API_CONFIG.baseUrl}/orders`,
     orderStatus: (id: string) => `${API_CONFIG.baseUrl}/orders/${encodeURIComponent(id)}/status`,
     paymentInitiate: `${API_CONFIG.baseUrl}/payments/initiate`,
-    paymentStatus: (orderId: string) => `${API_CONFIG.baseUrl}/payments/${encodeURIComponent(orderId)}/status`,
+    paymentStatus: (orderId: string) =>
+      `${API_CONFIG.baseUrl}/payments/${encodeURIComponent(orderId)}/status`,
     stockItems: `${API_CONFIG.apiRoot}/stock/items`,
     stockItem: (id: string) => `${API_CONFIG.apiRoot}/stock/items/${encodeURIComponent(id)}`,
     restockRequests: `${API_CONFIG.apiRoot}/stock/restock-request`,
-    restockRequestStatus: (id: string) => `${API_CONFIG.apiRoot}/stock/restock-request/${encodeURIComponent(id)}/status`,
+    restockRequestStatus: (id: string) =>
+      `${API_CONFIG.apiRoot}/stock/restock-request/${encodeURIComponent(id)}/status`,
     stockOffers: `${API_CONFIG.apiRoot}/stock/offers`,
     stockOffer: (id: string) => `${API_CONFIG.apiRoot}/stock/offers/${encodeURIComponent(id)}`,
     warehouses: `${API_CONFIG.baseUrl}/warehouses`,
+    warehouse: (id: string) => `${API_CONFIG.baseUrl}/warehouses/${encodeURIComponent(id)}`,
     drivers: `${API_CONFIG.baseUrl}/drivers`,
     driver: (id: string) => `${API_CONFIG.baseUrl}/drivers/${encodeURIComponent(id)}`,
-    driverInvitationResend: (id: string) => `${API_CONFIG.baseUrl}/drivers/${encodeURIComponent(id)}/invitation/resend`,
-    driverInvitation: (id: string) => `${API_CONFIG.baseUrl}/drivers/${encodeURIComponent(id)}/invitation`,
+    driverInvitationResend: (id: string) =>
+      `${API_CONFIG.baseUrl}/drivers/${encodeURIComponent(id)}/invitation/resend`,
+    driverInvitation: (id: string) =>
+      `${API_CONFIG.baseUrl}/drivers/${encodeURIComponent(id)}/invitation`,
     driverStatus: (id: string) => `${API_CONFIG.baseUrl}/drivers/${encodeURIComponent(id)}/status`,
-    driverOperationalStatus: (id: string) => `${API_CONFIG.baseUrl}/drivers/${encodeURIComponent(id)}/operational-status`,
-    driverApplicationDecision: (id: string) => `${API_CONFIG.baseUrl}/driver-applications/${encodeURIComponent(id)}/decision`,
+    driverOperationalStatus: (id: string) =>
+      `${API_CONFIG.baseUrl}/drivers/${encodeURIComponent(id)}/operational-status`,
+    driverApplicationDecision: (id: string) =>
+      `${API_CONFIG.baseUrl}/driver-applications/${encodeURIComponent(id)}/decision`,
     vehicles: `${API_CONFIG.baseUrl}/vehicles`,
     vehicle: (id: string) => `${API_CONFIG.baseUrl}/vehicles/${encodeURIComponent(id)}`,
-    vehicleStatus: (id: string) => `${API_CONFIG.baseUrl}/vehicles/${encodeURIComponent(id)}/status`,
+    vehicleStatus: (id: string) =>
+      `${API_CONFIG.baseUrl}/vehicles/${encodeURIComponent(id)}/status`,
     members: `${API_CONFIG.baseUrl}/members`,
     memberInvitations: `${API_CONFIG.baseUrl}/members/invitations`,
     member: (id: string) => `${API_CONFIG.baseUrl}/members/${encodeURIComponent(id)}`,
@@ -88,6 +114,6 @@ export const API_ENDPOINTS = {
     tripTracking: (id: string) => `${API_CONFIG.baseUrl}/trips/${encodeURIComponent(id)}/tracking`,
     tripAssignment: (id: string) => `${API_CONFIG.baseUrl}/trips/${encodeURIComponent(id)}/assign`,
     tripDispatch: (id: string) => `${API_CONFIG.baseUrl}/trips/${encodeURIComponent(id)}/dispatch`,
-    tripStatus: (id: string) => `${API_CONFIG.baseUrl}/trips/${encodeURIComponent(id)}/status`
-  }
+    tripStatus: (id: string) => `${API_CONFIG.baseUrl}/trips/${encodeURIComponent(id)}/status`,
+  },
 } as const;

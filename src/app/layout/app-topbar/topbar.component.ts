@@ -25,6 +25,7 @@ export class TopbarComponent {
   protected readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly profileMenu = viewChild<ElementRef<HTMLElement>>('profileMenu');
+  private readonly profileButton = viewChild<ElementRef<HTMLButtonElement>>('profileButton');
   protected readonly profileOpen = signal(false);
   protected readonly loggingOut = signal(false);
 
@@ -59,7 +60,7 @@ export class TopbarComponent {
   protected dismissOnEscape(): void {
     if (!this.profileOpen()) return;
     this.closeProfile();
-    document.getElementById('workspace-profile-button')?.focus();
+    this.profileButton()?.nativeElement.focus();
   }
 
   protected logout(): void {

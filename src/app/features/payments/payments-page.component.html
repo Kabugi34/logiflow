@@ -1,0 +1,199 @@
+<section class="space-y-5">
+  <header class="flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-4">
+    <div>
+      <h1 class="text-xl font-semibold text-slate-900">Payments</h1>
+      <p class="mt-1 text-sm text-slate-500">
+        Payment transactions and backend reconciliation details scoped to your organization.
+      </p>
+    </div>
+    <button
+      type="button"
+      class="h-9 rounded border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700"
+      [disabled]="payments.loading() || !organizationType()"
+      (click)="payments.refreshTransactions(orderType())"
+    >
+      {{ payments.loading() ? 'Refreshing…' : 'Refresh' }}
+    </button>
+  </header>
+
+  @if (organizationType() !== 'MANUFACTURER' && organizationType() !== 'DISTRIBUTOR') {
+    <p role="alert" class="rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+      Payments are available only in an authenticated organization workspace.
+    </p>
+  } @else {
+    @if (!isManufacturer()) {
+      <div class="flex flex-wrap gap-2" role="tablist" aria-label="Payment category">
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="orderType() === 'PURCHASE_ORDER'"
+          class="rounded border px-3 py-2 text-xs font-medium"
+          [class.border-blue-300]="orderType() === 'PURCHASE_ORDER'"
+          [class.bg-blue-50]="orderType() === 'PURCHASE_ORDER'"
+          [class.text-blue-700]="orderType() === 'PURCHASE_ORDER'"
+          (click)="selectOrderType('PURCHASE_ORDER')"
+        >
+          Supplier payments
+        </button>
+        <button
+          type="button"
+          role="tab"
+          [attr.aria-selected]="orderType() === 'CUSTOMER_ORDER'"
+          class="rounded border px-3 py-2 text-xs font-medium"
+          [class.border-blue-300]="orderType() === 'CUSTOMER_ORDER'"
+          [class.bg-blue-50]="orderType() === 'CUSTOMER_ORDER'"
+          [class.text-blue-700]="orderType() === 'CUSTOMER_ORDER'"
+          (click)="selectOrderType('CUSTOMER_ORDER')"
+        >
+          Customer payments
+        </button>
+      </div>
+    } @else {
+      <p class="rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+        Incoming payments from distributor purchase orders.
+      </p>
+    }
+
+    @if (payments.error()) {
+      <div
+        role="alert"
+        class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+      >
+        {{ payments.error() }}
+        <p class="mt-1 text-[10px]">
+          Transaction history requires the payment API contract described in
+          docs/payment-api-contract.md.
+        </p>
+      </div>
+    }
+
+    <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <div
+        class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3"
+      >
+        <div>
+          <h2 class="text-sm font-semibold text-slate-900">
+            {{
+              orderType() === 'PURCHASE_ORDER' ? 'Supplier transactions' : 'Customer transactions'
+            }}
+          </h2>
+          <p class="mt-1 text-[10px] text-slate-500">
+            Transaction state reflects the backend payment reconciliation record.
+          </p>
+        </div>
+        <label class="flex items-center gap-2 text-xs text-slate-600">
+          Status
+          <select
+            class="h-9 rounded border border-slate-300 bg-white px-2 text-xs"
+            [value]="statusFilter()"
+            (change)="updateStatus($event)"
+          >
+            @for (status of statuses; track status.value) {
+              <option [value]="status.value">{{ status.label }}</option>
+            }
+          </select>
+        </label>
+      </div>
+
+      @if (payments.loading()) {
+        <app-loading-skeleton [rows]="5" [columns]="6" />
+      } @else if (payments.error()) {
+        <div class="p-8 text-center">
+          <p class="text-sm font-medium text-slate-700">Payment history is unavailable.</p>
+          <p class="mt-1 text-xs text-slate-500">
+            Retry after the backend payment history API is available.
+          </p>
+          <button
+            type="button"
+            class="mt-3 rounded bg-blue-600 px-3 py-2 text-xs font-medium text-white"
+            (click)="payments.refreshTransactions(orderType())"
+          >
+            Retry
+          </button>
+        </div>
+      } @else {
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[1080px] text-xs">
+            <thead class="bg-slate-50 text-left text-[10px] font-medium uppercase text-slate-500">
+              <tr>
+                <th scope="col" class="px-4 py-3">Payment / order reference</th>
+                <th scope="col" class="px-3 py-3">Counterparty</th>
+                <th scope="col" class="px-3 py-3 text-right">Amount</th>
+                <th scope="col" class="px-3 py-3">Provider</th>
+                <th scope="col" class="px-3 py-3">Status</th>
+                <th scope="col" class="px-3 py-3">Initiated</th>
+                <th scope="col" class="px-3 py-3">Updated</th>
+                <th scope="col" class="px-3 py-3">Reconciliation</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              @for (payment of filteredTransactions(); track payment.id) {
+                <tr>
+                  <td class="px-4 py-3">
+                    <p class="font-semibold text-slate-800">{{ payment.paymentReference }}</p>
+                    <p class="mt-1 text-[10px] text-slate-500">{{ payment.orderReference }}</p>
+                    @if (payment.mpesaReceiptNumber) {
+                      <p class="mt-1 text-[10px] text-slate-500">
+                        M-Pesa receipt {{ payment.mpesaReceiptNumber }}
+                      </p>
+                    }
+                  </td>
+                  <td class="px-3 py-3">
+                    <p class="font-medium text-slate-700">{{ payment.counterpartyName }}</p>
+                    <p class="mt-1 text-[10px] text-slate-500">{{ payment.direction }}</p>
+                  </td>
+                  <td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-800">
+                    {{ payment.amount | currency: payment.currency : 'symbol' : '1.0-2' }}
+                  </td>
+                  <td class="px-3 py-3">{{ payment.provider }}</td>
+                  <td class="px-3 py-3">
+                    <span
+                      class="rounded border px-2 py-1 text-[9px] font-semibold"
+                      [class]="statusClass(payment.status)"
+                    >
+                      {{ payment.status }}
+                    </span>
+                    @if (payment.failureReason) {
+                      <p class="mt-1 max-w-48 text-[10px] text-red-700">
+                        {{ payment.failureReason }}
+                      </p>
+                    }
+                  </td>
+                  <td class="whitespace-nowrap px-3 py-3 text-slate-600">
+                    {{ payment.createdAt | date: 'medium' }}
+                  </td>
+                  <td class="whitespace-nowrap px-3 py-3 text-slate-600">
+                    {{ payment.updatedAt | date: 'medium' }}
+                  </td>
+                  <td class="px-3 py-3">
+                    <p class="font-medium text-slate-700">{{ payment.reconciliationStatus }}</p>
+                    <p class="mt-1 text-[10px] text-slate-500">
+                      {{
+                        payment.reconciledAt
+                          ? (payment.reconciledAt | date: 'medium')
+                          : 'Not reconciled'
+                      }}
+                    </p>
+                    @if (payment.reconciliationReference) {
+                      <p class="mt-1 break-all text-[10px] text-slate-500">
+                        {{ payment.reconciliationReference }}
+                      </p>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="8" class="px-4 py-12 text-center text-slate-500">
+                    No
+                    {{ statusFilter() === 'ALL' ? '' : statusFilter().toLowerCase() }} transactions
+                    were returned for this category.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  }
+</section>

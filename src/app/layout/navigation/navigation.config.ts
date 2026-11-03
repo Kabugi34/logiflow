@@ -34,6 +34,11 @@ export const manufacturerNavigation: NavigationItem[] = [
     icon: 'file-text',
   },
   {
+    label: 'Payments',
+    route: '/manufacturer/payments',
+    icon: 'credit-card',
+  },
+  {
     label: 'Shipments',
     route: '/manufacturer/shipments',
     icon: 'truck',
@@ -107,6 +112,11 @@ export const distributorNavigation: NavigationItem[] = [
     label: 'Procurement',
     route: '/distributor/procurement',
     icon: 'file-text',
+  },
+  {
+    label: 'Payments',
+    route: '/distributor/payments',
+    icon: 'credit-card',
   },
   {
     label: 'Logistics',

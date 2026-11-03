@@ -7,18 +7,16 @@ import { distributorWorkspace, manufacturerWorkspace } from './layout/navigation
 import { ProfileComponent } from './features/profile/profile.component';
 import { AUTH_ROUTES } from './features/auth/auth.routes';
 
-
-
 export const routes: Routes = [
-    {
+  {
     path: '',
     pathMatch: 'full',
-    redirectTo: '/auth/request-access'
+    redirectTo: '/auth/request-access',
   },
 
   {
     path: 'auth',
-    children: AUTH_ROUTES
+    children: AUTH_ROUTES,
   },
 
   {
@@ -29,78 +27,85 @@ export const routes: Routes = [
     children: [
       { path: 'profile', component: ProfileComponent },
       {
+        path: 'payments',
+        loadComponent: () =>
+          import('./features/payments/payments-page.component').then(
+            (module) => module.PaymentsPageComponent,
+          ),
+      },
+      {
         path: 'dashboard',
         loadChildren: () =>
-          import('./features/manufacturer/dashboard/dashboard.routes')
-            .then(m => m.DASHBOARD_ROUTES)
+          import('./features/manufacturer/dashboard/dashboard.routes').then(
+            (m) => m.DASHBOARD_ROUTES,
+          ),
       },
       {
         path: 'products',
         loadChildren: () =>
-          import('./features/manufacturer/products/products.routes')
-            .then(m => m.PRODUCTS_ROUTES)
+          import('./features/manufacturer/products/products.routes').then((m) => m.PRODUCTS_ROUTES),
       },
       {
         path: 'inventory',
         loadChildren: () =>
-          import('./features/manufacturer/inventory/inventory.routes')
-            .then(m => m.INVENTORY_ROUTES)
+          import('./features/manufacturer/inventory/inventory.routes').then(
+            (m) => m.INVENTORY_ROUTES,
+          ),
       },
       {
         path: 'purchase-orders',
         loadChildren: () =>
-          import('./features/manufacturer/purchase-orders/purchase-orders.routes')
-            .then(m => m.PURCHASE_ORDER_ROUTES)
+          import('./features/manufacturer/purchase-orders/purchase-orders.routes').then(
+            (m) => m.PURCHASE_ORDER_ROUTES,
+          ),
       },
       {
         path: 'warehouses',
         loadChildren: () =>
-          import('./features/manufacturer/warehouses/warehouse.routes')
-            .then(m => m.WAREHOUSE_ROUTES)
+          import('./features/manufacturer/warehouses/warehouse.routes').then(
+            (m) => m.WAREHOUSE_ROUTES,
+          ),
       },
       {
         path: 'shipments',
         loadChildren: () =>
-          import('./features/manufacturer/shipments/shipment.routes')
-            .then(m => m.SHIPMENT_ROUTES)
+          import('./features/manufacturer/shipments/shipment.routes').then(
+            (m) => m.SHIPMENT_ROUTES,
+          ),
       },
       {
         path: 'logistics',
         loadChildren: () =>
-          import('./features/manufacturer/logistics/logistics.routes')
-            .then(m => m.LOGISTICS_ROUTES)
+          import('./features/manufacturer/logistics/logistics.routes').then(
+            (m) => m.LOGISTICS_ROUTES,
+          ),
       },
       {
         path: 'drivers',
         loadChildren: () =>
-          import('./features/manufacturer/drivers/drivers.routes')
-            .then(m => m.DRIVER_ROUTES)
+          import('./features/manufacturer/drivers/drivers.routes').then((m) => m.DRIVER_ROUTES),
       },
       {
         path: 'vehicles',
         loadChildren: () =>
-          import('./features/manufacturer/vehicles/vehicles.routes')
-            .then(m => m.VEHICLE_ROUTES)
+          import('./features/manufacturer/vehicles/vehicles.routes').then((m) => m.VEHICLE_ROUTES),
       },
       {
         path: 'staff',
         loadChildren: () =>
-          import('./features/manufacturer/staff/staff.routes')
-            .then(m => m.STAFF_ROUTES)
+          import('./features/manufacturer/staff/staff.routes').then((m) => m.STAFF_ROUTES),
       },
       {
         path: 'reports',
         loadChildren: () =>
-          import('./features/manufacturer/reports/reports.routes')
-            .then(m => m.REPORT_ROUTES)
+          import('./features/manufacturer/reports/reports.routes').then((m) => m.REPORT_ROUTES),
       },
       {
         path: 'settings',
         loadChildren: () =>
-          import('./features/manufacturer/settings/settings.routes')
-            .then(m => m.SETTINGS_ROUTES)
-      }
-    ]
+          import('./features/manufacturer/settings/settings.routes').then((m) => m.SETTINGS_ROUTES),
+      },
+    ],
   },
 
   {
@@ -111,80 +116,94 @@ export const routes: Routes = [
     children: [
       { path: 'profile', component: ProfileComponent },
       {
+        path: 'payments',
+        loadComponent: () =>
+          import('./features/payments/payments-page.component').then(
+            (module) => module.PaymentsPageComponent,
+          ),
+      },
+      {
         path: 'dashboard',
         loadChildren: () =>
-          import('./features/distributor/dashboard/dashboard.routes')
-            .then(m => m.DASHBOARD_ROUTES)
+          import('./features/distributor/dashboard/dashboard.routes').then(
+            (m) => m.DASHBOARD_ROUTES,
+          ),
       },
       {
         path: 'catalog',
         loadChildren: () =>
-          import('./features/distributor/catalog/catalog.routes')
-            .then(m => m.CATALOG_ROUTES)
+          import('./features/distributor/catalog/catalog.routes').then((m) => m.CATALOG_ROUTES),
       },
       {
         path: 'inventory',
         loadChildren: () =>
-          import('./features/distributor/inventory/inventory.routes')
-            .then(m => m.INVENTORY_ROUTES)
+          import('./features/distributor/inventory/inventory.routes').then(
+            (m) => m.INVENTORY_ROUTES,
+          ),
       },
       {
         path: 'procurement',
         loadChildren: () =>
-          import('./features/distributor/procurement/procurement.routes')
-            .then(m => m.PROCUREMENT_ROUTES)
+          import('./features/distributor/procurement/procurement.routes').then(
+            (m) => m.PROCUREMENT_ROUTES,
+          ),
       },
       {
         path: 'logistics',
         loadChildren: () =>
-          import('./features/distributor/logistics/logistics.routes')
-            .then(m => m.LOGISTICS_ROUTES)
+          import('./features/distributor/logistics/logistics.routes').then(
+            (m) => m.LOGISTICS_ROUTES,
+          ),
       },
       {
         path: 'drivers',
         loadChildren: () =>
-          import('./features/distributor/drivers/drivers.routes')
-            .then(m => m.DISTRIBUTOR_DRIVER_ROUTES)
+          import('./features/distributor/drivers/drivers.routes').then(
+            (m) => m.DISTRIBUTOR_DRIVER_ROUTES,
+          ),
       },
       {
         path: 'vehicles',
         loadChildren: () =>
-          import('./features/distributor/vehicles/vehicles.routes')
-            .then(m => m.DISTRIBUTOR_VEHICLE_ROUTES)
+          import('./features/distributor/vehicles/vehicles.routes').then(
+            (m) => m.DISTRIBUTOR_VEHICLE_ROUTES,
+          ),
       },
       {
         path: 'staff',
         loadChildren: () =>
-          import('./features/distributor/staff/staff.routes')
-            .then(m => m.DISTRIBUTOR_STAFF_ROUTES)
+          import('./features/distributor/staff/staff.routes').then(
+            (m) => m.DISTRIBUTOR_STAFF_ROUTES,
+          ),
       },
       {
         path: 'warehouses',
         loadChildren: () =>
-          import('./features/distributor/warehouses/warehouses.routes')
-            .then(m => m.DISTRIBUTOR_WAREHOUSE_ROUTES)
+          import('./features/distributor/warehouses/warehouses.routes').then(
+            (m) => m.DISTRIBUTOR_WAREHOUSE_ROUTES,
+          ),
       },
       {
         path: 'customers',
         loadChildren: () =>
-          import('./features/distributor/customers/customers.routes')
-            .then(m => m.CUSTOMER_ROUTES)
+          import('./features/distributor/customers/customers.routes').then(
+            (m) => m.CUSTOMER_ROUTES,
+          ),
       },
       {
         path: 'orders',
         loadChildren: () =>
-          import('./features/distributor/orders/orders.routes')
-            .then(m => m.ORDER_ROUTES)
+          import('./features/distributor/orders/orders.routes').then((m) => m.ORDER_ROUTES),
       },
       {
         path: '**',
-        redirectTo: 'dashboard'
-      }
-    ]
+        redirectTo: 'dashboard',
+      },
+    ],
   },
 
   {
     path: '**',
-    redirectTo: 'auth/request-access'
-  }
+    redirectTo: 'auth/request-access',
+  },
 ];

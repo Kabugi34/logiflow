@@ -27,7 +27,9 @@ export class ShipmentListComponent {
   protected readonly allocationError = signal('');
   protected readonly saving = signal(false);
   protected readonly dispatchableOrders = computed(() =>
-    this.purchaseOrderService.orders().filter((order) => order.status === 'ACCEPTED'),
+    this.purchaseOrderService
+      .orders()
+      .filter((order) => order.status === 'ACCEPTED' && order.paymentStatus === 'PAID'),
   );
   protected readonly availableDrivers = computed(() =>
     this.fleetService.drivers().filter((driver) => {
@@ -104,6 +106,12 @@ export class ShipmentListComponent {
       this.allocationError.set('Select a valid purchase order.');
       return;
     }
+    if (order.status !== 'ACCEPTED' || order.paymentStatus !== 'PAID') {
+      this.allocationError.set(
+        'The purchase order must be accepted and payment must be backend-confirmed before shipment allocation.',
+      );
+      return;
+    }
     const driver = this.fleetService.findDriver(this.form.controls.driverId.value);
     const vehicle = driver?.vehicleId ? this.fleetService.findVehicle(driver.vehicleId) : undefined;
     if (!driver || !vehicle) {
@@ -112,16 +120,29 @@ export class ShipmentListComponent {
     }
 
     this.saving.set(true);
-    this.shipmentService.create({
+    this.shipmentService
+      .create({
         poReference: this.form.controls.poReference.value,
         destination: this.form.controls.destination.value,
         freightDetails: this.form.controls.freightDetails.value,
         quantity: this.form.controls.quantity.value,
         driverId: driver.id,
         vehicleId: vehicle.id,
-      }).pipe(finalize(() => this.saving.set(false))).subscribe({
-        next: shipment => { this.shipmentService.refresh(); this.isAllocationOpen.set(false); void this.router.navigate(['/manufacturer/shipments', shipment.id], { queryParamsHandling: 'preserve' }); },
-        error: error => this.allocationError.set(error?.error?.message ?? 'Shipment could not be allocated. Check purchase order and fleet availability.')
+      })
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({
+        next: (shipment) => {
+          this.shipmentService.refresh();
+          this.isAllocationOpen.set(false);
+          void this.router.navigate(['/manufacturer/shipments', shipment.id], {
+            queryParamsHandling: 'preserve',
+          });
+        },
+        error: (error) =>
+          this.allocationError.set(
+            error?.error?.message ??
+              'Shipment could not be allocated. Check purchase order and fleet availability.',
+          ),
       });
   }
 

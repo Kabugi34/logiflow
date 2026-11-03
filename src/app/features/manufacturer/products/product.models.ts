@@ -8,6 +8,7 @@ export interface ManufacturerProduct {
   brand: string;
   category: string;
   unit: string;
+  unitPrice: number | null;
   stock: number;
   status: ProductStatus;
   publicationStatus: ProductPublicationStatus;

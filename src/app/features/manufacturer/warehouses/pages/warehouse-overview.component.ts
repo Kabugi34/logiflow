@@ -35,6 +35,7 @@ export class WarehouseOverviewComponent {
   protected readonly message = signal('');
   protected readonly error = signal('');
   protected readonly saving = signal(false);
+  protected readonly archiveConfirmationOpen = signal(false);
   protected readonly loading = this.warehouseService.loading;
   protected readonly form = this.fb.nonNullable.group({
     code: ['', [trimmedRequired, Validators.maxLength(24), Validators.pattern(/^[A-Za-z0-9-]+$/)]],
@@ -57,26 +58,70 @@ export class WarehouseOverviewComponent {
     }
     if (this.saving()) return;
     this.saving.set(true);
-    this.warehouseService.createWarehouse(this.form.getRawValue()).pipe(finalize(() => this.saving.set(false))).subscribe({
-      next: row => {
-        this.warehouseService.refresh();
-        this.selectedWarehouseId.set(row.id);
-        this.createOpen.set(false);
-        this.form.reset({ code: '', name: '', address: '', city: '', postalCode: '', siteManager: '' });
-        this.message.set('Warehouse created.');
-      },
-      error: error => this.error.set(error?.error?.message ?? 'Warehouse could not be created. Check your organization role and try again.')
-    });
+    this.warehouseService
+      .createWarehouse(this.form.getRawValue())
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({
+        next: (row) => {
+          this.warehouseService.refresh();
+          this.selectedWarehouseId.set(row.id);
+          this.createOpen.set(false);
+          this.form.reset({
+            code: '',
+            name: '',
+            address: '',
+            city: '',
+            postalCode: '',
+            siteManager: '',
+          });
+          this.message.set('Warehouse created.');
+        },
+        error: (error) =>
+          this.error.set(
+            error?.error?.message ??
+              'Warehouse could not be created. Check your organization role and try again.',
+          ),
+      });
   }
   protected toggleSelectedStatus(): void {
     const id = this.selectedWarehouseId();
     const warehouse = id ? this.warehouseService.findById(id) : undefined;
     if (!warehouse || this.saving()) return;
     this.saving.set(true);
-    this.warehouseService.updateStatus(id!, warehouse.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE')
-      .pipe(finalize(() => this.saving.set(false))).subscribe({
-        next: () => { this.warehouseService.refresh(); this.message.set('Warehouse status updated.'); },
-        error: error => this.error.set(error?.error?.message ?? 'Warehouse status could not be updated.')
+    this.warehouseService
+      .updateStatus(id!, warehouse.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE')
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({
+        next: () => {
+          this.warehouseService.refresh();
+          this.message.set('Warehouse status updated.');
+        },
+        error: (error) =>
+          this.error.set(error?.error?.message ?? 'Warehouse status could not be updated.'),
+      });
+  }
+
+  protected confirmArchive(): void {
+    const id = this.selectedWarehouseId();
+    const warehouse = id ? this.warehouseService.findById(id) : undefined;
+    if (!warehouse || warehouse.status !== 'ACTIVE' || this.saving()) return;
+    this.saving.set(true);
+    this.warehouseService
+      .updateStatus(warehouse.id, 'INACTIVE')
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({
+        next: () => {
+          this.archiveConfirmationOpen.set(false);
+          this.warehouseService.refresh();
+          this.message.set('Warehouse archived. Existing records were preserved.');
+        },
+        error: (error) => {
+          this.archiveConfirmationOpen.set(false);
+          this.error.set(
+            error?.error?.message ??
+              'Warehouse could not be archived. Warehouses with active stock or operational dependencies must remain active.',
+          );
+        },
       });
   }
 
