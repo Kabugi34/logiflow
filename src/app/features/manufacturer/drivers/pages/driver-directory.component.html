@@ -126,6 +126,17 @@
             >Licence details<input
               formControlName="license"
               class="mt-1 w-full rounded border p-2" /></label
+          ><label class="text-xs"
+            >National ID<input
+              formControlName="nationalId"
+              autocomplete="off"
+              maxlength="32"
+              class="mt-1 w-full rounded border p-2" /></label
+          ><label class="text-xs"
+            >Licence expiry date<input
+              formControlName="licenseExpiryDate"
+              type="date"
+              class="mt-1 w-full rounded border p-2" /></label
           ><label class="text-xs sm:col-span-2"
             >Base warehouse (optional)<select
               formControlName="baseWarehouseId"
@@ -149,6 +160,14 @@
         }
         @if (fieldError('license')) {
           <p role="alert" class="text-xs text-red-600">{{ fieldError('license') }}</p>
+        }
+        @if (fieldError('nationalId')) {
+          <p role="alert" class="text-xs text-red-600">{{ fieldError('nationalId') }}</p>
+        }
+        @if (fieldError('licenseExpiryDate')) {
+          <p role="alert" class="text-xs text-red-600">
+            {{ fieldError('licenseExpiryDate') }}
+          </p>
         }
         <p class="text-xs text-slate-500">
           Creating a record sets its status to Invited. Invitation delivery is handled by the API
@@ -182,4 +201,3 @@
     </div>
   }
 </section>
-

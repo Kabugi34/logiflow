@@ -40,9 +40,13 @@ export class DriverDirectoryComponent {
     email: ['', [trimmedRequired, Validators.email, Validators.maxLength(120)]],
     phone: ['', [trimmedRequired, internationalPhone, Validators.maxLength(32)]],
     license: ['', [trimmedRequired, licenceValue, Validators.maxLength(40)]],
+    nationalId: ['', [trimmedRequired, Validators.maxLength(32)]],
+    licenseExpiryDate: ['', [trimmedRequired, Validators.pattern(/^\d{4}-\d{2}-\d{2}$/)]],
     baseWarehouseId: [''],
   });
-  protected fieldError(field: 'name' | 'email' | 'phone' | 'license') {
+  protected fieldError(
+    field: 'name' | 'email' | 'phone' | 'license' | 'nationalId' | 'licenseExpiryDate',
+  ) {
     const c = this.form.controls[field];
     if (!c.touched || c.valid) return '';
     if (c.hasError('required')) return 'This field is required.';
@@ -52,6 +56,7 @@ export class DriverDirectoryComponent {
     if (c.hasError('personName')) return 'Use letters, spaces, apostrophes, periods, or hyphens.';
     if (c.hasError('licenceValue'))
       return 'Use 2–40 letters, numbers, spaces, slashes, or hyphens.';
+    if (c.hasError('pattern')) return 'Enter a valid licence expiry date.';
     if (c.hasError('maxlength'))
       return `Maximum length is ${c.getError('maxlength').requiredLength} characters.`;
     return 'Check this value.';
@@ -84,7 +89,7 @@ export class DriverDirectoryComponent {
     }
     this.saving.set(true);
     this.fleet.createDriverApi(this.form.getRawValue()).pipe(finalize(() => this.saving.set(false))).subscribe({
-      next: driver => { this.selected.set(driver.id); this.showForm.set(false); this.notice.set(driver.invitationStatus === 'FAILED' ? 'Driver profile was saved, but the invitation email failed. Retry with Resend invitation.' : 'Driver saved. The backend has queued or sent an activation invitation to the email provided.'); },
+      next: driver => { this.selected.set(driver.id); this.showForm.set(false); this.notice.set(driver.invitationStatus === 'FAILED' ? 'Driver profile was saved, but the invitation email failed. Retry with Resend invitation.' : 'Driver saved. Invitation delivery is handled by the backend.'); },
       error: error => this.notice.set(error?.error?.message ?? 'Driver could not be saved. Check the driver API and organization permission.')
     });
   }
@@ -128,5 +133,3 @@ export class DriverDirectoryComponent {
     }[s];
   }
 }
-
-

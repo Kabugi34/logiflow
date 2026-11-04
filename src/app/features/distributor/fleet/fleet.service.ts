@@ -9,7 +9,7 @@ import {
   DriverOperationalStatus,
 } from './fleet.models';
 
-interface DriverApiRow { id: string; fullName?: string; name?: string; email?: string; phoneNumber?: string; phone?: string; licenseNumber?: string; license?: string; accountStatus?: DriverAccountStatus; operationalStatus?: DriverOperationalStatus; baseWarehouseId?: string | null; createdAt?: string; vehicleId?: string; invitationStatus?: 'QUEUED' | 'SENT' | 'FAILED'; }
+interface DriverApiRow { id: string; fullName?: string; name?: string; email?: string; phoneNumber?: string; phone?: string; licenseNumber?: string; license?: string; nationalId?: string; licenseExpiryDate?: string; accountStatus?: DriverAccountStatus; operationalStatus?: DriverOperationalStatus; baseWarehouseId?: string | null; createdAt?: string; vehicleId?: string; invitationStatus?: 'QUEUED' | 'SENT' | 'FAILED'; }
 interface VehicleApiRow { id: string; model?: string; type?: string; plate?: string; registrationNumber?: string; status?: DistributorVehicle['status']; locationLabel?: string; latitude?: number; longitude?: number; }
 interface Page<T> { content?: T[]; }
 
@@ -40,16 +40,19 @@ export class DistributorFleetService {
 
   constructor() { this.refresh(); }
 
-  createDriver(details: { name: string; email: string; phone: string; license: string; baseWarehouseId?: string }): Observable<DistributorDriver> {
+  createDriver(details: { name: string; email: string; phone: string; license: string; nationalId: string; licenseExpiryDate: string; baseWarehouseId?: string }): Observable<DistributorDriver> {
     return this.http.post<DriverApiRow>(API_ENDPOINTS.distributor.drivers, {
       fullName: details.name.trim(), email: details.email.trim().toLowerCase(), phoneNumber: details.phone.trim(),
-      licenseNumber: details.license.trim().toUpperCase(), baseWarehouseId: details.baseWarehouseId || null
+      licenseNumber: details.license.trim().toUpperCase(), nationalId: details.nationalId.trim(),
+      licenseExpiryDate: details.licenseExpiryDate, baseWarehouseId: details.baseWarehouseId || null
     }).pipe(map(row => this.mapDriver(row)), tap(driver => this.driverRecords.update(rows => [driver, ...rows])));
   }
 
-  saveDriverProfile(id: string, details: { name: string; phone: string; license: string; baseWarehouseId?: string }): Observable<DistributorDriver> {
+  saveDriverProfile(id: string, details: { name: string; phone: string; license: string; nationalId: string; licenseExpiryDate: string; baseWarehouseId?: string }): Observable<DistributorDriver> {
     return this.http.patch<DriverApiRow>(API_ENDPOINTS.distributor.driver(id), {
-      fullName: details.name.trim(), phoneNumber: details.phone.trim(), licenseNumber: details.license.trim().toUpperCase(), baseWarehouseId: details.baseWarehouseId || null
+      fullName: details.name.trim(), phoneNumber: details.phone.trim(), licenseNumber: details.license.trim().toUpperCase(),
+      nationalId: details.nationalId.trim(), licenseExpiryDate: details.licenseExpiryDate,
+      baseWarehouseId: details.baseWarehouseId || null
     }).pipe(map(row => this.mapDriver(row)), tap(updated => this.driverRecords.update(rows => rows.map(row => row.id === id ? updated : row))));
   }
 
@@ -76,7 +79,7 @@ export class DistributorFleetService {
   private mapDriver(row: DriverApiRow): DistributorDriver {
     const operationalStatus = row.operationalStatus ?? 'OFF_DUTY';
     return { id: row.id, name: row.fullName ?? row.name ?? '', email: row.email ?? '', phone: row.phoneNumber ?? row.phone ?? '',
-      license: row.licenseNumber ?? row.license ?? '', accountStatus: row.accountStatus ?? 'INVITED', operationalStatus,
+      license: row.licenseNumber ?? row.license ?? '', nationalId: row.nationalId, licenseExpiryDate: row.licenseExpiryDate, accountStatus: row.accountStatus ?? 'INVITED', operationalStatus,
       status: operationalStatus === 'AVAILABLE' ? 'STANDBY' : operationalStatus === 'ON_TRIP' ? 'ON_TRIP' : 'OFF_DUTY',
       baseWarehouseId: row.baseWarehouseId ?? null, invitationResends: 0, invitationStatus: row.invitationStatus, locationLabel: '', createdAt: row.createdAt ?? '', vehicleId: row.vehicleId };
   }
@@ -94,7 +97,7 @@ export class DistributorFleetService {
         const rows = Array.isArray(result) ? result : result.content ?? [];
         this.driverRecords.set(rows.map(row => ({
           id: row.id, name: row.fullName ?? row.name ?? '', email: row.email ?? '', phone: row.phoneNumber ?? row.phone ?? '',
-          license: row.licenseNumber ?? row.license ?? '', accountStatus: row.accountStatus ?? 'INVITED',
+          license: row.licenseNumber ?? row.license ?? '', nationalId: row.nationalId, licenseExpiryDate: row.licenseExpiryDate, accountStatus: row.accountStatus ?? 'INVITED',
           operationalStatus: row.operationalStatus ?? 'OFF_DUTY', status: row.operationalStatus === 'AVAILABLE' ? 'STANDBY' : row.operationalStatus === 'ON_TRIP' ? 'ON_TRIP' : 'OFF_DUTY',
           baseWarehouseId: row.baseWarehouseId ?? null, invitationResends: 0, locationLabel: '', createdAt: row.createdAt ?? '', vehicleId: row.vehicleId
         })));

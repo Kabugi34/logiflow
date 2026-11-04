@@ -219,6 +219,17 @@
               formControlName="license"
               maxlength="40"
               class="mt-1 h-9 w-full rounded border px-3" /></label
+          ><label class="text-xs"
+            >National ID<input
+              formControlName="nationalId"
+              autocomplete="off"
+              maxlength="32"
+              class="mt-1 h-9 w-full rounded border px-3" /></label
+          ><label class="text-xs"
+            >Licence expiry date<input
+              type="date"
+              formControlName="licenseExpiryDate"
+              class="mt-1 h-9 w-full rounded border px-3" /></label
           ><label class="text-xs sm:col-span-2"
             >Base warehouse (optional)<select
               formControlName="baseWarehouseId"
@@ -243,9 +254,17 @@
         @if (fieldError('license')) {
           <p role="alert" class="text-xs text-red-600">{{ fieldError('license') }}</p>
         }
+        @if (fieldError('nationalId')) {
+          <p role="alert" class="text-xs text-red-600">{{ fieldError('nationalId') }}</p>
+        }
+        @if (fieldError('licenseExpiryDate')) {
+          <p role="alert" class="text-xs text-red-600">
+            {{ fieldError('licenseExpiryDate') }}
+          </p>
+        }
         @if (!editingId()) {
           <p class="rounded bg-slate-50 p-2 text-xs text-slate-600">
-            The mock service records the driver as Invited. No invitation is sent by this frontend.
+            The API must queue or send an activation invitation to this email address.
           </p>
         }
         @if (formError()) {

@@ -64,10 +64,14 @@ export class DriverDirectoryComponent {
     email: ['', [trimmedRequired, Validators.email, Validators.maxLength(120)]],
     phone: ['', [trimmedRequired, internationalPhone, Validators.maxLength(32)]],
     license: ['', [trimmedRequired, licenceValue, Validators.maxLength(40)]],
+    nationalId: ['', [trimmedRequired, Validators.maxLength(32)]],
+    licenseExpiryDate: ['', [trimmedRequired, Validators.pattern(/^\d{4}-\d{2}-\d{2}$/)]],
     baseWarehouseId: [''],
   });
 
-  protected fieldError(field: 'name' | 'email' | 'phone' | 'license'): string {
+  protected fieldError(
+    field: 'name' | 'email' | 'phone' | 'license' | 'nationalId' | 'licenseExpiryDate',
+  ): string {
     const control = this.form.controls[field];
     if (!control.touched || control.valid) return '';
     if (control.hasError('required')) return 'This field is required.';
@@ -78,6 +82,7 @@ export class DriverDirectoryComponent {
       return 'Use letters, spaces, apostrophes, periods, or hyphens.';
     if (control.hasError('licenceValue'))
       return 'Use 2–40 letters, numbers, spaces, slashes, or hyphens.';
+    if (control.hasError('pattern')) return 'Enter a valid licence expiry date.';
     if (control.hasError('maxlength'))
       return `Maximum length is ${control.getError('maxlength').requiredLength} characters.`;
     return 'Check this value.';
@@ -95,7 +100,15 @@ export class DriverDirectoryComponent {
   }
   protected openOnboard(): void {
     this.editingId.set('');
-    this.form.reset({ name: '', email: '', phone: '', license: '', baseWarehouseId: '' });
+    this.form.reset({
+      name: '',
+      email: '',
+      phone: '',
+      license: '',
+      nationalId: '',
+      licenseExpiryDate: '',
+      baseWarehouseId: '',
+    });
     this.formError.set('');
     this.form.controls.email.enable();
     this.dialogOpen.set(true);
@@ -111,6 +124,8 @@ export class DriverDirectoryComponent {
       email: driver.email,
       phone: driver.phone,
       license: driver.license,
+      nationalId: driver.nationalId ?? '',
+      licenseExpiryDate: driver.licenseExpiryDate ?? '',
       baseWarehouseId: driver.baseWarehouseId ?? '',
     });
     this.form.controls.email.disable();
@@ -139,7 +154,7 @@ export class DriverDirectoryComponent {
         this.query.set('');
         this.notice.set(driver.invitationStatus === 'FAILED'
           ? 'Driver profile was saved, but the invitation email failed. Retry with Resend invitation.'
-          : 'Driver saved. The backend has queued or sent an activation invitation to the email provided.');
+          : 'Driver saved. Invitation delivery is handled by the backend.');
         } else this.notice.set('Driver profile updated.');
         this.dialogOpen.set(false);
       },

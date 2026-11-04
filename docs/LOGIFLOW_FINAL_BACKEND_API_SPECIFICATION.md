@@ -180,9 +180,9 @@ reloads.
 | `PATCH /api/v1/trips/{id}/status` | `{ status, note }`; typed trip response. | Update trip status. |
 | `POST /api/v1/trips/{id}/driver-ping` | Empty JSON object; response untyped. | Manufacturer request driver update. |
 | `POST /api/v1/trips/{id}/reroute-proposals` | Empty JSON object; response untyped. | Manufacturer propose reroute. |
-| `GET /api/v1/drivers?size=100` | Array/page. Fields consumed include ID, names, email, phone, license, account/operational status, base warehouse, creation time, optional vehicle and invitation state. | Both workspaces' driver directories. |
-| `POST /api/v1/drivers` | Manufacturer and Distributor submit driver identity/contact/license/base warehouse fields; Manufacturer uses `{ fullName,email,phoneNumber,licenseNumber,baseWarehouseId }`; Distributor equivalent. | Register/invite driver. |
-| `PATCH /api/v1/drivers/{id}` | Distributor profile update: `{ fullName, phoneNumber, licenseNumber, baseWarehouseId }`; typed driver response. | Edit Distributor driver profile. |
+| `GET /api/v1/drivers?size=100` | Array/page. Fields consumed include ID, names, email, phone, license, national ID, license expiry date, account/operational status, base warehouse, creation time, optional vehicle and invitation state. | Both workspaces' driver directories. |
+| `POST /api/v1/drivers` | Both workspaces send `{ fullName, email, phoneNumber, licenseNumber, nationalId, licenseExpiryDate, baseWarehouseId }`; `licenseExpiryDate` is the date-input string formatted `YYYY-MM-DD`. The user-provided 400 response confirms `nationalId` is nonblank and `licenseExpiryDate` is required by the deployed validator; other validation/notification behavior remains unverified. | Register/invite driver. |
+| `PATCH /api/v1/drivers/{id}` | Distributor profile update sends `{ fullName, phoneNumber, licenseNumber, nationalId, licenseExpiryDate, baseWarehouseId }`; typed driver response. | Edit Distributor driver profile. |
 | `POST /api/v1/drivers/{id}/invitation/resend` | Empty JSON object; response untyped. | Resend driver invite. |
 | `DELETE /api/v1/drivers/{id}/invitation` | No body; response untyped. | Revoke pending invitation. |
 | `PATCH /api/v1/drivers/{id}/status` | `{ status: 'SUSPENDED' \| 'ACTIVE' }`; response untyped. | Suspend/reactivate account. |
@@ -198,6 +198,13 @@ route templates only once. Manufacturer logistics does not fetch a distinct trip
 derives trip display data from shipment records and fleet state. Some UI metrics, route progress,
 location labels, invitation resend counts, and service/operational statuses are synthesized by
 Angular and must not be persisted as authoritative backend facts.
+
+**User-reported runtime evidence:** `POST /api/v1/drivers` first returned `400
+VALIDATION_FAILED` for missing `nationalId` and `licenseExpiryDate`; after those fields were added,
+a request from `http://localhost:4200` was reported to return `403 Forbidden` with JSON. This
+confirms the server applies validation and later denied a driver-create request, but does not
+identify which authorization rule caused the denial. The actual JWT claims, backend security logs,
+CSRF configuration, and CORS policy were not independently inspected.
 
 #### Organization profile and notification preferences — 4 operations
 

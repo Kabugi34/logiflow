@@ -5,6 +5,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { LoadingIndicatorComponent } from '../../../shared/loading/loading-indicator.component';
+import { BrandLogoComponent } from '../../../shared/brand-logo.component';
 import { matchingFields } from '../../../core/forms/form-validators';
 import { trimmedRequired } from '../../../core/forms/form-validators';
 import { finalize } from 'rxjs';
@@ -12,7 +13,13 @@ import { finalize } from 'rxjs';
 @Component({
   selector: 'app-activate-account',
   standalone: true,
-  imports: [FormValidationSummaryComponent, LoadingIndicatorComponent, ReactiveFormsModule, RouterLink],
+  imports: [
+    BrandLogoComponent,
+    FormValidationSummaryComponent,
+    LoadingIndicatorComponent,
+    ReactiveFormsModule,
+    RouterLink,
+  ],
   templateUrl: './activate-account.component.html',
 })
 export class ActivateAccountComponent {

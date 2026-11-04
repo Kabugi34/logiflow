@@ -19,22 +19,14 @@
       [routerLink]="workspace().homeRoute"
       queryParamsHandling="preserve"
       (click)="closeOnNavigate()"
-      class="flex min-w-0 items-center gap-2"
+      class="flex min-w-0 items-center"
       [attr.aria-label]="'LogiFlow ' + workspace().name + ' home'"
+      [class.justify-center]="!layout.isExpanded()"
     >
-      <span
-        class="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-blue-600 text-xs font-bold text-white"
-        >LF</span
-      >
-      @if (layout.isExpanded()) {
-        <span class="min-w-0">
-          <span class="block text-sm font-semibold leading-4 text-slate-900">LogiFlow</span>
-          <span
-            class="mt-0.5 block text-[9px] font-medium uppercase tracking-wide text-slate-500"
-            >{{ workspace().name }}</span
-          >
-        </span>
-      }
+      <app-brand-logo
+        [iconOnly]="!layout.isExpanded()"
+        [subtitle]="layout.isExpanded() ? workspace().name : ''"
+      />
     </a>
   </div>
 
