@@ -25,11 +25,9 @@ export class ManufacturerLogisticsService {
     this.shipmentService
       .shipments()
       .filter(
-        (
-          shipment,
-        ): shipment is ManufacturerShipment & {
-          status: Exclude<ShipmentStatus, 'UNKNOWN'>;
-        } => shipment.status !== 'UNKNOWN',
+        (shipment): shipment is ManufacturerShipment & { status: 'IN_TRANSIT' | 'DELIVERED' } =>
+          (shipment.status === 'IN_TRANSIT' || shipment.status === 'DELIVERED') &&
+          !!shipment.tripId && shipment.tripId !== '—',
       )
       .map(shipment => {
         const progress = {
@@ -37,8 +35,7 @@ export class ManufacturerLogisticsService {
           completedStops: 0,
           currentLocation: shipment.route[0]?.label ?? '—',
         };
-        const status: LogisticsTripStatus =
-          shipment.status === 'BORDER_HOLD' ? 'DELAYED' : shipment.status;
+        const status: LogisticsTripStatus = shipment.status;
         const driver = this.fleetService.drivers().find(record => record.currentTripId === shipment.tripId);
         const vehicle = driver?.vehicleId ? this.fleetService.findVehicle(driver.vehicleId) : undefined;
         return {

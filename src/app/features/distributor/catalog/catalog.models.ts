@@ -32,5 +32,5 @@ export interface DistributorCatalogProduct {
   inStock: boolean | null;
   description: string;
   imageUrl: string;
-  authorizationStatus: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
+  authorizationStatus: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVOKED';
 }

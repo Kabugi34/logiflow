@@ -14,7 +14,6 @@ import { AuthService } from '../../../../core/auth/auth.service';
 import { trimmedRequired } from '../../../../core/forms/form-validators';
 import { WarehouseOrder } from '../../../warehouse-operations/warehouse-operations.models';
 import { WarehouseOperationsService } from '../../../warehouse-operations/warehouse-operations.service';
-import { ManufacturerFleetService } from '../../fleet/fleet.service';
 import { ManufacturerInventoryService } from '../../inventory/inventory.service';
 import { ManufacturerPurchaseOrderService } from '../../purchase-orders/purchase-order.service';
 import { ManufacturerShipmentService } from '../../shipments/shipment.service';
@@ -32,7 +31,6 @@ export class ManufacturerWarehouseOperationsComponent {
   protected readonly inventory = inject(ManufacturerInventoryService);
   protected readonly purchaseOrders = inject(ManufacturerPurchaseOrderService);
   protected readonly shipments = inject(ManufacturerShipmentService);
-  protected readonly fleet = inject(ManufacturerFleetService);
   private readonly sourceSync = effect(() => {
     if (this.inventory.loading() || this.purchaseOrders.loading()) return;
     const inventory = this.inventory.getRows().map((item) => ({
@@ -74,24 +72,6 @@ export class ManufacturerWarehouseOperationsComponent {
   protected readonly orderStatusFilter = signal('ALL');
   protected readonly packedQuantities = signal<Record<string, number>>({});
 
-  protected readonly readyDrivers = computed(() =>
-    this.fleet.drivers().filter((driver) => {
-      if (
-        driver.accountStatus !== 'ACTIVE' ||
-        driver.operationalStatus !== 'AVAILABLE' ||
-        driver.currentTripId
-      ) {
-        return false;
-      }
-      const vehicle = driver.vehicleId ? this.fleet.findVehicle(driver.vehicleId) : undefined;
-      return (
-        !!vehicle &&
-        vehicle.assignedDriverId === driver.id &&
-        this.fleet.vehicleStatus(vehicle) === 'STANDBY' &&
-        !vehicle.currentTripId
-      );
-    }),
-  );
   protected readonly selectedPickOrder = computed(() =>
     this.operations.awaitingPick().find((order) => order.id === this.selectedPickOrderId()),
   );
@@ -141,9 +121,6 @@ export class ManufacturerWarehouseOperationsComponent {
   });
   protected readonly packForm = this.fb.nonNullable.group({
     packages: [1, [Validators.required, Validators.min(1)]],
-  });
-  protected readonly dispatchForm = this.fb.nonNullable.group({
-    driverId: ['', Validators.required],
   });
   protected readonly adjustmentForm = this.fb.nonNullable.group({
     quantity: [0, Validators.required],
@@ -244,21 +221,11 @@ export class ManufacturerWarehouseOperationsComponent {
   protected openDispatch(order: WarehouseOrder): void {
     this.clearFeedback();
     this.selectedDispatchOrderId.set(order.id);
-    this.dispatchForm.reset({ driverId: this.readyDrivers()[0]?.id ?? '' });
   }
 
   protected confirmDispatch(): void {
     const order = this.selectedDispatchOrder();
-    const driver = this.fleet.findDriver(this.dispatchForm.controls.driverId.value);
-    const vehicle = driver?.vehicleId ? this.fleet.findVehicle(driver.vehicleId) : undefined;
-    if (!order || this.dispatchForm.invalid || !driver || !vehicle || this.saving()) {
-      this.dispatchForm.markAllAsTouched();
-      return;
-    }
-    if (!this.actor()) {
-      this.error.set('The authenticated dispatcher could not be identified.');
-      return;
-    }
+    if (!order || this.saving()) return;
     const purchaseOrder = this.purchaseOrders.findById(order.id);
     if (
       !purchaseOrder ||
@@ -270,34 +237,25 @@ export class ManufacturerWarehouseOperationsComponent {
       );
       return;
     }
-    try {
-      this.operations.validateDispatchOrders([order.id]);
-    } catch (error) {
-      this.showError(error);
+    const shipment = this.shipments.findByPurchaseOrderId(purchaseOrder.id);
+    if (!shipment || shipment.status !== 'READY_FOR_DISPATCH') {
+      this.error.set('Create a shipment for this paid purchase order in Shipments before dispatching it.');
       return;
     }
 
     this.saving.set(true);
     this.shipments
-      .create({
-        poReference: purchaseOrder.id,
-        destination: purchaseOrder.destinationHub,
-        freightDetails: order.lines.map((line) => line.product).join(', '),
-        quantity: order.lines.reduce((sum, line) => sum + line.packed, 0),
-        driverId: driver.id,
-        vehicleId: vehicle.id,
-      })
+      .updateStatus(shipment.id, 'IN_TRANSIT')
       .subscribe({
         next: (shipment) => {
           this.feedback.set(
-            `Shipment ${shipment.id} was created successfully for purchase order ${order.orderNumber}. Dispatch remains governed by the manufacturer shipment status workflow.`,
+            `Shipment ${shipment.id} was dispatched. Assign a driver and vehicle through trip operations if needed.`,
           );
           this.error.set('');
           this.selectedDispatchOrderId.set('');
           this.inventory.refresh();
           this.purchaseOrders.refresh();
           this.shipments.refresh();
-          this.fleet.refresh();
           this.operations.refreshPersistedWarehouseData('MANUFACTURER');
           this.saving.set(false);
         },
@@ -357,7 +315,6 @@ export class ManufacturerWarehouseOperationsComponent {
     this.inventory.refresh();
     this.purchaseOrders.refresh();
     this.shipments.refresh();
-    this.fleet.refresh();
     this.operations.refreshPersistedWarehouseData('MANUFACTURER');
   }
 

@@ -1,4 +1,4 @@
-export type ShipmentStatus = 'IN_TRANSIT' | 'DELIVERED' | 'BORDER_HOLD' | 'UNKNOWN';
+export type ShipmentStatus = 'READY_FOR_DISPATCH' | 'IN_TRANSIT' | 'DELIVERED' | 'RECEIVED' | 'CANCELLED' | 'BORDER_HOLD' | 'UNKNOWN';
 
 export function normalizeShipmentStatus(status: unknown): ShipmentStatus {
   if (typeof status !== 'string') return 'UNKNOWN';
@@ -6,8 +6,14 @@ export function normalizeShipmentStatus(status: unknown): ShipmentStatus {
   switch (status.trim().toUpperCase()) {
     case 'IN_TRANSIT':
       return 'IN_TRANSIT';
+    case 'READY_FOR_DISPATCH':
+      return 'READY_FOR_DISPATCH';
     case 'DELIVERED':
       return 'DELIVERED';
+    case 'RECEIVED':
+      return 'RECEIVED';
+    case 'CANCELLED':
+      return 'CANCELLED';
     case 'BORDER_HOLD':
       return 'BORDER_HOLD';
     default:
@@ -29,10 +35,13 @@ export interface ShipmentTimelineEvent {
 
 export interface ManufacturerShipment {
   id: string;
+  purchaseOrderId?: string;
+  destinationWarehouseId?: string;
+  trackingNumber?: string | null;
   poReference: string;
   destination: string;
   freightDetails: string;
-  quantity: number;
+  quantity: number | null;
   unit: string;
   status: ShipmentStatus;
   tripId: string;

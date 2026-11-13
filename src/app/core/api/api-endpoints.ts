@@ -44,6 +44,7 @@ export const API_ENDPOINTS = {
     productPublication: (id: string) =>
       `${API_CONFIG.baseUrl}/products/${encodeURIComponent(id)}/publication`,
     productAuthorizations: `${API_CONFIG.baseUrl}/products/authorizations`,
+    incomingProductAuthorizations: `${API_CONFIG.baseUrl}/products/authorizations/incoming`,
     productAuthorizationDecision: (id: string) =>
       `${API_CONFIG.baseUrl}/products/authorizations/${encodeURIComponent(id)}/decision`,
     stockItems: `${API_CONFIG.apiRoot}/stock/items`,
@@ -52,10 +53,10 @@ export const API_ENDPOINTS = {
     purchaseOrders: `${API_CONFIG.baseUrl}/manufacturer/purchase-orders`,
     purchaseOrderDecision: (id: string) =>
       `${API_CONFIG.baseUrl}/manufacturer/purchase-orders/${encodeURIComponent(id)}/decision`,
-    shipments: `${API_CONFIG.baseUrl}/shipments`,
-    shipment: (id: string) => `${API_CONFIG.baseUrl}/shipments/${encodeURIComponent(id)}`,
+    shipments: `${API_CONFIG.baseUrl}/manufacturer/shipments`,
+    shipment: (id: string) => `${API_CONFIG.baseUrl}/manufacturer/shipments/${encodeURIComponent(id)}`,
     shipmentStatus: (id: string) =>
-      `${API_CONFIG.baseUrl}/shipments/${encodeURIComponent(id)}/status`,
+      `${API_CONFIG.baseUrl}/manufacturer/shipments/${encodeURIComponent(id)}/status`,
     organization: `${API_CONFIG.baseUrl}/organization`,
     organizationNotificationPreferences: `${API_CONFIG.baseUrl}/organization/notification-preferences`,
     stockAudits: `${API_CONFIG.apiRoot}/stock/audits`,

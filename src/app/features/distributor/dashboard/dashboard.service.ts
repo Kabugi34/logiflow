@@ -95,10 +95,10 @@ export class DistributorDashboardService {
       inventoryCategories: new Set(this.inventoryService.items().map((item) => item.category)).size,
       incomingPurchaseOrders: this.procurementService
         .orders()
-        .filter((order) => order.status === 'PENDING').length,
+        .filter((order) => order.status === 'SUBMITTED').length,
       incomingPurchaseOrderValue: this.procurementService
         .orders()
-        .filter((order) => order.status === 'PENDING')
+        .filter((order) => order.status === 'SUBMITTED')
         .reduce((sum, order) => sum + this.procurementService.total(order), 0),
       supplyingManufacturers: this.procurementService.manufacturers().length,
       activeDeliveryTrips: this.tripService.activeTrips().length,

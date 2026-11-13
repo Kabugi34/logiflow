@@ -142,36 +142,17 @@ export class PaymentService {
     orderType: PaymentOrderType,
     orderId: string,
   ): Observable<PaymentVerification> {
-    if (orderType === 'CUSTOMER_ORDER') {
-      return this.http
-        .get<ApiCustomerPaymentStatus>(API_ENDPOINTS.distributor.paymentStatus(orderId))
-        .pipe(
-          map((response) => ({
-            paymentExists: Boolean(response.paymentId),
-            status: normalizePaymentStatus(response.status),
-            failureReason: response.failureReason,
-            mpesaReceiptNumber: response.mpesaReceiptNumber,
-          })),
-          tap((result) => this.updatePendingAttempt(orderType, orderId, result)),
-        );
-    }
-
-    return this.fetchTransactions(orderType, orderId).pipe(
-      map((transactions) => {
-        const transaction = transactions[0];
-        const result = transaction
-          ? {
-              paymentExists: true,
-              status: normalizePaymentStatus(transaction.status),
-              transaction,
-              failureReason: transaction.failureReason,
-              mpesaReceiptNumber: transaction.mpesaReceiptNumber,
-            }
-          : { paymentExists: false, status: 'UNKNOWN' as const };
-        this.updatePendingAttempt(orderType, orderId, result);
-        return result;
-      }),
-    );
+    return this.http
+      .get<ApiCustomerPaymentStatus>(API_ENDPOINTS.distributor.paymentStatus(orderId))
+      .pipe(
+        map((response) => ({
+          paymentExists: Boolean(response.paymentId),
+          status: normalizePaymentStatus(response.status),
+          failureReason: response.failureReason,
+          mpesaReceiptNumber: response.mpesaReceiptNumber,
+        })),
+        tap((result) => this.updatePendingAttempt(orderType, orderId, result)),
+      );
   }
 
   private updatePendingAttempt(

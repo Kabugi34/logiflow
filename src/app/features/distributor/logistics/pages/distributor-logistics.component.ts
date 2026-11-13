@@ -88,13 +88,7 @@ export class DistributorLogisticsComponent {
         distributorName: '',
         orderDate: order.orderDate,
         expectedDelivery: '',
-        status: (order.status === 'PROCESSING'
-          ? 'PROCESSING'
-          : order.status === 'DELIVERED'
-            ? 'DELIVERED'
-            : order.status === 'REJECTED'
-              ? 'REJECTED'
-              : 'PENDING') as InboundLogisticsOrder['status'],
+        status: order.status,
         destination: '',
         logisticsCost: order.logisticsCost,
         lines: order.lines.map((line) => ({
@@ -108,7 +102,7 @@ export class DistributorLogisticsComponent {
         route: [],
         currentRouteIndex: 0,
       }))
-      .filter((order) => order.status !== 'DELIVERED' && order.status !== 'REJECTED'),
+      .filter((order) => !['FULFILLED', 'CANCELLED', 'REJECTED'].includes(order.status)),
   );
 
   readonly outboundOrders = computed(() =>
@@ -311,6 +305,12 @@ export class DistributorLogisticsComponent {
       case 'PROCESSING':
         return 'border border-amber-200 bg-amber-50 text-amber-700';
       case 'PENDING':
+      case 'SUBMITTED':
+        return 'border border-slate-200 bg-slate-100 text-slate-700';
+      case 'APPROVED':
+        return 'border border-amber-200 bg-amber-50 text-amber-700';
+      case 'CANCELLED':
+      case 'FULFILLED':
         return 'border border-slate-200 bg-slate-100 text-slate-700';
       case 'DELIVERED':
         return 'border border-emerald-200 bg-emerald-50 text-emerald-700';

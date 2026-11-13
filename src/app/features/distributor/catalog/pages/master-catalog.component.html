@@ -180,7 +180,7 @@
                       {{
                         pendingProductId() === product.id
                           ? 'Requesting…'
-                          : product.authorizationStatus === 'REJECTED'
+                          : product.authorizationStatus === 'REJECTED' || product.authorizationStatus === 'REVOKED'
                             ? 'Request again'
                             : 'Request authorization'
                       }}
@@ -329,6 +329,10 @@
             placeholder="Describe how you intend to list and sell this product."
           ></textarea>
         </label>
+        <label class="block space-y-1 text-xs font-medium text-slate-700">Target market<textarea formControlName="targetMarket" maxlength="500" rows="2" class="w-full rounded-md border border-slate-200 px-3 py-2 text-xs font-normal"></textarea></label>
+        <label class="block space-y-1 text-xs font-medium text-slate-700">Sales channels<textarea formControlName="salesChannels" maxlength="500" rows="2" class="w-full rounded-md border border-slate-200 px-3 py-2 text-xs font-normal"></textarea></label>
+        <label class="block space-y-1 text-xs font-medium text-slate-700">Geographical coverage<textarea formControlName="geographicalCoverage" maxlength="500" rows="2" class="w-full rounded-md border border-slate-200 px-3 py-2 text-xs font-normal"></textarea></label>
+        <label class="block space-y-1 text-xs font-medium text-slate-700">Distribution strategy<textarea formControlName="distributionStrategy" maxlength="1000" rows="2" class="w-full rounded-md border border-slate-200 px-3 py-2 text-xs font-normal"></textarea></label>
         @if (
           authorizationForm.controls.requestNote.touched &&
           authorizationForm.controls.requestNote.invalid

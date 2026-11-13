@@ -10,7 +10,7 @@ interface ApiPage<T> {
 function catalogAuthorizationStatus(
   status: ProductAuthorization['status'] | undefined,
 ): DistributorCatalogProduct['authorizationStatus'] {
-  return status === 'PENDING' || status === 'APPROVED' || status === 'REJECTED' ? status : 'NONE';
+  return status === 'PENDING' || status === 'APPROVED' || status === 'REJECTED' || status === 'REVOKED' ? status : 'NONE';
 }
 interface ApiProduct {
   id: string;
@@ -69,7 +69,11 @@ export interface WarehouseCreateRequest {
 }
 
 export interface ProductAuthorizationRequest {
-  requestNote: string;
+  requestNote?: string;
+  targetMarket?: string;
+  salesChannels?: string;
+  geographicalCoverage?: string;
+  distributionStrategy?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -229,12 +233,13 @@ export class DistributorCatalogService {
         },
       });
     this.http
-      .get<{ content?: ProductAuthorization[] } | ProductAuthorization[]>(
+      .get<{ content?: (ProductAuthorization & { manufacturerProductId?: string; createdAt?: string })[] } | (ProductAuthorization & { manufacturerProductId?: string; createdAt?: string })[]>(
         API_ENDPOINTS.distributor.productAuthorizations,
       )
       .subscribe({
         next: (result) => {
-          const rows = Array.isArray(result) ? result : (result.content ?? []);
+          const rawRows = Array.isArray(result) ? result : (result.content ?? []);
+          const rows = rawRows.map(row => ({ ...row, productId: row.manufacturerProductId ?? row.productId, requestedAt: row.createdAt ?? row.requestedAt }));
           this.authorizationRecords.set(rows);
           this.productRecords.update((products) =>
             products.map((product) => ({

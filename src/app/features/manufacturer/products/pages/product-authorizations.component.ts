@@ -31,10 +31,12 @@ export class ProductAuthorizationsComponent {
   protected readonly pendingId = signal('');
   protected readonly errorMessage = signal('');
   constructor() { this.service.refresh(); }
-  protected decide(id: string, decision: 'APPROVED' | 'REJECTED'): void {
+  protected decide(id: string, status: 'APPROVED' | 'REJECTED'): void {
     if (!this.isAdmin || this.pendingId()) return;
+    const note = status === 'REJECTED' ? globalThis.prompt('Provide a reason for rejecting this request:')?.trim() : '';
+    if (status === 'REJECTED' && !note) return;
     this.pendingId.set(id); this.errorMessage.set('');
-    this.service.decide(id, decision).pipe(finalize(() => this.pendingId.set(''))).subscribe({
+    this.service.decide(id, status, note ?? '').pipe(finalize(() => this.pendingId.set(''))).subscribe({
       next: () => this.service.refresh(),
       error: (error) => this.errorMessage.set(error?.error?.message ?? 'Request decision could not be saved.')
     });

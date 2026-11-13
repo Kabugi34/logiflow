@@ -35,7 +35,7 @@
 
     <div class="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(270px,0.8fr)]">
       <div class="space-y-4">
-        @if (currentOrder.status === 'PROCESSING' || currentOrder.status === 'IN_TRANSIT') {
+        @if (currentOrder.status === 'APPROVED') {
           <app-payment-initiation
             [orderId]="currentOrder.id"
             orderType="PURCHASE_ORDER"
@@ -44,7 +44,7 @@
             [canInitiatePayment]="canInitiatePayment()"
             (verifiedStatus)="updatePaymentStatus(currentOrder.id, $event)"
           />
-        } @else if (currentOrder.status === 'PENDING') {
+        } @else if (currentOrder.status === 'SUBMITTED') {
           <p class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800">
             Supplier payment becomes available after the manufacturer accepts this purchase order.
           </p>

@@ -16,6 +16,7 @@ interface ApiPo {
   status: string;
   submittedAt: string;
   paymentStatus?: string | null;
+  settlements?: { status: string }[];
   rejectionReason?: string | null;
   reviewedAt?: string | null;
   fulfilledAt?: string | null;
@@ -44,6 +45,7 @@ export class ManufacturerPurchaseOrderService {
       PENDING: rows.filter((row) => row.status === 'PENDING').length,
       ACCEPTED: rows.filter((row) => row.status === 'ACCEPTED').length,
       REJECTED: rows.filter((row) => row.status === 'REJECTED').length,
+      CANCELLED: rows.filter((row) => row.status === 'CANCELLED').length,
       FULFILLED: rows.filter((row) => row.status === 'FULFILLED').length,
     } satisfies Record<PurchaseOrderStatus, number>;
   });
@@ -100,6 +102,8 @@ export class ManufacturerPurchaseOrderService {
           ? 'FULFILLED'
           : row.status === 'REJECTED'
             ? 'REJECTED'
+            : row.status === 'CANCELLED'
+              ? 'CANCELLED'
             : 'PENDING';
     return {
       id: row.id,
@@ -107,7 +111,7 @@ export class ManufacturerPurchaseOrderService {
       destinationHub: '\u2014',
       issueDate: row.submittedAt,
       status,
-      paymentStatus: this.mapPaymentStatus(row.paymentStatus),
+      paymentStatus: this.mapPaymentStatus(row.settlements?.at(-1)?.status ?? row.paymentStatus),
       lines: (row.items ?? []).map((item) => {
         const matching = stock.find((stockItem) => stockItem.sku === item.sku);
         return {

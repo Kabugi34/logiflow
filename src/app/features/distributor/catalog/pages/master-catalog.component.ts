@@ -25,6 +25,10 @@ export class MasterCatalogComponent {
   protected readonly authorizationProductId = signal('');
   protected readonly authorizationForm = this.fb.nonNullable.group({
     requestNote: ['', [trimmedRequired, Validators.maxLength(500)]],
+    targetMarket: ['', Validators.maxLength(500)],
+    salesChannels: ['', Validators.maxLength(500)],
+    geographicalCoverage: ['', Validators.maxLength(500)],
+    distributionStrategy: ['', Validators.maxLength(1000)],
   });
   protected readonly authorizationProduct = computed(() =>
     this.catalogService
@@ -83,7 +87,7 @@ export class MasterCatalogComponent {
   protected requestAuthorization(productId: string): void {
     if (this.pendingProductId()) return;
     this.authorizationProductId.set(productId);
-    this.authorizationForm.reset({ requestNote: '' });
+    this.authorizationForm.reset({ requestNote: '', targetMarket: '', salesChannels: '', geographicalCoverage: '', distributionStrategy: '' });
     this.actionMessage.set('');
   }
   protected submitAuthorizationRequest(): void {

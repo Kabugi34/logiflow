@@ -3,20 +3,27 @@ import { Injectable, inject, signal } from '@angular/core';
 import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import { ManufacturerShipment, normalizeShipmentStatus, ShipmentStatus } from './shipment.models';
 import { ManufacturerPurchaseOrderService } from '../purchase-orders/purchase-order.service';
-import { throwError } from 'rxjs';
+import { map, throwError } from 'rxjs';
 
 export interface NewShipment {
   poReference: string;
   destination: string;
   freightDetails: string;
-  quantity: number;
-  driverId: string;
-  vehicleId: string;
 }
 interface Page<T> {
   content?: T[];
 }
-type ApiShipment = Omit<ManufacturerShipment, 'status'> & { status?: unknown };
+interface ApiShipment {
+  id: string;
+  purchaseOrderId: string;
+  destinationWarehouseId: string;
+  status?: unknown;
+  trackingNumber?: string | null;
+  carrier?: string | null;
+  dispatchedAt?: string | null;
+  deliveredAt?: string | null;
+  [key: string]: unknown;
+}
 
 @Injectable({ providedIn: 'root' })
 export class ManufacturerShipmentService {
@@ -41,10 +48,7 @@ export class ManufacturerShipmentService {
         next: (response) => {
           const shipments = Array.isArray(response) ? response : (response.content ?? []);
           this.shipmentRecords.set(
-            shipments.map((shipment) => ({
-              ...shipment,
-              status: normalizeShipmentStatus(shipment.status),
-            })),
+            shipments.map((shipment) => this.mapShipment(shipment)),
           );
           this.error.set('');
           this.loading.set(false);
@@ -60,6 +64,10 @@ export class ManufacturerShipmentService {
     return this.shipmentRecords().find((shipment) => shipment.id === id);
   }
 
+  findByPurchaseOrderId(id: string): ManufacturerShipment | undefined {
+    return this.shipmentRecords().find((shipment) => shipment.purchaseOrderId === id || shipment.poReference === id);
+  }
+
   create(shipment: NewShipment) {
     const order = this.purchaseOrders.findById(shipment.poReference);
     if (!order || order.status !== 'ACCEPTED' || order.paymentStatus !== 'PAID') {
@@ -70,17 +78,14 @@ export class ManufacturerShipmentService {
           ),
       );
     }
-    return this.http.post<ManufacturerShipment>(API_ENDPOINTS.manufacturer.shipments, {
+    return this.http.post<ApiShipment>(API_ENDPOINTS.manufacturer.shipments, {
       purchaseOrderId: shipment.poReference,
-      destination: shipment.destination,
-      freightDetails: shipment.freightDetails,
-      quantity: shipment.quantity,
-      driverId: shipment.driverId,
-      vehicleId: shipment.vehicleId,
-    });
+      destinationWarehouseId: shipment.destination,
+      carrier: shipment.freightDetails || undefined,
+    }).pipe(map((row) => this.mapShipment(row)));
   }
 
-  updateStatus(id: string, status: Exclude<ShipmentStatus, 'UNKNOWN'>) {
+  updateStatus(id: string, status: Exclude<ShipmentStatus, 'UNKNOWN' | 'BORDER_HOLD'>, note = '') {
     if (status === 'IN_TRANSIT') {
       const shipment = this.findById(id);
       const order = shipment ? this.purchaseOrders.findById(shipment.poReference) : undefined;
@@ -93,8 +98,32 @@ export class ManufacturerShipmentService {
         );
       }
     }
-    return this.http.patch<ManufacturerShipment>(API_ENDPOINTS.manufacturer.shipmentStatus(id), {
+    return this.http.patch<ApiShipment>(API_ENDPOINTS.manufacturer.shipmentStatus(id), {
       status,
-    });
+      ...(note ? { note } : {}),
+    }).pipe(map((row) => this.mapShipment(row)));
+  }
+
+  private mapShipment(row: ApiShipment): ManufacturerShipment {
+    return {
+      id: row.id,
+      poReference: row.purchaseOrderId,
+      purchaseOrderId: row.purchaseOrderId,
+      destinationWarehouseId: row.destinationWarehouseId,
+      destination: row.destinationWarehouseId,
+      destinationFacility: row.destinationWarehouseId,
+      freightDetails: row.carrier ?? '',
+      carrier: row.carrier ?? '',
+      trackingNumber: row.trackingNumber,
+      quantity: null,
+      unit: '',
+      status: normalizeShipmentStatus(row.status),
+      tripId: '—',
+      assignedDriver: '—',
+      vehicle: '—',
+      origin: '',
+      route: [],
+      timeline: [],
+    };
   }
 }

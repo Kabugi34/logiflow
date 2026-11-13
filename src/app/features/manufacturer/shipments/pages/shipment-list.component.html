@@ -13,7 +13,7 @@
       <div>
         <h1 class="text-xl font-semibold text-slate-900">Consolidated Shipments</h1>
         <p class="mt-1 text-sm text-slate-500">
-          Track loaded logistics shipments and their corresponding dispatch itineraries.
+          Create and track purchase order shipments. Driver and vehicle assignments belong to separate trips.
         </p>
       </div>
       <button
@@ -41,7 +41,10 @@
       <option value="ACTIVE">Status: All Active</option>
       <option value="ALL">All statuses</option>
       <option value="DELIVERED">Delivered</option>
-      <option value="BORDER_HOLD">Border hold</option>
+      <option value="READY_FOR_DISPATCH">Ready for dispatch</option>
+      <option value="IN_TRANSIT">In transit</option>
+      <option value="RECEIVED">Received</option>
+      <option value="CANCELLED">Cancelled</option>
       <option value="UNKNOWN">Unknown status</option>
     </select>
     <span class="ml-auto text-xs text-slate-500">{{ shipments().length }} shipments</span>
@@ -54,12 +57,12 @@
           <tr>
             <th scope="col" class="px-3 py-3">Shipment ID</th>
             <th scope="col" class="px-3 py-3">PO Reference</th>
-            <th scope="col" class="px-3 py-3">Destination Hub</th>
-            <th scope="col" class="px-3 py-3">Freight Details</th>
-            <th scope="col" class="px-3 py-3 text-right">Qty</th>
+            <th scope="col" class="px-3 py-3">Destination Warehouse ID</th>
+            <th scope="col" class="px-3 py-3">Carrier</th>
+            <th scope="col" class="px-3 py-3">Tracking</th>
             <th scope="col" class="px-3 py-3">Status</th>
-            <th scope="col" class="px-3 py-3">Trip</th>
-            <th scope="col" class="px-3 py-3">Assigned Driver</th>
+            <th scope="col" class="px-3 py-3">Carrier</th>
+            <th scope="col" class="px-3 py-3">Receipt</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100">
@@ -78,8 +81,8 @@
               <td class="whitespace-nowrap px-3 py-3 text-slate-500">
                 {{ shipment.freightDetails }}
               </td>
-              <td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-900">
-                {{ shipment.quantity | number }}
+              <td class="whitespace-nowrap px-3 py-3 text-slate-500">
+                {{ shipment.trackingNumber || '—' }}
               </td>
               <td class="px-3 py-3">
                 <span
@@ -88,12 +91,9 @@
                   >{{ statusLabel(shipment.status) }}</span
                 >
               </td>
-              <td class="whitespace-nowrap px-3 py-3">{{ shipment.tripId }}</td>
-              <td class="whitespace-nowrap px-3 py-3">
-                <p class="font-semibold text-slate-800">{{ shipment.assignedDriver }}</p>
-                <p class="mt-0.5 text-[10px] text-slate-500">
-                  {{ shipment.vehicle.split(' (')[0] }}
-                </p>
+              <td class="whitespace-nowrap px-3 py-3">{{ shipment.carrier || '—' }}</td>
+              <td class="whitespace-nowrap px-3 py-3 text-slate-500">
+                {{ shipment.status === 'RECEIVED' ? 'Received' : shipment.status === 'DELIVERED' ? 'Awaiting distributor receipt' : '—' }}
               </td>
             </tr>
           } @empty {
@@ -167,46 +167,20 @@
           }
         </label>
         <label class="space-y-1"
-          ><span class="block text-xs font-medium text-slate-700">Destination Hub</span
+          ><span class="block text-xs font-medium text-slate-700">Distributor Destination Warehouse ID</span
           ><input
             formControlName="destination"
-            placeholder="Mombasa Depot #4"
+            placeholder="Distributor warehouse UUID"
             class="h-9 w-full rounded-md border border-slate-200 px-2 text-xs"
         /></label>
         <label class="space-y-1"
-          ><span class="block text-xs font-medium text-slate-700">Freight Details</span
+          ><span class="block text-xs font-medium text-slate-700">Carrier (optional)</span
           ><input
             formControlName="freightDetails"
-            placeholder="Hydraulic Motors"
+            placeholder="Carrier name"
             class="h-9 w-full rounded-md border border-slate-200 px-2 text-xs"
         /></label>
-        <label class="space-y-1"
-          ><span class="block text-xs font-medium text-slate-700">Quantity</span
-          ><input
-            type="number"
-            min="1"
-            formControlName="quantity"
-            class="h-9 w-full rounded-md border border-slate-200 px-2 text-xs"
-        /></label>
-        <label class="space-y-1"
-          ><span class="block text-xs font-medium text-slate-700">Assigned Driver</span
-          ><select
-            formControlName="driverId"
-            class="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-xs"
-          >
-            <option value="">Choose a standby driver</option>
-            @for (driver of availableDrivers(); track driver.id) {
-              <option [value]="driver.id">
-                {{ driver.name }} · {{ driverVehicleLabel(driver.id) }}
-              </option>
-            }
-          </select>
-          @if (availableDrivers().length === 0) {
-            <span class="block text-[10px] text-amber-700"
-              >No standby drivers with assigned vehicles are available.</span
-            >
-          }
-        </label>
+        <p class="text-[10px] text-slate-500 sm:col-span-2">Shipment creation does not create a trip or assign a driver/vehicle. Use trip operations separately when dispatch needs fleet execution.</p>
         @if (allocationError()) {
           <p role="alert" class="text-xs text-red-600 sm:col-span-2">{{ allocationError() }}</p>
         }
