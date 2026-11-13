@@ -63,10 +63,18 @@
       }
     </div>
   }
+  @if (operations.sourceWarnings().length) {
+    <div role="alert" class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+      @for (warning of operations.sourceWarnings(); track warning) {
+        <p>{{ warning }}</p>
+      }
+    </div>
+  }
   <p class="rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800">
-    Manufacturers produce and store goods; incoming stock receiving does not apply here. Purchase
-    orders enter picking only when the backend reports verified payment. Put-away, picking, packing,
-    adjustments, and movement history currently use a browser-session ledger and are not persisted.
+    Stock adjustments and movement history use persisted stock APIs. Manufacturer put-away is
+    disabled because the locations API is distributor-only; picking and packing are disabled because
+    the backend order endpoints accept distributor customer orders, not manufacturer purchase-order
+    lines. Shipment creation and status remain on the separate manufacturer shipment workflow.
   </p>
 
   <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Warehouse summary">
@@ -159,6 +167,8 @@
                   <button
                     type="button"
                     (click)="openPutAway(item.sku)"
+                    disabled
+                    title="The backend location API permits distributor users only."
                     class="rounded border border-slate-200 px-2 py-1 text-[10px] hover:bg-slate-50"
                   >
                     Put away
@@ -270,18 +280,28 @@
                   <button
                     type="button"
                     (click)="openPick(order)"
+                    disabled
+                    title="Backend gap: pick supports distributor customer orders only; manufacturer purchase-order lines have no canonical order-item IDs."
                     class="rounded border border-blue-200 px-2 py-1 text-[10px] font-medium text-blue-700 hover:bg-blue-50"
                   >
                     Pick items
                   </button>
+                  <p class="mt-1 max-w-48 text-[9px] text-amber-700">
+                    Backend pick API does not support manufacturer purchase orders.
+                  </p>
                 } @else if (order.status === 'READY_TO_PACK') {
                   <button
                     type="button"
                     (click)="openPack(order)"
+                    disabled
+                    title="Backend gap: pack supports distributor customer orders only."
                     class="rounded border border-violet-200 px-2 py-1 text-[10px] font-medium text-violet-700 hover:bg-violet-50"
                   >
                     Pack order
                   </button>
+                  <p class="mt-1 max-w-48 text-[9px] text-amber-700">
+                    Backend pack API does not support manufacturer purchase orders.
+                  </p>
                 } @else if (order.status === 'READY_TO_DISPATCH') {
                   <button
                     type="button"

@@ -24,7 +24,12 @@ export class ShipmentAuditComponent {
   protected advanceStatus(): void {
     const shipment = this.shipment();
     if (!shipment || this.busy()) return;
-    const status = shipment.status === 'IN_TRANSIT' ? 'DELIVERED' : shipment.status === 'BORDER_HOLD' ? 'IN_TRANSIT' : null;
+    const status =
+      shipment.status === 'IN_TRANSIT'
+        ? 'DELIVERED'
+        : shipment.status === 'BORDER_HOLD'
+          ? 'IN_TRANSIT'
+          : null;
     if (!status) return;
     this.feedback.set('');
     this.busy.set(true);
@@ -34,7 +39,7 @@ export class ShipmentAuditComponent {
     });
   }
 
-  protected actionLabel(status: string): string {
+  protected actionLabel(status: 'IN_TRANSIT' | 'BORDER_HOLD'): string {
     return status === 'BORDER_HOLD' ? 'Release Documentation Hold' : 'Confirm Delivery';
   }
 }

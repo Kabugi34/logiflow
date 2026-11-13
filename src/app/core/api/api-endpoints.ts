@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
     accessRequest: `${API_CONFIG.apiRoot}/access-requests`,
     activate: `${API_CONFIG.apiRoot}/access-requests/activate`,
     activationResend: `${API_CONFIG.apiRoot}/auth/resend-verification`,
+    verifyAccount: `${API_CONFIG.apiRoot}/auth/verify-account`,
     login: `${API_CONFIG.apiRoot}/auth/login`,
     refresh: `${API_CONFIG.apiRoot}/auth/refresh`,
     logout: `${API_CONFIG.apiRoot}/auth/logout`,
@@ -19,6 +20,7 @@ export const API_ENDPOINTS = {
   },
   manufacturer: {
     drivers: `${API_CONFIG.baseUrl}/drivers`,
+    driverInvitations: `${API_CONFIG.baseUrl}/drivers/invitations`,
     driver: (id: string) => `${API_CONFIG.baseUrl}/drivers/${encodeURIComponent(id)}`,
     driverInvitationResend: (id: string) =>
       `${API_CONFIG.baseUrl}/drivers/${encodeURIComponent(id)}/invitation/resend`,
@@ -92,6 +94,7 @@ export const API_ENDPOINTS = {
     warehouses: `${API_CONFIG.baseUrl}/warehouses`,
     warehouse: (id: string) => `${API_CONFIG.baseUrl}/warehouses/${encodeURIComponent(id)}`,
     drivers: `${API_CONFIG.baseUrl}/drivers`,
+    driverInvitations: `${API_CONFIG.baseUrl}/drivers/invitations`,
     driver: (id: string) => `${API_CONFIG.baseUrl}/drivers/${encodeURIComponent(id)}`,
     driverInvitationResend: (id: string) =>
       `${API_CONFIG.baseUrl}/drivers/${encodeURIComponent(id)}/invitation/resend`,
@@ -115,5 +118,24 @@ export const API_ENDPOINTS = {
     tripAssignment: (id: string) => `${API_CONFIG.baseUrl}/trips/${encodeURIComponent(id)}/assign`,
     tripDispatch: (id: string) => `${API_CONFIG.baseUrl}/trips/${encodeURIComponent(id)}/dispatch`,
     tripStatus: (id: string) => `${API_CONFIG.baseUrl}/trips/${encodeURIComponent(id)}/status`,
+  },
+  driverInvitation: {
+    details: (token: string) =>
+      `${API_CONFIG.apiRoot}/invitations/${encodeURIComponent(token)}`,
+    accept: (token: string) =>
+      `${API_CONFIG.apiRoot}/invitations/${encodeURIComponent(token)}/accept`,
+  },
+  warehouseOperations: {
+    shipments: `${API_CONFIG.baseUrl}/purchase-order-shipments`,
+    receiveShipment: (id: string) =>
+      `${API_CONFIG.baseUrl}/purchase-order-shipments/${encodeURIComponent(id)}/receive`,
+    stockItemLocations: (id: string) =>
+      `${API_CONFIG.apiRoot}/stock/items/${encodeURIComponent(id)}/locations`,
+    stockItemMovements: (id: string) =>
+      `${API_CONFIG.apiRoot}/stock/items/${encodeURIComponent(id)}/movements`,
+    orderPick: (id: string) =>
+      `${API_CONFIG.baseUrl}/orders/${encodeURIComponent(id)}/warehouse/pick`,
+    orderPack: (id: string) =>
+      `${API_CONFIG.baseUrl}/orders/${encodeURIComponent(id)}/warehouse/pack`,
   },
 } as const;

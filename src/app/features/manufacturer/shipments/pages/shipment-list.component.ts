@@ -51,7 +51,9 @@ export class ShipmentListComponent {
       const status = this.selectedStatus();
       return (
         status === 'ALL' ||
-        (status === 'ACTIVE' ? shipment.status !== 'DELIVERED' : shipment.status === status)
+        (status === 'ACTIVE'
+          ? shipment.status === 'IN_TRANSIT' || shipment.status === 'BORDER_HOLD'
+          : shipment.status === status)
       );
     }),
   );
@@ -153,18 +155,28 @@ export class ShipmentListComponent {
   }
 
   protected statusLabel(status: ShipmentStatus): string {
-    return status === 'BORDER_HOLD'
-      ? 'BORDER HOLD'
-      : status === 'IN_TRANSIT'
-        ? 'IN TRANSIT'
-        : 'DELIVERED';
+    switch (status) {
+      case 'BORDER_HOLD':
+        return 'BORDER HOLD';
+      case 'IN_TRANSIT':
+        return 'IN TRANSIT';
+      case 'DELIVERED':
+        return 'DELIVERED';
+      case 'UNKNOWN':
+        return 'UNKNOWN STATUS';
+    }
   }
 
   protected statusClass(status: ShipmentStatus): string {
-    return status === 'BORDER_HOLD'
-      ? 'border-red-200 bg-red-50 text-red-700'
-      : status === 'IN_TRANSIT'
-        ? 'border-amber-200 bg-amber-50 text-amber-700'
-        : 'border-emerald-200 bg-emerald-50 text-emerald-700';
+    switch (status) {
+      case 'BORDER_HOLD':
+        return 'border-red-200 bg-red-50 text-red-700';
+      case 'IN_TRANSIT':
+        return 'border-amber-200 bg-amber-50 text-amber-700';
+      case 'DELIVERED':
+        return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      case 'UNKNOWN':
+        return 'border-slate-200 bg-slate-50 text-slate-600';
+    }
   }
 }

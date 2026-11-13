@@ -17,6 +17,10 @@ export type DeliveryStatus = 'UNASSIGNED' | 'ON_ROUTE' | 'HOLD' | 'DELIVERED' | 
 export type OrderBadgeValue = CustomerOrderStatus | PaymentStatus | DeliveryStatus;
 
 export interface CustomerOrderLine {
+  orderItemId?: string;
+  stockItemId?: string;
+  pickedQuantity?: number;
+  packedQuantity?: number;
   sku: string;
   productName: string;
   quantity: number;

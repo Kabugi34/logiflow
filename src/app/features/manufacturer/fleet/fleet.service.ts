@@ -2,6 +2,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { Observable, map, tap } from 'rxjs';
 import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
+import { DriverInvitationCreatedResponse } from '../../../core/models/driver-invitation.model';
 import { DriverAccountStatus, DriverOperationalStatus, FleetDriver, FleetVehicle, NewFleetDriver, NewFleetVehicle, VehicleCondition, VehicleStatus } from './fleet.models';
 
 const initialDrivers: FleetDriver[] = [];
@@ -32,9 +33,16 @@ export class ManufacturerFleetService {
     });
   }
 
-  createDriverApi(details: NewFleetDriver): Observable<FleetDriver> {
-    return this.http.post<DriverDto>(API_ENDPOINTS.manufacturer.drivers, { fullName: details.name.trim(), email: details.email.trim().toLowerCase(), phoneNumber: details.phone.trim(), licenseNumber: details.license.trim().toUpperCase(), nationalId: details.nationalId?.trim(), licenseExpiryDate: details.licenseExpiryDate, baseWarehouseId: details.baseWarehouseId || null })
-      .pipe(map(row => this.mapDriver(row)), tap(row => this.driverRecords.update(rows => [row, ...rows])));
+  createDriverApi(details: Pick<NewFleetDriver, 'name' | 'email' | 'phone' | 'license'>): Observable<DriverInvitationCreatedResponse> {
+    return this.http.post<DriverInvitationCreatedResponse>(API_ENDPOINTS.manufacturer.driverInvitations, {
+      fullName: details.name.trim(),
+      email: details.email.trim().toLowerCase(),
+      phoneNumber: details.phone.trim(),
+      licenseNumber: details.license.trim().toUpperCase(),
+    }).pipe(tap({
+      next: () => this.refresh(),
+      error: () => this.refresh(),
+    }));
   }
 
   driverActionApi(id: string, action: 'APPROVE' | 'REJECT' | 'RESEND' | 'REVOKE' | 'SUSPEND' | 'REACTIVATE'): Observable<unknown> {

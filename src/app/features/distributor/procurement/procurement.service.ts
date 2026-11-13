@@ -24,7 +24,7 @@ interface ApiProduct {
   category: string | null;
   unitPrice: number;
   active: boolean;
-  inStock?: boolean;
+  inStock?: boolean | null;
 }
 interface ApiPo {
   id: string;
@@ -57,7 +57,7 @@ interface ProcurementProduct {
   description: string;
   category: string;
   unitPrice: number;
-  stock: number;
+  inStock: boolean | null;
   unit: string;
 }
 
@@ -121,7 +121,7 @@ export class DistributorProcurementService {
                 description: '',
                 category: product.category ?? 'Uncategorized',
                 unitPrice: product.unitPrice,
-                stock: product.inStock ? 1 : 0,
+                inStock: product.inStock ?? null,
                 unit: '\u2014',
               })),
           );

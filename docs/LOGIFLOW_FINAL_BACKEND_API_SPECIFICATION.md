@@ -85,7 +85,7 @@ production identity provider.
 |---|---|---|
 | `GET /api/v1/products?size=100` | Array or page `content`; product fields currently consumed include `id`, `sku`, `name`, nullable `category`, optional `brand`, `unit`, `description`, `imageUrl`, `unitPrice`, `publicationStatus`, optional organization/manufacturer IDs and name, optional `sourceStockItemId`, availability and active flags. | Manufacturer product list and Distributor manufacturer catalog / procurement. |
 | `POST /api/v1/products` | `multipart/form-data`: serialized `ManufacturerProductDraft` (`name`, `category`, `sku`, `brand`, `unit`, `description`, `unitPrice`, `initialQuantity`, `reorderThreshold`, optional `publicationStatus`) and optional file field `image`; typed product response. | Create Manufacturer product. |
-| `PATCH /api/v1/products/{id}` | Same multipart draft shape; optional `image`; typed product response. | Edit Manufacturer product. |
+| `PATCH /api/v1/products/{id}` | Editable catalog metadata and optional replacement `image`; typed product response. Must preserve publication state and stock. Stock fields such as `initialQuantity` and `reorderThreshold` are create-time only. | Edit Manufacturer product. |
 | `PATCH /api/v1/products/{id}/publication` | `{ status: 'DRAFT' \| 'PUBLISHED' \| 'DISCONTINUED' }`; typed product response. | Publish/unpublish/discontinue. |
 | `GET /api/v1/products/authorizations` | Array or `{ content }` of `ProductAuthorization`; frontend uses product, distributor, status, and request identifiers/values. | Manufacturer decisions and Distributor authorization state. |
 | `POST /api/v1/products/{productId}/authorization-requests` | `{ requestNote: string }`; typed `ProductAuthorization`. | Distributor requests permission. |
@@ -239,7 +239,8 @@ Those are open contract questions, not fields to infer.
 The create draft includes `initialQuantity` and `reorderThreshold` in the same multipart form as
 the product. The Angular code cannot establish whether the backend creates stock atomically,
 what warehouse owns that quantity, or whether the field is currently accepted. Confirm or split
-product creation from a warehouse-scoped production/stock operation.
+product creation from a warehouse-scoped production/stock operation. Product metadata edits must
+omit stock fields so catalog changes cannot reset stock quantities.
 
 ### 3.2 Listing permission decisions
 
@@ -247,6 +248,9 @@ Manufacturer reads authorization requests and sends approve/reject decision patc
 scope both the product and request to the Manufacturer organization and persist decision actor,
 timestamp, and reason if supported. The UI decision body is only modeled as `{ decision }`; any
 note/reason field requires frontend/backend confirmation.
+Removing a product from the active catalog uses the `DISCONTINUED` publication state rather than
+hard deletion. The UI blocks this transition while reported on-hand stock remains; the backend
+must enforce the same rule against current stock so stale client data cannot bypass it.
 
 ### 3.3 Manufacturer stock and warehouses
 

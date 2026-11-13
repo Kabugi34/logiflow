@@ -34,7 +34,9 @@ export class ManufacturerStaffService {
   }
 
   readonly jobTitles = ['Cleaner', 'Warehouse Supervisor', 'Logistics Coordinator', 'Inventory Analyst', 'Gate Dispatch Controller'];
-  readonly warehouses = this.warehouseService.warehouses;
+  readonly warehouses = computed(() =>
+    this.warehouseService.warehouses().filter(warehouse => warehouse.status === 'ACTIVE'),
+  );
   readonly members = computed(() => [
     ...this.employeeRecords(),
     ...this.fleetService.drivers().map(driver => {

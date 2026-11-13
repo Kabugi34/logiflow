@@ -24,35 +24,39 @@ describe('ManufacturerFleetService', () => {
     TestBed.resetTestingModule();
   });
 
-  it('sends the required identity and licence expiry fields when inviting a driver', () => {
+  it('creates an invitation with only supported fields and refreshes the driver list', () => {
+    let responseId = '';
     service
       .createDriverApi({
         name: 'Jordan Driver',
         email: 'JORDAN@example.com',
         phone: '+254712345678',
         license: 'ab-1234',
-        nationalId: '12345678',
-        licenseExpiryDate: '2030-12-31',
       })
-      .subscribe();
+      .subscribe(response => responseId = response.id);
 
-    const request = http.expectOne(API_ENDPOINTS.manufacturer.drivers);
+    const request = http.expectOne(API_ENDPOINTS.manufacturer.driverInvitations);
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({
       fullName: 'Jordan Driver',
       email: 'jordan@example.com',
       phoneNumber: '+254712345678',
       licenseNumber: 'AB-1234',
-      nationalId: '12345678',
-      licenseExpiryDate: '2030-12-31',
-      baseWarehouseId: null,
     });
     request.flush({
+      id: 'invitation-1',
+      fullName: 'Jordan Driver',
+      email: 'jordan@example.com',
+    });
+
+    expect(responseId).toBe('invitation-1');
+    expect(service.drivers()).toEqual([]);
+    http.expectOne(`${API_ENDPOINTS.manufacturer.drivers}?size=100`).flush([{
       id: 'driver-1',
       fullName: 'Jordan Driver',
       email: 'jordan@example.com',
-      nationalId: '12345678',
-      licenseExpiryDate: '2030-12-31',
-    });
+    }]);
+    http.expectOne(`${API_ENDPOINTS.manufacturer.vehicles}?size=100`).flush([]);
+    expect(service.drivers()[0].id).toBe('driver-1');
   });
 });

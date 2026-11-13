@@ -5,11 +5,12 @@ import { RouterLink } from '@angular/router';
 import { DistributorCatalogService } from '../catalog.service';
 import { finalize } from 'rxjs';
 import { trimmedRequired } from '../../../../core/forms/form-validators';
+import { AuthenticatedImageComponent } from '../../../../shared/authenticated-image.component';
 
 @Component({
   selector: 'app-master-catalog',
   standalone: true,
-  imports: [CurrencyPipe, DecimalPipe, ReactiveFormsModule, RouterLink],
+  imports: [AuthenticatedImageComponent, CurrencyPipe, DecimalPipe, ReactiveFormsModule, RouterLink],
   templateUrl: './master-catalog.component.html',
 })
 export class MasterCatalogComponent {
@@ -17,6 +18,7 @@ export class MasterCatalogComponent {
   protected readonly catalogService = inject(DistributorCatalogService);
   protected readonly searchTerm = signal('');
   protected readonly selectedCategory = signal('All categories');
+  protected readonly selectedManufacturer = signal('All manufacturers');
   protected readonly actionMessage = signal('');
   protected readonly pendingOfferId = signal('');
   protected readonly pendingProductId = signal('');
@@ -44,19 +46,30 @@ export class MasterCatalogComponent {
         [product.name, product.sku, product.manufacturerName].some((value) =>
           value.toLowerCase().includes(query),
         );
+      const matchesManufacturer =
+        this.selectedManufacturer() === 'All manufacturers' ||
+        product.manufacturerId === this.selectedManufacturer();
       const matchesCategory =
         this.selectedCategory() === 'All categories' ||
         product.category === this.selectedCategory();
-      return matchesQuery && matchesCategory;
+      return matchesQuery && matchesManufacturer && matchesCategory;
     });
   });
 
   protected toggleOffer(offer: import('../catalog.models').DistributorCatalogOffer): void {
     if (this.pendingOfferId()) return;
     this.actionMessage.set('');
+    const activating = offer.status !== 'ACTIVE';
+    if (activating) {
+      const eligibilityError = this.catalogService.offerActivationError(offer);
+      if (eligibilityError) {
+        this.actionMessage.set(eligibilityError);
+        return;
+      }
+    }
     this.pendingOfferId.set(offer.id);
     this.catalogService
-      .updateOffer(offer.id, { active: offer.status !== 'ACTIVE' })
+      .updateOffer(offer.id, { active: activating })
       .pipe(finalize(() => this.pendingOfferId.set('')))
       .subscribe({
         next: () => {
@@ -107,5 +120,9 @@ export class MasterCatalogComponent {
 
   protected updateCategory(event: Event): void {
     this.selectedCategory.set((event.target as HTMLSelectElement).value);
+  }
+
+  protected updateManufacturer(event: Event): void {
+    this.selectedManufacturer.set((event.target as HTMLSelectElement).value);
   }
 }

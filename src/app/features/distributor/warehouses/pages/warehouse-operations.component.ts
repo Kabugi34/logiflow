@@ -8,7 +8,13 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { trimmedRequired } from '../../../../core/forms/form-validators';
@@ -33,6 +39,13 @@ interface DispatchCandidate {
   driver: ReturnType<DistributorFleetService['findDriver']>;
 }
 
+interface ReceiptLineForm {
+  purchaseOrderItemId: FormControl<string>;
+  acceptedQuantity: FormControl<number>;
+  damagedQuantity: FormControl<number>;
+  missingQuantity: FormControl<number>;
+}
+
 @Component({
   selector: 'app-distributor-warehouse-operations',
   imports: [DatePipe, ReactiveFormsModule, RouterLink],
@@ -48,6 +61,9 @@ export class WarehouseOperationsComponent {
   protected readonly procurement = inject(DistributorProcurementService);
   protected readonly tripService = inject(DistributorTripService);
   protected readonly fleet = inject(DistributorFleetService);
+  constructor() {
+    this.operations.loadShipments();
+  }
   private readonly sourceSync = effect(() => {
     if (this.inventory.loading() || this.orderService.loading() || this.procurement.loading()) {
       return;
@@ -65,25 +81,16 @@ export class WarehouseOperationsComponent {
       status: order.status,
       paymentStatus: order.paymentStatus,
       lines: order.lines.map((line) => ({
+        orderItemId: line.orderItemId,
+        stockItemId: line.stockItemId,
         sku: line.sku,
         product: line.productName,
         quantity: line.quantity,
+        pickedQuantity: line.pickedQuantity,
+        packedQuantity: line.packedQuantity,
       })),
     }));
-    const receipts = this.procurement.orders().map((order) => ({
-      id: order.id,
-      status: order.status,
-      lines: order.lines
-        .filter(
-          (line) => Number.isSafeInteger(line.shippedQuantity) && (line.shippedQuantity ?? 0) > 0,
-        )
-        .map((line) => ({
-          sku: line.sku,
-          product: line.productName,
-          quantity: line.shippedQuantity ?? 0,
-        })),
-    }));
-    untracked(() => this.operations.synchronize(inventory, orders, receipts));
+    untracked(() => this.operations.synchronize(inventory, orders, 'DISTRIBUTOR'));
   });
 
   protected readonly actor = computed(
@@ -94,6 +101,7 @@ export class WarehouseOperationsComponent {
   );
   protected readonly feedback = signal('');
   protected readonly error = signal('');
+  protected readonly saving = signal(false);
   protected readonly pendingTripId = signal('');
   protected readonly selectedReceiptId = signal('');
   protected readonly selectedPickOrderId = signal('');
@@ -103,7 +111,6 @@ export class WarehouseOperationsComponent {
   protected readonly searchOrders = signal('');
   protected readonly receiptStatusFilter = signal<'ALL' | WarehouseReceipt['status']>('ALL');
   protected readonly orderStatusFilter = signal<'ALL' | WarehouseOrderStatus>('ALL');
-  protected readonly packedQuantities = signal<Record<string, number>>({});
   protected readonly adjustmentSku = signal('');
   protected readonly stockDialog = signal<'putaway' | 'adjustment' | ''>('');
   protected readonly sourceLoading = computed(
@@ -208,10 +215,9 @@ export class WarehouseOperationsComponent {
   }));
   protected readonly recentMovements = computed(() => this.operations.movements().slice(0, 8));
 
-  protected readonly receiptForm = this.fb.nonNullable.group({
-    accepted: [0, [Validators.required, Validators.min(0)]],
-    damaged: [0, [Validators.required, Validators.min(0)]],
-    missing: [0, [Validators.required, Validators.min(0)]],
+  protected readonly receiptForm = this.fb.group({
+    note: this.fb.nonNullable.control('', [Validators.maxLength(2000)]),
+    lines: this.fb.array<FormGroup<ReceiptLineForm>>([]),
   });
   protected readonly putAwayForm = this.fb.nonNullable.group({
     location: ['', [trimmedRequired, Validators.maxLength(40)]],
@@ -232,26 +238,20 @@ export class WarehouseOperationsComponent {
   protected openReceipt(receipt: WarehouseReceipt): void {
     this.clearFeedback();
     this.selectedReceiptId.set(receipt.id);
-    this.receiptForm.reset({ accepted: receipt.expected, damaged: 0, missing: 0 });
-  }
-
-  protected confirmReceipt(): void {
-    const receipt = this.selectedReceipt();
-    if (!receipt || this.receiptForm.invalid) {
-      this.receiptForm.markAllAsTouched();
-      return;
-    }
-    try {
-      const { accepted, damaged, missing } = this.receiptForm.getRawValue();
-      this.operations.receive(receipt.id, accepted, damaged, missing);
-      this.selectedReceiptId.set('');
-      this.feedback.set(
-        `Receipt ${receipt.reference} confirmed. Accepted stock is now in inventory.`,
+    const lines = this.receiptForm.controls.lines;
+    while (lines.length) lines.removeAt(0);
+    for (const line of receipt.lines) {
+      lines.push(
+        this.fb.nonNullable.group({
+          purchaseOrderItemId: line.purchaseOrderItemId,
+          acceptedQuantity: [line.accepted ?? line.expected, [Validators.required, Validators.min(0)]],
+          damagedQuantity: [line.damaged ?? 0, [Validators.required, Validators.min(0)]],
+          missingQuantity: [line.missing ?? 0, [Validators.required, Validators.min(0)]],
+        }),
       );
-      this.error.set('');
-    } catch (error) {
-      this.showError(error);
     }
+    this.receiptForm.controls.note.setValue('');
+    this.receiptForm.controls.note.markAsPristine();
   }
 
   protected openPutAway(sku: string): void {
@@ -261,28 +261,114 @@ export class WarehouseOperationsComponent {
     this.putAwayForm.reset({ location: '', quantity: 1 });
   }
 
+  protected openPick(order: WarehouseOrder): void {
+    this.clearFeedback();
+    this.selectedPickOrderId.set(order.id);
+    this.pickForm.reset({ lineId: order.lines[0]?.id ?? '', quantity: 1 });
+  }
+
+  protected openPack(order: WarehouseOrder): void {
+    this.clearFeedback();
+    this.selectedPackOrderId.set(order.id);
+    this.packForm.reset({ packages: Math.max(1, order.packages) });
+  }
+
+  protected confirmReceipt(): void {
+    const receipt = this.selectedReceipt();
+    if (!receipt || this.receiptForm.invalid) {
+      this.receiptForm.markAllAsTouched();
+      return;
+    }
+    if (receipt.shipmentStatus !== 'DELIVERED') {
+      this.error.set('Only a backend-delivered shipment can be received.');
+      return;
+    }
+    const raw = this.receiptForm.getRawValue();
+    const lines = raw.lines.map((line, index) => {
+      const expected = receipt.lines[index]?.expected;
+      return { ...line, expected };
+    });
+    if (
+      lines.some(
+        (line) =>
+          line.acceptedQuantity + line.damagedQuantity + line.missingQuantity !== line.expected,
+      )
+    ) {
+      this.error.set('Accepted, damaged, and missing quantities must equal each item quantity.');
+      return;
+    }
+    this.saving.set(true);
+    this.operations
+      .receiveShipment(receipt.shipmentId, {
+        note: raw.note.trim() || undefined,
+        lines: raw.lines.map(
+          ({ purchaseOrderItemId, acceptedQuantity, damagedQuantity, missingQuantity }) => ({
+            purchaseOrderItemId,
+            acceptedQuantity,
+            damagedQuantity,
+            missingQuantity,
+          }),
+        ),
+      })
+      .subscribe({
+        next: () => {
+          this.selectedReceiptId.set('');
+          this.feedback.set(`Receipt ${receipt.reference} was confirmed by the backend.`);
+          this.error.set('');
+          this.inventory.refresh();
+          this.procurement.refreshOrders();
+          this.operations.refreshPersistedWarehouseData('DISTRIBUTOR');
+          this.saving.set(false);
+        },
+        error: (error) => {
+          this.showError(error, 'Shipment receipt could not be confirmed.');
+          this.saving.set(false);
+        },
+      });
+  }
+
+  protected receiptUnavailableReason(receipt: WarehouseReceipt): string {
+    if (receipt.shipmentStatus !== 'DELIVERED') {
+      return 'The backend permits receipt only after the shipment is marked DELIVERED.';
+    }
+    if (receipt.lines.some((line) => !line.purchaseOrderItemId)) {
+      return 'The shipment is missing canonical purchase-order item IDs.';
+    }
+    return '';
+  }
+
+  protected canReceive(receipt: WarehouseReceipt): boolean {
+    return receipt.status === 'PENDING' && !this.receiptUnavailableReason(receipt);
+  }
+
   protected confirmPutAway(): void {
     const sku = this.adjustmentSku();
     if (!sku || this.putAwayForm.invalid) {
       this.putAwayForm.markAllAsTouched();
       return;
     }
-    try {
-      const { location, quantity } = this.putAwayForm.getRawValue();
-      this.operations.putAway(sku, location, quantity, this.actor());
-      this.adjustmentSku.set('');
-      this.stockDialog.set('');
-      this.feedback.set(`${quantity} units put away to ${location.trim()}.`);
-      this.error.set('');
-    } catch (error) {
-      this.showError(error);
+    const stock = this.operations.stock().find((item) => item.sku === sku);
+    if (!stock?.id) {
+      this.error.set('Put-away is unavailable because the canonical stock-item ID is missing.');
+      return;
     }
-  }
-
-  protected openPick(order: WarehouseOrder): void {
-    this.clearFeedback();
-    this.selectedPickOrderId.set(order.id);
-    this.pickForm.reset({ lineId: order.lines[0]?.id ?? '', quantity: 1 });
+    const { location, quantity } = this.putAwayForm.getRawValue();
+    this.saving.set(true);
+    this.operations.putAwayStock(stock.id, location, quantity).subscribe({
+      next: () => {
+        this.adjustmentSku.set('');
+        this.stockDialog.set('');
+        this.feedback.set(`${quantity} units were saved to location ${location.trim()}.`);
+        this.error.set('');
+        this.inventory.refresh();
+        this.operations.refreshPersistedWarehouseData('DISTRIBUTOR');
+        this.saving.set(false);
+      },
+      error: (error) => {
+        this.showError(error);
+        this.saving.set(false);
+      },
+    });
   }
 
   protected confirmPick(): void {
@@ -291,32 +377,24 @@ export class WarehouseOperationsComponent {
       this.pickForm.markAllAsTouched();
       return;
     }
-    try {
-      const { lineId, quantity } = this.pickForm.getRawValue();
-      this.operations.pick(order.id, lineId, quantity, this.actor());
-      const next = this.operations.orders().find((item) => item.id === order.id);
-      if (next?.status === 'READY_TO_PACK') this.selectedPickOrderId.set('');
-      this.feedback.set(
-        `Picked ${quantity} unit${quantity === 1 ? '' : 's'} for ${order.orderNumber}.`,
-      );
-      this.error.set('');
-    } catch (error) {
-      this.showError(error);
-    }
-  }
-
-  protected openPack(order: WarehouseOrder): void {
-    this.clearFeedback();
-    this.selectedPackOrderId.set(order.id);
-    this.packForm.reset({ packages: Math.max(1, order.packages) });
-    this.packedQuantities.set(
-      Object.fromEntries(order.lines.map((line) => [line.id, line.picked])),
-    );
-  }
-
-  protected setPackedQuantity(lineId: string, event: Event): void {
-    const value = Number((event.target as HTMLInputElement).value);
-    this.packedQuantities.update((rows) => ({ ...rows, [lineId]: value }));
+    const { lineId, quantity } = this.pickForm.getRawValue();
+    this.saving.set(true);
+    this.operations.pickOrderItem(order.id, lineId, quantity).subscribe({
+      next: () => {
+        const next = this.operations.orders().find((item) => item.id === order.id);
+        if (next?.status === 'READY_TO_PACK') this.selectedPickOrderId.set('');
+        this.feedback.set(
+          `Pick quantity was saved for ${order.orderNumber}.`,
+        );
+        this.error.set('');
+        this.orderService.refresh();
+        this.saving.set(false);
+      },
+      error: (error) => {
+        this.showError(error);
+        this.saving.set(false);
+      },
+    });
   }
 
   protected confirmPack(): void {
@@ -325,18 +403,21 @@ export class WarehouseOperationsComponent {
       this.packForm.markAllAsTouched();
       return;
     }
-    try {
-      this.operations.pack(
-        order.id,
-        this.packedQuantities(),
-        this.packForm.controls.packages.value,
-      );
-      this.selectedPackOrderId.set('');
-      this.feedback.set(`${order.orderNumber} packed and ready for dispatch.`);
-      this.error.set('');
-    } catch (error) {
+    const packages = this.packForm.controls.packages.value;
+    this.saving.set(true);
+    this.operations.packOrder(order.id, packages).subscribe({
+      next: () => {
+        this.selectedPackOrderId.set('');
+        this.feedback.set(`${order.orderNumber} was packed by the backend and is ready for dispatch.`);
+        this.error.set('');
+        this.orderService.refresh();
+        this.saving.set(false);
+      },
+      error: (error) => {
       this.showError(error);
-    }
+        this.saving.set(false);
+      },
+    });
   }
 
   protected openAdjustment(sku: string): void {
@@ -356,16 +437,28 @@ export class WarehouseOperationsComponent {
       this.adjustmentForm.markAllAsTouched();
       return;
     }
-    try {
-      const { quantity, reason } = this.adjustmentForm.getRawValue();
-      this.operations.adjust(sku, quantity, reason, this.actor());
-      this.adjustmentSku.set('');
-      this.stockDialog.set('');
-      this.feedback.set(`Inventory adjustment recorded for ${sku}.`);
-      this.error.set('');
-    } catch (error) {
-      this.showError(error);
+    const stock = this.operations.stock().find((item) => item.sku === sku);
+    if (!stock?.id) {
+      this.error.set('Inventory adjustment is unavailable because the canonical stock-item ID is missing.');
+      return;
     }
+    const { quantity, reason } = this.adjustmentForm.getRawValue();
+    this.saving.set(true);
+    this.operations.adjustStock(stock.id, quantity, reason).subscribe({
+      next: () => {
+        this.adjustmentSku.set('');
+        this.stockDialog.set('');
+        this.feedback.set(`Inventory adjustment recorded for ${sku}.`);
+        this.error.set('');
+        this.inventory.refresh();
+        this.operations.refreshPersistedWarehouseData('DISTRIBUTOR');
+        this.saving.set(false);
+      },
+      error: (error) => {
+      this.showError(error);
+        this.saving.set(false);
+      },
+    });
   }
 
   protected openDispatch(tripId: string): void {
@@ -382,12 +475,7 @@ export class WarehouseOperationsComponent {
     }
     const orderIds = candidate.orders.map((order) => order.id);
     try {
-      this.operations.validateDispatchOrders(orderIds, {
-        tripId: candidate.trip.id,
-        vehicleId: candidate.vehicleId,
-        driverId: candidate.driverId,
-        user: this.actor(),
-      });
+      this.operations.validateDispatchOrders(orderIds);
     } catch (error) {
       this.showError(error);
       return;
@@ -395,30 +483,17 @@ export class WarehouseOperationsComponent {
     this.pendingTripId.set(candidate.trip.id);
     this.tripService.dispatch(candidate.trip.id).subscribe({
       next: () => {
-        try {
-          this.operations.dispatchOrders(orderIds, {
-            tripId: candidate.trip.id,
-            vehicleId: candidate.vehicleId,
-            driverId: candidate.driverId,
-            user: this.actor(),
-          });
-          this.feedback.set(
-            `${candidate.orders.map((order) => order.orderNumber).join(', ')} dispatched on ${candidate.trip.tripNumber}.`,
-          );
-          this.error.set('');
-          this.selectedTripId.set('');
-          this.orderService.refresh();
-          this.inventory.refresh();
-          this.tripService.refresh();
-          this.fleet.refresh();
-        } catch (error) {
-          const reason = error instanceof Error ? error.message : 'Unknown local ledger error.';
-          this.error.set(
-            `The trip was dispatched, but the local warehouse ledger could not be updated: ${reason}. Refresh inventory and contact an administrator.`,
-          );
-        } finally {
-          this.pendingTripId.set('');
-        }
+        this.feedback.set(
+          `${candidate.orders.map((order) => order.orderNumber).join(', ')} were dispatched on ${candidate.trip.tripNumber}.`,
+        );
+        this.error.set('');
+        this.selectedTripId.set('');
+        this.orderService.refresh();
+        this.inventory.refresh();
+        this.tripService.refresh();
+        this.fleet.refresh();
+        this.operations.refreshPersistedWarehouseData('DISTRIBUTOR');
+        this.pendingTripId.set('');
       },
       error: (error) => {
         this.showError(error, 'Trip dispatch failed.');
@@ -433,6 +508,7 @@ export class WarehouseOperationsComponent {
     this.procurement.refreshOrders();
     this.tripService.refresh();
     this.fleet.refresh();
+    this.operations.refreshPersistedWarehouseData('DISTRIBUTOR');
   }
 
   protected updateStockSearch(event: Event): void {

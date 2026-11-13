@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
-import { ManufacturerShipment, ShipmentStatus } from './shipment.models';
+import { ManufacturerShipment, normalizeShipmentStatus, ShipmentStatus } from './shipment.models';
 import { ManufacturerPurchaseOrderService } from '../purchase-orders/purchase-order.service';
 import { throwError } from 'rxjs';
 
@@ -16,6 +16,7 @@ export interface NewShipment {
 interface Page<T> {
   content?: T[];
 }
+type ApiShipment = Omit<ManufacturerShipment, 'status'> & { status?: unknown };
 
 @Injectable({ providedIn: 'root' })
 export class ManufacturerShipmentService {
@@ -33,12 +34,18 @@ export class ManufacturerShipmentService {
   refresh(): void {
     this.loading.set(true);
     this.http
-      .get<Page<ManufacturerShipment> | ManufacturerShipment[]>(
+      .get<Page<ApiShipment> | ApiShipment[]>(
         `${API_ENDPOINTS.manufacturer.shipments}?size=100`,
       )
       .subscribe({
         next: (response) => {
-          this.shipmentRecords.set(Array.isArray(response) ? response : (response.content ?? []));
+          const shipments = Array.isArray(response) ? response : (response.content ?? []);
+          this.shipmentRecords.set(
+            shipments.map((shipment) => ({
+              ...shipment,
+              status: normalizeShipmentStatus(shipment.status),
+            })),
+          );
           this.error.set('');
           this.loading.set(false);
         },
@@ -73,7 +80,7 @@ export class ManufacturerShipmentService {
     });
   }
 
-  updateStatus(id: string, status: ShipmentStatus) {
+  updateStatus(id: string, status: Exclude<ShipmentStatus, 'UNKNOWN'>) {
     if (status === 'IN_TRANSIT') {
       const shipment = this.findById(id);
       const order = shipment ? this.purchaseOrders.findById(shipment.poReference) : undefined;

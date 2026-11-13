@@ -1,53 +1,117 @@
 <section class="space-y-5">
   <header class="border-b border-slate-200 pb-4">
-    <nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-xs text-slate-400"><a routerLink="/manufacturer/dashboard" queryParamsHandling="preserve" class="hover:text-blue-600">LogiFlow</a><span aria-hidden="true">›</span><span>Products</span><span aria-hidden="true">›</span><span class="text-slate-500">All Products</span></nav>
+    <nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-xs text-slate-400">
+      <a routerLink="/manufacturer/dashboard" queryParamsHandling="preserve" class="hover:text-blue-600">LogiFlow</a>
+      <span aria-hidden="true">›</span><span>Products</span><span aria-hidden="true">›</span>
+      <span class="text-slate-500">All Products</span>
+    </nav>
     <div class="flex flex-wrap items-end justify-between gap-3">
-      <div><h1 class="text-xl font-semibold text-slate-900">Product Master Catalog</h1><p class="mt-1 text-sm text-slate-500">Global list of manufactured equipment, stock units, and SKUs.</p></div>
-      <div class="flex gap-2"><a routerLink="/manufacturer/products/authorizations" queryParamsHandling="preserve" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700">Distribution requests</a><a routerLink="/manufacturer/products/new" queryParamsHandling="preserve" class="rounded-md bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700">+ Add Product</a></div>
+      <div>
+        <h1 class="text-xl font-semibold text-slate-900">Product Master Catalog</h1>
+        <p class="mt-1 text-sm text-slate-500">Product images, full descriptions, stock, and catalog controls.</p>
+      </div>
+      <div class="flex gap-2">
+        <a routerLink="/manufacturer/products/authorizations" queryParamsHandling="preserve" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700">Distribution requests</a>
+        <a routerLink="/manufacturer/products/new" queryParamsHandling="preserve" class="rounded-md bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700">+ Add Product</a>
+      </div>
     </div>
   </header>
 
   <div class="flex flex-wrap items-center gap-2">
     <label class="sr-only" for="product-search">Search products</label>
-    <input id="product-search" type="search" placeholder="Search product, SKU, or brand" (input)="updateSearch($event)" class="h-9 w-full max-w-64 rounded-md border border-slate-200 bg-white px-3 text-xs outline-none placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100">
+    <input id="product-search" type="search" placeholder="Search product, SKU, brand, or description" (input)="updateSearch($event)" class="h-9 w-full max-w-80 rounded-md border border-slate-200 bg-white px-3 text-xs outline-none placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100">
     <label class="sr-only" for="product-category">Filter by category</label>
     <select id="product-category" (change)="updateCategory($event)" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-700 outline-none focus:border-blue-400">
       <option>All categories</option>
       @for (category of categories(); track category) { <option [value]="category">{{ category }}</option> }
     </select>
-    <label class="sr-only" for="product-status">Filter by status</label>
+    <label class="sr-only" for="product-status">Filter by stock status</label>
     <select id="product-status" (change)="updateStatus($event)" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-700 outline-none focus:border-blue-400">
       <option>All statuses</option><option>ACTIVE</option><option>LOW STOCK</option><option>CRITICAL STOCK</option>
     </select>
     <span class="ml-auto text-xs text-slate-500">{{ filteredProducts().length }} products</span>
   </div>
 
-  @if (actionError()) { <p role="alert" class="rounded border border-red-200 bg-red-50 p-3 text-xs text-red-700">{{ actionError() }}</p> }
-  @if (productService.error()) { <p role="alert" class="rounded border border-red-200 bg-red-50 p-3 text-xs text-red-700">{{ productService.error() }} <button type="button" (click)="productService.refresh()" class="ml-2 font-semibold underline">Retry</button></p> }
+  @if (actionError()) {
+    <p role="alert" class="rounded border border-red-200 bg-red-50 p-3 text-xs text-red-700">{{ actionError() }}</p>
+  }
+  @if (productService.error()) {
+    <p role="alert" class="rounded border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+      {{ productService.error() }}
+      <button type="button" (click)="productService.refresh()" class="ml-2 font-semibold underline">Retry</button>
+    </p>
+  }
   @if (productService.loading()) {
-    <app-loading-skeleton [rows]="6" [columns]="10" />
+    <app-loading-skeleton [rows]="6" [columns]="3" />
   } @else {
-  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
-    <div class="overflow-x-auto">
-      <table class="w-full min-w-190 text-xs">
-        <thead class="bg-slate-50 text-left font-medium text-slate-600">
-          <tr><th scope="col" class="px-4 py-3">Image</th><th scope="col" class="px-3 py-3">Product Name</th><th scope="col" class="px-3 py-3">SKU</th><th scope="col" class="px-3 py-3">Brand</th><th scope="col" class="px-3 py-3">Category</th><th scope="col" class="px-3 py-3">Unit</th><th scope="col" class="px-3 py-3 text-right">Stock</th><th scope="col" class="px-3 py-3">Stock status</th><th scope="col" class="px-3 py-3">Publication</th><th scope="col" class="px-3 py-3">Actions</th></tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100">
-          @for (product of filteredProducts(); track product.id) {
-            <tr class="text-slate-700 hover:bg-slate-50">
-              <td class="px-4 py-3">@if (product.image) { <img [src]="product.image" [alt]="product.name" class="h-10 w-10 rounded-md border border-slate-200 object-cover"> } @else { <div class="grid h-10 w-10 place-items-center rounded-md bg-slate-100 text-[9px] font-semibold text-slate-400">{{ product.category.slice(0, 3).toUpperCase() }}</div> }</td>
-              <td class="min-w-40 px-3 py-3 font-medium text-slate-900">{{ product.name }}</td><td class="whitespace-nowrap px-3 py-3 text-slate-500">{{ product.sku }}</td><td class="whitespace-nowrap px-3 py-3">{{ product.brand }}</td><td class="whitespace-nowrap px-3 py-3">{{ product.category }}</td><td class="px-3 py-3">{{ product.unit }}</td><td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-900">{{ product.stock | number }} {{ product.unit }}</td>
-              <td class="px-3 py-3"><span class="whitespace-nowrap rounded border px-2 py-1 text-[9px] font-medium" [class]="product.status === 'ACTIVE' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : product.status === 'LOW STOCK' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-red-200 bg-red-50 text-red-700'">{{ product.status }}</span></td>
-              <td class="px-3 py-3"><span class="whitespace-nowrap rounded border px-2 py-1 text-[9px] font-medium" [class.border-emerald-200]="product.publicationStatus === 'PUBLISHED'" [class.bg-emerald-50]="product.publicationStatus === 'PUBLISHED'" [class.text-emerald-700]="product.publicationStatus === 'PUBLISHED'" [class.border-slate-200]="product.publicationStatus !== 'PUBLISHED'" [class.bg-slate-50]="product.publicationStatus !== 'PUBLISHED'" [class.text-slate-600]="product.publicationStatus !== 'PUBLISHED'">{{ product.publicationStatus }}</span></td>
-              <td class="whitespace-nowrap px-3 py-3"><a [routerLink]="['/manufacturer/products', product.sku]" queryParamsHandling="preserve" class="font-medium text-blue-600 hover:text-blue-700">View</a><a [routerLink]="['/manufacturer/products', product.sku, 'edit']" queryParamsHandling="preserve" class="ml-3 font-medium text-slate-600 hover:text-slate-900">Edit</a><button type="button" (click)="togglePublication(productId(product.id), product.publicationStatus)" [disabled]="!canManagePublication || !!pendingProductId()" class="ml-3 font-medium text-blue-600 disabled:opacity-40">{{ pendingProductId() === productId(product.id) ? 'Saving…' : product.publicationStatus === 'PUBLISHED' ? 'Unpublish' : 'Publish' }}</button></td>
-            </tr>
-          } @empty {
-            <tr><td colspan="10" class="px-4 py-12 text-center text-sm text-slate-500">No products match these filters.</td></tr>
-          }
-        </tbody>
-      </table>
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+      @for (product of filteredProducts(); track product.id) {
+        <article class="flex min-w-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <div class="flex gap-4 border-b border-slate-100 p-4">
+            @if (product.image) {
+              <app-authenticated-image [src]="product.image" [alt]="product.name" [fallback]="product.category.slice(0, 3).toUpperCase()" class="size-32 shrink-0 rounded-md border border-slate-200 bg-slate-50 p-1 sm:size-36" />
+            } @else {
+              <div class="grid size-32 shrink-0 place-items-center rounded-md bg-slate-100 text-xs font-semibold text-slate-400 sm:size-36">{{ product.category.slice(0, 3).toUpperCase() }}</div>
+            }
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-start justify-between gap-2">
+                <h2 class="min-w-0 break-words text-base font-semibold text-slate-900">{{ product.name }}</h2>
+                <span class="shrink-0 rounded border px-2 py-1 text-[9px] font-medium"
+                  [class.border-emerald-200]="product.publicationStatus === 'PUBLISHED'"
+                  [class.bg-emerald-50]="product.publicationStatus === 'PUBLISHED'"
+                  [class.text-emerald-700]="product.publicationStatus === 'PUBLISHED'"
+                  [class.border-slate-200]="product.publicationStatus !== 'PUBLISHED'"
+                  [class.bg-slate-50]="product.publicationStatus !== 'PUBLISHED'"
+                  [class.text-slate-600]="product.publicationStatus !== 'PUBLISHED'">
+                  {{ product.publicationStatus }}
+                </span>
+              </div>
+              <p class="mt-1 break-all text-xs text-slate-500">SKU {{ product.sku }}</p>
+              <p class="mt-2 text-xs leading-5 text-slate-700 [overflow-wrap:anywhere]">{{ product.description || 'No description provided.' }}</p>
+            </div>
+          </div>
+
+          <dl class="grid grid-cols-2 gap-x-4 gap-y-3 px-4 py-3 text-xs sm:grid-cols-3">
+            <div><dt class="text-slate-400">Brand</dt><dd class="mt-0.5 break-words font-medium text-slate-800">{{ product.brand || '—' }}</dd></div>
+            <div><dt class="text-slate-400">Category</dt><dd class="mt-0.5 break-words font-medium text-slate-800">{{ product.category }}</dd></div>
+            <div><dt class="text-slate-400">Unit</dt><dd class="mt-0.5 font-medium text-slate-800">{{ product.unit }}</dd></div>
+            <div><dt class="text-slate-400">Stock</dt><dd class="mt-0.5 font-medium text-slate-800">{{ product.stock | number }} {{ product.unit }}</dd></div>
+            <div><dt class="text-slate-400">Stock status</dt><dd class="mt-0.5 font-medium" [class.text-emerald-700]="product.status === 'ACTIVE'" [class.text-amber-700]="product.status === 'LOW STOCK'" [class.text-red-700]="product.status === 'CRITICAL STOCK'">{{ product.status }}</dd></div>
+            <div><dt class="text-slate-400">Publication</dt><dd class="mt-0.5 font-medium text-slate-800">{{ product.publicationStatus }}</dd></div>
+          </dl>
+
+          <div class="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 px-4 py-3 text-xs">
+            <a [routerLink]="['/manufacturer/products', product.sku]" queryParamsHandling="preserve" class="font-medium text-blue-600 hover:text-blue-700">View details</a>
+            <a [routerLink]="['/manufacturer/products', product.sku, 'edit']" queryParamsHandling="preserve" class="font-medium text-slate-600 hover:text-slate-900">Edit</a>
+            @if (canManagePublication && product.publicationStatus !== 'DISCONTINUED') {
+              <button type="button" (click)="togglePublication(productId(product.id), product.publicationStatus)" [disabled]="!!pendingProductId()" class="font-medium text-blue-600 disabled:opacity-40">
+                {{ pendingProductId() === productId(product.id) ? 'Saving…' : product.publicationStatus === 'PUBLISHED' ? 'Unpublish' : 'Publish' }}
+              </button>
+              <button type="button" (click)="requestDiscontinue(product)" [disabled]="!!pendingProductId() || product.stock > 0" [title]="product.stock > 0 ? 'Reduce stock to zero before removing this product.' : ''" class="ml-auto font-medium text-red-600 disabled:opacity-40">Remove from catalog</button>
+              @if (product.stock > 0) {
+                <p class="w-full text-[10px] leading-4 text-slate-500">Cannot remove while {{ product.stock | number }} units remain in stock.</p>
+              }
+            }
+          </div>
+        </article>
+      } @empty {
+        <p class="col-span-full rounded-lg border border-slate-200 bg-white px-4 py-12 text-center text-sm text-slate-500">No products match these filters.</p>
+      }
     </div>
-  </div>
   }
 </section>
+
+@if (productToDiscontinue(); as product) {
+  <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/40 p-4" (click)="cancelDiscontinue()">
+    <section role="dialog" aria-modal="true" aria-labelledby="discontinue-product-title" class="w-full max-w-md rounded-lg border border-slate-200 bg-white p-5 shadow-xl" (click)="$event.stopPropagation()">
+      <h2 id="discontinue-product-title" class="text-base font-semibold text-slate-900">Remove product from the active catalog?</h2>
+      <p class="mt-2 text-sm leading-6 text-slate-600">
+        <strong>{{ product.name }}</strong> will be marked discontinued and no longer published. Its record and historical references will be preserved; this does not permanently delete it or change its stock.
+      </p>
+      <div class="mt-5 flex justify-end gap-2">
+        <button type="button" (click)="cancelDiscontinue()" class="rounded-md border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700">Cancel</button>
+        <button type="button" (click)="confirmDiscontinue()" [disabled]="!!pendingProductId()" class="rounded-md bg-red-600 px-3 py-2 text-xs font-medium text-white disabled:opacity-50">{{ pendingProductId() ? 'Saving…' : 'Remove from catalog' }}</button>
+      </div>
+    </section>
+  </div>
+}

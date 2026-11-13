@@ -25,7 +25,6 @@ interface ApiProduct {
   unit?: string | null;
   description?: string | null;
   unitPrice: number;
-  availableQuantity?: number | null;
   active: boolean;
   inStock?: boolean;
   publicationStatus?: string;
@@ -55,6 +54,10 @@ interface ApiWarehouse {
   siteManager?: string | null;
   active: boolean;
 }
+interface ApiCatalogManufacturer {
+  id: string;
+  name: string;
+}
 
 export interface WarehouseCreateRequest {
   code: string;
@@ -74,6 +77,7 @@ export class DistributorCatalogService {
   private readonly http = inject(HttpClient);
   private readonly offerRecords = signal<DistributorCatalogOffer[]>([]);
   private readonly productRecords = signal<DistributorCatalogProduct[]>([]);
+  private readonly manufacturerRecords = signal<ApiCatalogManufacturer[]>([]);
   private readonly warehouseRecords = signal<ApiWarehouse[]>([]);
   readonly offers = computed(() =>
     this.offerRecords().map((offer) => {
@@ -96,6 +100,7 @@ export class DistributorCatalogService {
     }),
   );
   readonly availableProducts = this.productRecords.asReadonly();
+  readonly manufacturers = this.manufacturerRecords.asReadonly();
   readonly allWarehouses = this.warehouseRecords.asReadonly();
   readonly warehouses = computed(() =>
     this.warehouseRecords().filter((warehouse) => warehouse.active),
@@ -122,37 +127,40 @@ export class DistributorCatalogService {
       .subscribe({
         next: (result) => {
           const rows = Array.isArray(result) ? result : (result.content ?? []);
-          this.productRecords.set(
-            rows
-              .filter(
-                (row) =>
-                  row.publicationStatus === 'PUBLISHED' &&
-                  !row.sourceStockItemId &&
-                  typeof (row.manufacturerOrganizationId ?? row.organizationId) === 'string',
-              )
-              .map((row) => ({
-                id: row.id,
-                manufacturerId: row.manufacturerOrganizationId ?? row.organizationId!,
-                sku: row.sku,
-                name: row.name,
-                manufacturerName: row.manufacturerName?.trim() || 'Manufacturer',
-                category: row.category ?? 'Uncategorized',
-                brand: row.brand ?? '',
-                unit: row.unit ?? '\u2014',
-                wholesalePrice: Number.isFinite(row.unitPrice) ? row.unitPrice : null,
-                availableQuantity:
-                  typeof row.availableQuantity === 'number' &&
-                  Number.isFinite(row.availableQuantity) &&
-                  row.availableQuantity >= 0
-                    ? row.availableQuantity
-                    : null,
-                inStock: row.inStock ?? null,
-                description: row.description ?? '',
-                imageUrl: row.imageUrl ?? '',
-                authorizationStatus: catalogAuthorizationStatus(
-                  this.authorizationRecords().find((a) => a.productId === row.id)?.status,
-                ),
-              })),
+          const products = rows
+            .filter(
+              (row) =>
+                row.publicationStatus === 'PUBLISHED' &&
+                !row.sourceStockItemId &&
+                typeof (row.manufacturerOrganizationId ?? row.organizationId) === 'string',
+            )
+            .map((row) => ({
+              id: row.id,
+              manufacturerId: row.manufacturerOrganizationId ?? row.organizationId!,
+              sku: row.sku,
+              name: row.name,
+              manufacturerName: row.manufacturerName?.trim() || 'Manufacturer',
+              category: row.category ?? 'Uncategorized',
+              brand: row.brand ?? '',
+              unit: row.unit ?? '\u2014',
+              wholesalePrice: Number.isFinite(row.unitPrice) ? row.unitPrice : null,
+              inStock: row.inStock ?? null,
+              description: row.description ?? '',
+              imageUrl: row.imageUrl ?? '',
+              authorizationStatus: catalogAuthorizationStatus(
+                this.authorizationRecords().find((a) => a.productId === row.id)?.status,
+              ),
+            }));
+          this.productRecords.set(products);
+          this.manufacturerRecords.set(
+            Array.from(
+              new Map(
+                products.map((product) => [
+                  product.manufacturerId,
+                  { id: product.manufacturerId, name: product.manufacturerName },
+                ]),
+              ).values(),
+            ),
           );
           done();
         },
@@ -185,7 +193,9 @@ export class DistributorCatalogService {
                 imageUrl: '',
                 wholesalePrice: null,
                 availableQuantity:
-                  typeof row.availableQuantity === 'number' && row.availableQuantity >= 0
+                  typeof row.availableQuantity === 'number' &&
+                  Number.isInteger(row.availableQuantity) &&
+                  row.availableQuantity >= 0
                     ? row.availableQuantity
                     : null,
                 listPrice: row.unitPrice,
@@ -278,6 +288,19 @@ export class DistributorCatalogService {
     });
   }
 
+  offerActivationError(offer: DistributorCatalogOffer): string {
+    if (this.authorizationStatus(offer.sourceStockItemId) !== 'APPROVED') {
+      return 'Manufacturer authorization must be approved before this offer can be activated.';
+    }
+    if (offer.availableQuantity === null) {
+      return 'Stock availability could not be confirmed. Refresh your stock before activating this offer.';
+    }
+    if (offer.availableQuantity <= 0) {
+      return 'Receive available stock before activating this offer.';
+    }
+    return '';
+  }
+
   requestAuthorization(productId: string, request: ProductAuthorizationRequest) {
     return this.http.post<ProductAuthorization>(
       API_ENDPOINTS.distributor.productAuthorizationRequest(productId),
@@ -289,6 +312,12 @@ export class DistributorCatalogService {
     id: string,
     update: { sellingPrice?: number; reorderThreshold?: number; active?: boolean },
   ) {
+    if (update.active === true) {
+      const offer = this.offerRecords().find((row) => row.id === id);
+      if (!offer) throw new Error('Refresh your catalog before activating this offer.');
+      const eligibilityError = this.offerActivationError(offer);
+      if (eligibilityError) throw new Error(eligibilityError);
+    }
     return this.http.patch<ApiStockItem>(API_ENDPOINTS.distributor.stockOffer(id), update);
   }
 }

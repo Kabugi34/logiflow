@@ -21,6 +21,13 @@ export const routes: Routes = [
         (module) => module.LandingPageComponent,
       ),
   },
+  {
+      path: 'accept-invitation',
+      loadComponent: () =>
+        import('./features/auth/pages/accept-driver-invitation.component').then(
+          (module) => module.AcceptDriverInvitationComponent,
+        ),
+  },
 
   {
     path: 'auth',

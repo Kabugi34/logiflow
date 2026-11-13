@@ -36,7 +36,7 @@ export class ManufacturerWarehouseOperationsComponent {
   private readonly sourceSync = effect(() => {
     if (this.inventory.loading() || this.purchaseOrders.loading()) return;
     const inventory = this.inventory.getRows().map((item) => ({
-      id: item.sku,
+      id: item.id,
       sku: item.sku,
       name: item.productName,
       onHand: item.totalStock,
@@ -52,7 +52,7 @@ export class ManufacturerWarehouseOperationsComponent {
         quantity: line.requestedQuantity,
       })),
     }));
-    untracked(() => this.operations.synchronize(inventory, orders, []));
+    untracked(() => this.operations.synchronize(inventory, orders, 'MANUFACTURER'));
   });
 
   protected readonly actor = computed(
@@ -158,18 +158,11 @@ export class ManufacturerWarehouseOperationsComponent {
   }
 
   protected confirmPutAway(): void {
+    this.error.set(
+      'Put-away is unavailable for manufacturer stock: the backend location API permits distributor roles only.',
+    );
     if (!this.adjustmentSku() || this.putAwayForm.invalid) {
       this.putAwayForm.markAllAsTouched();
-      return;
-    }
-    try {
-      const { location, quantity } = this.putAwayForm.getRawValue();
-      this.operations.putAway(this.adjustmentSku(), location, quantity, this.actor());
-      this.stockDialog.set('');
-      this.adjustmentSku.set('');
-      this.feedback.set(`${quantity} units put away to ${location.trim()}.`);
-    } catch (error) {
-      this.showError(error);
     }
   }
 
@@ -189,16 +182,29 @@ export class ManufacturerWarehouseOperationsComponent {
       this.adjustmentForm.markAllAsTouched();
       return;
     }
-    try {
-      const { quantity, reason } = this.adjustmentForm.getRawValue();
-      const sku = this.adjustmentSku();
-      this.operations.adjust(sku, quantity, reason, this.actor());
+    const stock = this.operations.stock().find((item) => item.sku === this.adjustmentSku());
+    if (!stock?.id) {
+      this.error.set('Inventory adjustment is unavailable because the canonical stock-item ID is missing.');
+      return;
+    }
+    const { quantity, reason } = this.adjustmentForm.getRawValue();
+    const sku = this.adjustmentSku();
+    this.saving.set(true);
+    this.operations.adjustStock(stock.id, quantity, reason).subscribe({
+      next: () => {
       this.stockDialog.set('');
       this.adjustmentSku.set('');
       this.feedback.set(`Inventory adjustment recorded for ${sku}.`);
-    } catch (error) {
+      this.error.set('');
+      this.inventory.refresh();
+      this.operations.refreshPersistedWarehouseData('MANUFACTURER');
+      this.saving.set(false);
+      },
+      error: (error) => {
       this.showError(error);
-    }
+      this.saving.set(false);
+      },
+    });
   }
 
   protected openPick(order: WarehouseOrder): void {
@@ -208,28 +214,9 @@ export class ManufacturerWarehouseOperationsComponent {
   }
 
   protected confirmPick(): void {
-    const order = this.selectedPickOrder();
-    if (!order || this.pickForm.invalid) {
-      this.pickForm.markAllAsTouched();
-      return;
-    }
-    if (!this.isPaymentVerified(order.id)) {
-      this.error.set('Picking is blocked until backend payment reconciliation reports PAID.');
-      return;
-    }
-    try {
-      const { lineId, quantity } = this.pickForm.getRawValue();
-      this.operations.pick(order.id, lineId, quantity, this.actor());
-      if (
-        this.operations.orders().find((item) => item.id === order.id)?.status === 'READY_TO_PACK'
-      ) {
-        this.selectedPickOrderId.set('');
-      }
-      this.feedback.set(`Picked ${quantity} units for purchase order ${order.orderNumber}.`);
-      this.error.set('');
-    } catch (error) {
-      this.showError(error);
-    }
+    this.error.set(
+      'Picking is unavailable for manufacturer purchase orders: the backend warehouse pick API accepts distributor customer orders only and these PO lines have no canonical order-item IDs.',
+    );
   }
 
   protected openPack(order: WarehouseOrder): void {
@@ -249,27 +236,9 @@ export class ManufacturerWarehouseOperationsComponent {
   }
 
   protected confirmPack(): void {
-    const order = this.selectedPackOrder();
-    if (!order || this.packForm.invalid) {
-      this.packForm.markAllAsTouched();
-      return;
-    }
-    if (!this.isPaymentVerified(order.id)) {
-      this.error.set('Packing is blocked until backend payment reconciliation reports PAID.');
-      return;
-    }
-    try {
-      this.operations.pack(
-        order.id,
-        this.packedQuantities(),
-        this.packForm.controls.packages.value,
-      );
-      this.selectedPackOrderId.set('');
-      this.feedback.set(`Purchase order ${order.orderNumber} packed and ready for dispatch.`);
-      this.error.set('');
-    } catch (error) {
-      this.showError(error);
-    }
+    this.error.set(
+      'Packing is unavailable for manufacturer purchase orders: the backend warehouse pack API accepts distributor customer orders only.',
+    );
   }
 
   protected openDispatch(order: WarehouseOrder): void {
@@ -302,12 +271,7 @@ export class ManufacturerWarehouseOperationsComponent {
       return;
     }
     try {
-      this.operations.validateDispatchOrders([order.id], {
-        tripId: `PENDING-${purchaseOrder.id}`,
-        vehicleId: vehicle.id,
-        driverId: driver.id,
-        user: this.actor(),
-      });
+      this.operations.validateDispatchOrders([order.id]);
     } catch (error) {
       this.showError(error);
       return;
@@ -325,30 +289,17 @@ export class ManufacturerWarehouseOperationsComponent {
       })
       .subscribe({
         next: (shipment) => {
-          try {
-            this.operations.dispatchOrders([order.id], {
-              tripId: shipment.tripId,
-              vehicleId: vehicle.id,
-              driverId: driver.id,
-              user: this.actor(),
-            });
-            this.feedback.set(
-              `Purchase order ${order.orderNumber} dispatched on shipment ${shipment.id}.`,
-            );
-            this.error.set('');
-            this.selectedDispatchOrderId.set('');
-            this.inventory.refresh();
-            this.purchaseOrders.refresh();
-            this.shipments.refresh();
-            this.fleet.refresh();
-          } catch (error) {
-            const reason = error instanceof Error ? error.message : 'Unknown local ledger error.';
-            this.error.set(
-              `Shipment ${shipment.id} was created, but the local warehouse ledger could not be updated: ${reason}. Refresh inventory and contact an administrator.`,
-            );
-          } finally {
-            this.saving.set(false);
-          }
+          this.feedback.set(
+            `Shipment ${shipment.id} was created successfully for purchase order ${order.orderNumber}. Dispatch remains governed by the manufacturer shipment status workflow.`,
+          );
+          this.error.set('');
+          this.selectedDispatchOrderId.set('');
+          this.inventory.refresh();
+          this.purchaseOrders.refresh();
+          this.shipments.refresh();
+          this.fleet.refresh();
+          this.operations.refreshPersistedWarehouseData('MANUFACTURER');
+          this.saving.set(false);
         },
         error: (error) => {
           this.showError(error, 'Shipment could not be created.');
@@ -407,16 +358,12 @@ export class ManufacturerWarehouseOperationsComponent {
     this.purchaseOrders.refresh();
     this.shipments.refresh();
     this.fleet.refresh();
+    this.operations.refreshPersistedWarehouseData('MANUFACTURER');
   }
 
   private clearFeedback(): void {
     this.feedback.set('');
     this.error.set('');
-  }
-
-  private isPaymentVerified(orderId: string): boolean {
-    const purchaseOrder = this.purchaseOrders.findById(orderId);
-    return purchaseOrder?.status === 'ACCEPTED' && purchaseOrder.paymentStatus === 'PAID';
   }
 
   private showError(error: unknown, fallback = 'Warehouse operation failed.'): void {

@@ -2,11 +2,12 @@ import { Component, computed, inject } from '@angular/core';
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ManufacturerProductService } from '../product.service';
+import { AuthenticatedImageComponent } from '../../../../shared/authenticated-image.component';
 
 @Component({
   selector: 'app-product-details',
   standalone: true,
-  imports: [CurrencyPipe, DecimalPipe, RouterLink],
+  imports: [AuthenticatedImageComponent, CurrencyPipe, DecimalPipe, RouterLink],
   templateUrl: './product-details.component.html',
 })
 export class ProductDetailsComponent {

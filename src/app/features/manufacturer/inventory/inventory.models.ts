@@ -5,6 +5,7 @@ export interface InventoryTerminal {
 }
 
 export interface TerminalInventoryRecord {
+  id: string;
   productName: string;
   sku: string;
   category: string;

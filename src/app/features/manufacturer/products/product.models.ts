@@ -10,6 +10,7 @@ export interface ManufacturerProduct {
   unit: string;
   unitPrice: number | null;
   stock: number;
+  reorderThreshold: number;
   status: ProductStatus;
   publicationStatus: ProductPublicationStatus;
   image: string;

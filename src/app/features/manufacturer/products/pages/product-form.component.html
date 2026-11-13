@@ -18,8 +18,8 @@
         <label class="space-y-1.5 sm:col-span-2"><span class="block text-xs font-medium text-slate-700">Product image {{ productSku ? '(optional replacement)' : '(required)' }}</span><input type="file" accept="image/png,image/jpeg,image/webp" (change)="chooseImage($event)" class="block w-full text-xs text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-xs"><span class="text-[10px] text-slate-500">PNG, JPEG, or WebP up to 5 MB. {{ selectedImage() || 'Choose one clear product image.' }}</span>@if (imageError()) { <span role="alert" class="block text-[10px] text-red-600">{{ imageError() }}</span> }</label>
         <label class="space-y-1.5"><span class="block text-xs font-medium text-slate-700">Unique SKU Code</span><input formControlName="sku" placeholder="e.g. CRS-901-X" class="h-10 w-full rounded-md border border-slate-200 px-3 text-xs outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"><span class="text-[10px] text-red-600" [hidden]="!form.controls.sku.touched || !form.controls.sku.hasError('required')">SKU is required.</span></label>
         <label class="space-y-1.5"><span class="block text-xs font-medium text-slate-700">Unit Price</span><input type="number" min="0.01" formControlName="unitPrice" class="h-10 w-full rounded-md border border-slate-200 px-3 text-xs"></label>
-        <label class="space-y-1.5"><span class="block text-xs font-medium text-slate-700">Initial Quantity</span><input type="number" min="0" formControlName="initialQuantity" class="h-10 w-full rounded-md border border-slate-200 px-3 text-xs"></label>
-        <label class="space-y-1.5"><span class="block text-xs font-medium text-slate-700">Reorder Threshold</span><input type="number" min="0" formControlName="reorderThreshold" class="h-10 w-full rounded-md border border-slate-200 px-3 text-xs"></label>
+        <label class="space-y-1.5"><span class="block text-xs font-medium text-slate-700">{{ productSku ? 'Current Organization Stock' : 'Initial Quantity' }}</span><input type="number" min="0" formControlName="initialQuantity" [readonly]="!!productSku" class="h-10 w-full rounded-md border border-slate-200 px-3 text-xs read-only:bg-slate-50"><span [hidden]="!productSku" class="text-[10px] text-slate-500">Stock is managed separately from catalog details.</span></label>
+        <label class="space-y-1.5"><span class="block text-xs font-medium text-slate-700">{{ productSku ? 'Current Reorder Threshold' : 'Reorder Threshold' }}</span><input type="number" min="0" formControlName="reorderThreshold" [readonly]="!!productSku" class="h-10 w-full rounded-md border border-slate-200 px-3 text-xs read-only:bg-slate-50"><span [hidden]="!productSku" class="text-[10px] text-slate-500">Inventory settings are managed separately from catalog details.</span></label>
       </div>
     </section>
 
@@ -34,4 +34,3 @@
     </div>
   </form>
 </section>
-

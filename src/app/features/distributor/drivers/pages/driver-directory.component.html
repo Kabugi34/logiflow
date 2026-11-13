@@ -11,7 +11,7 @@
       (click)="openOnboard()"
       class="h-9 rounded-md bg-blue-600 px-3 text-xs font-medium text-white"
     >
-      + Add driver
+      + Invite driver
     </button>
   </header>
   <div class="grid grid-cols-2 gap-3 md:grid-cols-5">
@@ -190,57 +190,43 @@
         class="w-full max-w-lg space-y-3 rounded-xl bg-white p-5 shadow-xl"
       >
         <app-form-validation-summary [form]="form" />
-        <h2 class="text-lg font-semibold">{{ editingId() ? 'Edit driver' : 'Add driver' }}</h2>
+        <h2 class="text-lg font-semibold">{{ editingId() ? 'Edit driver' : 'Invite driver' }}</h2>
         <div class="grid gap-3 sm:grid-cols-2">
-          <label class="text-xs"
-            >Full name<input
-              formControlName="name"
-              autocomplete="name"
-              maxlength="80"
-              class="mt-1 h-9 w-full rounded border px-3" /></label
-          ><label class="text-xs"
-            >Email<input
-              type="email"
-              formControlName="email"
-              autocomplete="email"
-              maxlength="120"
-              class="mt-1 h-9 w-full rounded border px-3" /></label
-          ><label class="text-xs"
-            >Phone<input
-              type="tel"
-              formControlName="phone"
-              autocomplete="tel"
-              inputmode="tel"
-              placeholder="+254712345678"
-              maxlength="32"
-              class="mt-1 h-9 w-full rounded border px-3" /></label
-          ><label class="text-xs"
-            >Licence details<input
-              formControlName="license"
-              maxlength="40"
-              class="mt-1 h-9 w-full rounded border px-3" /></label
-          ><label class="text-xs"
-            >National ID<input
-              formControlName="nationalId"
-              autocomplete="off"
-              maxlength="32"
-              class="mt-1 h-9 w-full rounded border px-3" /></label
-          ><label class="text-xs"
-            >Licence expiry date<input
-              type="date"
-              formControlName="licenseExpiryDate"
-              class="mt-1 h-9 w-full rounded border px-3" /></label
-          ><label class="text-xs sm:col-span-2"
-            >Base warehouse (optional)<select
-              formControlName="baseWarehouseId"
-              class="mt-1 h-9 w-full rounded border px-3"
-            >
-              <option value="">No base warehouse</option>
-              @for (w of warehouses(); track w.id) {
-                <option [value]="w.id">{{ w.name }}</option>
-              }
-            </select></label
-          >
+          <label class="text-xs">
+            Full name
+            <input formControlName="name" autocomplete="name" maxlength="80" class="mt-1 h-9 w-full rounded border px-3" />
+          </label>
+          <label class="text-xs">
+            Email
+            <input type="email" formControlName="email" autocomplete="email" maxlength="120" class="mt-1 h-9 w-full rounded border px-3" />
+          </label>
+          <label class="text-xs">
+            Phone
+            <input type="tel" formControlName="phone" autocomplete="tel" inputmode="tel" placeholder="+254712345678" maxlength="32" class="mt-1 h-9 w-full rounded border px-3" />
+          </label>
+          <label class="text-xs">
+            Licence details
+            <input formControlName="license" maxlength="40" class="mt-1 h-9 w-full rounded border px-3" />
+          </label>
+          @if (editingId()) {
+            <label class="text-xs">
+              National ID
+              <input formControlName="nationalId" autocomplete="off" maxlength="32" class="mt-1 h-9 w-full rounded border px-3" />
+            </label>
+            <label class="text-xs">
+              Licence expiry date
+              <input type="date" formControlName="licenseExpiryDate" class="mt-1 h-9 w-full rounded border px-3" />
+            </label>
+            <label class="text-xs sm:col-span-2">
+              Base warehouse (optional)
+              <select formControlName="baseWarehouseId" class="mt-1 h-9 w-full rounded border px-3">
+                <option value="">No base warehouse</option>
+                @for (w of warehouses(); track w.id) {
+                  <option [value]="w.id">{{ w.name }}</option>
+                }
+              </select>
+            </label>
+          }
         </div>
         @if (fieldError('name')) {
           <p role="alert" class="text-xs text-red-600">{{ fieldError('name') }}</p>
@@ -254,17 +240,17 @@
         @if (fieldError('license')) {
           <p role="alert" class="text-xs text-red-600">{{ fieldError('license') }}</p>
         }
-        @if (fieldError('nationalId')) {
+        @if (editingId() && fieldError('nationalId')) {
           <p role="alert" class="text-xs text-red-600">{{ fieldError('nationalId') }}</p>
         }
-        @if (fieldError('licenseExpiryDate')) {
+        @if (editingId() && fieldError('licenseExpiryDate')) {
           <p role="alert" class="text-xs text-red-600">
             {{ fieldError('licenseExpiryDate') }}
           </p>
         }
         @if (!editingId()) {
           <p class="rounded bg-slate-50 p-2 text-xs text-slate-600">
-            The API must queue or send an activation invitation to this email address.
+            This requests a driver invitation. The API response does not confirm email delivery.
           </p>
         }
         @if (formError()) {
@@ -273,7 +259,9 @@
         <div class="flex justify-end gap-2">
           <button type="button" (click)="closeDialog()" class="rounded border px-3 py-2 text-xs">
             Cancel</button
-          ><button class="rounded bg-blue-600 px-3 py-2 text-xs text-white">Save</button>
+          ><button class="rounded bg-blue-600 px-3 py-2 text-xs text-white">
+            {{ editingId() ? 'Save changes' : 'Request invitation' }}
+          </button>
         </div>
       </form>
     </div>

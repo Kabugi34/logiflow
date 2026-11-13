@@ -56,6 +56,7 @@ describe('DistributorProcurementService', () => {
     );
 
     authorizationStatus.set('APPROVED');
+    expect(service.productsForManufacturer('manufacturer-1')[0].inStock).toBe(true);
     expect(() =>
       service.createDraft('manufacturer-1', [{ sku: 'SKU-001', quantity: 2 }]),
     ).not.toThrow();

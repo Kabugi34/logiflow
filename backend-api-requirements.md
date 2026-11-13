@@ -87,7 +87,7 @@ Tenant ownership must always be derived from the authenticated principal. Role a
 
 1. A manufacturer administrator creates a canonical product with SKU, name, category, brand, unit, description, price/listing metadata, and at least one product image. Saving publishes the product immediately so distributors can discover it.
 2. Manufacturer users with product-edit permission update product details. Only a `MANUFACTURER_ADMIN` (or explicitly authorized product publisher role) may publish, unpublish, discontinue, or republish a product. Distributor authorization is still required before an offer can be created.
-3. Publication status is independent from physical inventory: `DRAFT`, `PUBLISHED`, and `DISCONTINUED` are catalog states; on-hand, reserved, available, and low-stock values are stock state. Zero stock must not silently unpublish an otherwise published product.
+3. Publication status is independent from physical inventory: `DRAFT`, `PUBLISHED`, and `DISCONTINUED` are catalog states; on-hand, reserved, available, and low-stock values are stock state. Zero stock must not silently unpublish an otherwise published product. Reject a transition to `DISCONTINUED` while any on-hand stock remains.
 4. Manufacturer stock levels and movements remain organization/warehouse-scoped. Purchase-order review checks actual available stock (`onHand - reserved`, or an authoritative `availableQuantity`) and rejects approval when requested quantities cannot be fulfilled.
 
 ### 2. Distributor catalog authorization and offers
@@ -158,7 +158,7 @@ The following routes are **PROPOSED** where no matching backend route has been c
 | `POST /api/v1/products` | Create and publish product; accept `multipart/form-data` with product fields, initial stock fields, `publicationStatus=PUBLISHED`, and required `image` file; organization ID comes from principal |
 | `GET /api/v1/products/{productId}` | Tenant-authorized detail including `imageUrl` |
 | `PATCH /api/v1/products/{productId}` | Edit permitted product fields and optional replacement `image`; preserve publication state and do not mutate stock quantities through metadata update |
-| `PATCH /api/v1/products/{productId}/publication` | Body `{ "status": "PUBLISHED" | "DRAFT" | "DISCONTINUED" }`; authorized publisher only |
+| `PATCH /api/v1/products/{productId}/publication` | Body `{ "status": "PUBLISHED" | "DRAFT" | "DISCONTINUED" }`; authorized publisher only; reject `DISCONTINUED` while any on-hand stock remains |
 | `GET /api/v1/products/authorizations?status=&page=&size=` | Caller-organization requests, role/tenant scoped; manufacturer side receives requests for its products, distributor side receives its requests/relationships |
 | `POST /api/v1/products/{productId}/authorization-requests` | Distributor asks to list a product; body may include business note; backend derives distributor org |
 | `PATCH /api/v1/products/authorizations/{authorizationId}/decision` | Manufacturer admin body `{ "decision": "APPROVED" | "REJECTED", "note": "..." }`; record actor/time |

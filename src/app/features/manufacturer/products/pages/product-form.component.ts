@@ -46,6 +46,8 @@ export class ProductFormComponent {
       if (product && !this.form.dirty) this.form.patchValue({
         name: product.name, category: product.category, sku: product.sku,
         brand: product.brand, unit: product.unit, description: product.description,
+        unitPrice: product.unitPrice ?? 0, initialQuantity: product.stock,
+        reorderThreshold: product.reorderThreshold,
       });
     });
   }
@@ -78,14 +80,50 @@ export class ProductFormComponent {
       this.form.markAllAsTouched();
       return;
     }
+    const values = this.form.getRawValue();
+    if (!this.productSku) {
+      const existingProduct = this.productService.products().find(
+        product => product.sku.trim().toLowerCase() === values.sku.trim().toLowerCase(),
+      );
+      if (existingProduct) {
+        this.isSubmitting.set(true);
+        this.productService.setPublicationStatus(String(existingProduct.id), 'PUBLISHED').pipe(
+          finalize(() => this.isSubmitting.set(false)),
+        ).subscribe({
+          next: () => {
+            this.productService.refresh();
+            void this.router.navigate(['/manufacturer/products']);
+          },
+          error: error => this.errorMessage.set(
+            error?.error?.message ?? 'This SKU already exists. The existing product could not be republished.',
+          ),
+        });
+        return;
+      }
+    }
     if (!this.productSku && !this.selectedImageFile()) {
       this.imageError.set('Add a product image before publishing.');
       return;
     }
     this.isSubmitting.set(true);
     const request = this.productSku
-      ? this.productService.update(String(this.productService.findBySku(this.productSku)?.id ?? ''), this.form.getRawValue(), this.selectedImageFile() ?? undefined)
-      : this.productService.create({ ...this.form.getRawValue(), publicationStatus: 'PUBLISHED' }, this.selectedImageFile()!);
+      ? this.productService.update(
+          String(this.productService.findBySku(this.productSku)?.id ?? ''),
+          {
+            name: values.name,
+            category: values.category,
+            sku: values.sku,
+            brand: values.brand,
+            unit: values.unit,
+            description: values.description,
+            unitPrice: values.unitPrice,
+          },
+          this.selectedImageFile() ?? undefined,
+        )
+      : this.productService.create(
+          { ...values, publicationStatus: 'PUBLISHED' },
+          this.selectedImageFile()!,
+        );
     if (this.productSku && !this.productService.findBySku(this.productSku)) {
       this.isSubmitting.set(false);
       this.errorMessage.set('This product is not available to edit. Refresh the product list and try again.');
@@ -98,7 +136,14 @@ export class ProductFormComponent {
         this.productService.refresh();
         void this.router.navigate(['/manufacturer/products']);
       },
-      error: (error) => this.errorMessage.set(error?.error?.message ?? 'Unable to save this product to the API.'),
+      error: (error) => {
+        const message = error?.error?.message ?? '';
+        this.errorMessage.set(
+          /stock item.*sku.*already exists/i.test(message)
+            ? 'This SKU already has an organization stock record. Refresh Products and republish the existing product instead of creating it again.'
+            : message || 'Unable to save this product to the API.',
+        );
+      },
     });
   }
 }

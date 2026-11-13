@@ -3,6 +3,8 @@ export type WarehouseOrderStatus =
 
 export interface WarehouseLine {
   id: string;
+  orderItemId?: string;
+  stockItemId?: string;
   sku: string;
   product: string;
   requested: number;
@@ -22,10 +24,23 @@ export interface WarehouseOrder {
   vehicleId?: string;
   driverId?: string;
   dispatchedAt?: string;
+  fulfillmentSupported?: boolean;
+}
+
+export interface WarehouseReceiptLine {
+  purchaseOrderItemId: string;
+  stockItemId: string;
+  product: string;
+  expected: number;
+  accepted: number;
+  damaged: number;
+  missing: number;
 }
 
 export interface WarehouseReceipt {
   id: string;
+  shipmentId: string;
+  shipmentStatus: string;
   reference: string;
   sku: string;
   product: string;
@@ -34,9 +49,11 @@ export interface WarehouseReceipt {
   accepted?: number;
   damaged?: number;
   missing?: number;
+  lines: WarehouseReceiptLine[];
 }
 
 export interface WarehouseStock {
+  id: string;
   sku: string;
   product: string;
   onHand: number;
@@ -49,7 +66,7 @@ export interface WarehouseMovement {
   id: string;
   sku: string;
   quantity: number;
-  type: 'RECEIPT' | 'PUT_AWAY' | 'PICK' | 'DISPATCH' | 'ADJUSTMENT';
+  type: 'RESTOCK_IN' | 'SALE_OUT' | 'ADJUSTMENT' | 'RETURN' | 'DAMAGE';
   reference: string;
   reason: string;
   user: string;
@@ -68,11 +85,13 @@ export interface WarehouseOrderSource {
   orderNumber: string;
   status: string;
   paymentStatus: string;
-  lines: { sku: string; product: string; quantity: number }[];
-}
-
-export interface WarehouseReceiptSource {
-  id: string;
-  status: string;
-  lines: { sku: string; product: string; quantity: number }[];
+  lines: {
+    orderItemId?: string;
+    stockItemId?: string;
+    sku: string;
+    product: string;
+    quantity: number;
+    pickedQuantity?: number;
+    packedQuantity?: number;
+  }[];
 }

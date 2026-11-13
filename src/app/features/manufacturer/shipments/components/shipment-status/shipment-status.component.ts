@@ -14,10 +14,16 @@ export class ShipmentStatusComponent {
       case 'IN_TRANSIT': return 'border-amber-200 bg-amber-50 text-amber-700';
       case 'DELIVERED': return 'border-emerald-200 bg-emerald-50 text-emerald-700';
       case 'BORDER_HOLD': return 'border-red-200 bg-red-50 text-red-700';
+      case 'UNKNOWN': return 'border-slate-200 bg-slate-50 text-slate-600';
     }
   }
 
   protected statusLabel(): string {
-    return this.status() === 'BORDER_HOLD' ? 'BORDER HOLD' : this.status() === 'IN_TRANSIT' ? 'IN TRANSIT' : 'DELIVERED';
+    switch (this.status()) {
+      case 'BORDER_HOLD': return 'BORDER HOLD';
+      case 'IN_TRANSIT': return 'IN TRANSIT';
+      case 'DELIVERED': return 'DELIVERED';
+      case 'UNKNOWN': return 'UNKNOWN STATUS';
+    }
   }
 }

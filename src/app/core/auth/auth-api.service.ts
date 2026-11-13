@@ -3,6 +3,10 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API_ENDPOINTS } from '../api/api-endpoints';
 import { OrganizationType } from '../models/organization.model';
+import {
+  DriverInvitationAcceptanceResponse,
+  DriverInvitationDetails,
+} from '../models/driver-invitation.model';
 
 export interface AuthUserResponse {
   id: string;
@@ -70,6 +74,33 @@ export class AuthApiService {
 
   requestActivationLink(email: string): Observable<void> {
     return this.http.post<void>(API_ENDPOINTS.auth.activationResend, { identifier: email });
+  }
+
+  getDriverInvitation(token: string): Observable<DriverInvitationDetails> {
+    return this.http.get<DriverInvitationDetails>(API_ENDPOINTS.driverInvitation.details(token));
+  }
+
+  acceptDriverInvitation(
+    token: string,
+    payload: { phoneNumber: string; password: string },
+  ): Observable<DriverInvitationAcceptanceResponse> {
+    return this.http.post<DriverInvitationAcceptanceResponse>(
+      API_ENDPOINTS.driverInvitation.accept(token),
+      { phoneNumber: payload.phoneNumber.trim(), password: payload.password },
+    );
+  }
+
+  verifyAccount(identifier: string, otp: string): Observable<AuthSession> {
+    return this.http.post<AuthSession>(API_ENDPOINTS.auth.verifyAccount, {
+      identifier: identifier.trim(),
+      otp: otp.trim(),
+    });
+  }
+
+  resendVerification(identifier: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(API_ENDPOINTS.auth.activationResend, {
+      identifier: identifier.trim(),
+    });
   }
 
   login(identifier: string, password: string): Observable<AuthSession> {

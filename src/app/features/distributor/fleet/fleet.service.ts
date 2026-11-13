@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
+import { DriverInvitationCreatedResponse } from '../../../core/models/driver-invitation.model';
 import { Observable, map, tap } from 'rxjs';
 import {
   DistributorDriver,
@@ -40,12 +41,16 @@ export class DistributorFleetService {
 
   constructor() { this.refresh(); }
 
-  createDriver(details: { name: string; email: string; phone: string; license: string; nationalId: string; licenseExpiryDate: string; baseWarehouseId?: string }): Observable<DistributorDriver> {
-    return this.http.post<DriverApiRow>(API_ENDPOINTS.distributor.drivers, {
-      fullName: details.name.trim(), email: details.email.trim().toLowerCase(), phoneNumber: details.phone.trim(),
-      licenseNumber: details.license.trim().toUpperCase(), nationalId: details.nationalId.trim(),
-      licenseExpiryDate: details.licenseExpiryDate, baseWarehouseId: details.baseWarehouseId || null
-    }).pipe(map(row => this.mapDriver(row)), tap(driver => this.driverRecords.update(rows => [driver, ...rows])));
+  createDriver(details: { name: string; email: string; phone: string; license: string }): Observable<DriverInvitationCreatedResponse> {
+    return this.http.post<DriverInvitationCreatedResponse>(API_ENDPOINTS.distributor.driverInvitations, {
+      fullName: details.name.trim(),
+      email: details.email.trim().toLowerCase(),
+      phoneNumber: details.phone.trim(),
+      licenseNumber: details.license.trim().toUpperCase(),
+    }).pipe(tap({
+      next: () => this.refresh(),
+      error: () => this.refresh(),
+    }));
   }
 
   saveDriverProfile(id: string, details: { name: string; phone: string; license: string; nationalId: string; licenseExpiryDate: string; baseWarehouseId?: string }): Observable<DistributorDriver> {
