@@ -7,6 +7,29 @@ import { finalize } from 'rxjs';
 import { trimmedRequired } from '../../../../core/forms/form-validators';
 import { AuthenticatedImageComponent } from '../../../../shared/authenticated-image.component';
 
+function authorizationRequestError(error: unknown): string {
+  const response = error as {
+    status?: number;
+    error?: { code?: string; message?: string; detail?: string; title?: string; errors?: unknown };
+    message?: string;
+  };
+  const body = response?.error;
+  const code = body?.code?.toUpperCase();
+  const serverMessage = body?.message?.trim() || body?.detail?.trim();
+
+  if (response?.status === 409) {
+    if (code === 'AUTHORIZATION_REQUEST_EXISTS' || code === 'DUPLICATE_AUTHORIZATION_REQUEST') {
+      return 'A listing permission request already exists for this product. Check its current status in your catalog before submitting another.';
+    }
+    if (serverMessage) return serverMessage;
+    return 'The manufacturer already has a listing permission request or an existing decision for this product. Refresh the catalog and check the request status.';
+  }
+
+  if (serverMessage) return serverMessage;
+  if (body?.title?.trim()) return body.title.trim();
+  return 'Authorization request could not be sent. Please try again.';
+}
+
 @Component({
   selector: 'app-master-catalog',
   standalone: true,
@@ -23,6 +46,7 @@ export class MasterCatalogComponent {
   protected readonly pendingOfferId = signal('');
   protected readonly pendingProductId = signal('');
   protected readonly authorizationProductId = signal('');
+  protected readonly authorizationError = signal('');
   protected readonly authorizationForm = this.fb.nonNullable.group({
     requestNote: ['', [trimmedRequired, Validators.maxLength(500)]],
     targetMarket: ['', Validators.maxLength(500)],
@@ -87,6 +111,7 @@ export class MasterCatalogComponent {
   protected requestAuthorization(productId: string): void {
     if (this.pendingProductId()) return;
     this.authorizationProductId.set(productId);
+    this.authorizationError.set('');
     this.authorizationForm.reset({ requestNote: '', targetMarket: '', salesChannels: '', geographicalCoverage: '', distributionStrategy: '' });
     this.actionMessage.set('');
   }
@@ -109,10 +134,7 @@ export class MasterCatalogComponent {
             'Request sent. You can list the product after manufacturer approval.',
           );
         },
-        error: (error) =>
-          this.actionMessage.set(
-            error?.error?.message ?? 'Authorization request could not be sent.',
-          ),
+        error: (error) => this.authorizationError.set(authorizationRequestError(error)),
       });
   }
   protected closeAuthorizationRequest(): void {
