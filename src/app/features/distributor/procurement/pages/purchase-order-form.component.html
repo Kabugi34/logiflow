@@ -132,6 +132,7 @@
       {{ errorMessage() }}
     </p>
   }
+  <label class="flex items-start gap-2 text-xs text-slate-600"><input type="checkbox" [checked]="confirmed()" (change)="confirmed.set($any($event.target).checked)" class="mt-0.5 rounded border-slate-300" /><span>I reviewed the supplier, product, quantity, and backend-provided unit price and confirm this purchase order.</span></label>
   <div class="flex flex-wrap justify-end gap-2">
     <a
       routerLink="/distributor/procurement"
@@ -140,7 +141,7 @@
     ><button
       type="button"
       (click)="createDraft()"
-      [disabled]="creating()"
+      [disabled]="creating() || !confirmed()"
       class="h-9 rounded-md bg-blue-600 px-4 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"
     >
       {{ creating() ? 'Submitting…' : 'Submit Draft PO' }}

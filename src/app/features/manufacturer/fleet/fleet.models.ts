@@ -18,6 +18,8 @@ export interface FleetDriver {
   email: string;
   phone: string;
   license: string;
+  nationalId?: string;
+  licenseExpiryDate?: string;
   accountStatus: DriverAccountStatus;
   operationalStatus: DriverOperationalStatus;
   status: DriverStatus;
@@ -51,6 +53,8 @@ export interface NewFleetDriver {
   email: string;
   phone: string;
   license: string;
+  nationalId?: string;
+  licenseExpiryDate?: string;
   baseWarehouseId?: string;
   vehicleId?: string;
 }

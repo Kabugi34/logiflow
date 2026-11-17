@@ -41,6 +41,7 @@ export class PurchaseOrderFormComponent {
   protected readonly lines = signal<DraftLineView[]>([]);
   protected readonly errorMessage = signal('');
   protected readonly creating = signal(false);
+  protected readonly confirmed = signal(false);
   protected readonly form = this.formBuilder.nonNullable.group({
     sku: ['', Validators.required],
     quantity: [1, [Validators.required, Validators.min(1)]],
@@ -53,6 +54,10 @@ export class PurchaseOrderFormComponent {
     effect(() => {
       const firstSupplier = this.procurement.manufacturers()[0];
       if (!this.manufacturerId() && firstSupplier) this.manufacturerId.set(firstSupplier.id);
+      const sku = this.route.snapshot.queryParamMap.get('sku');
+      if (sku && this.products().some(product => product.sku === sku) && this.form.controls.sku.value !== sku) {
+        this.form.controls.sku.setValue(sku);
+      }
     });
   }
 
@@ -100,6 +105,10 @@ export class PurchaseOrderFormComponent {
 
   protected createDraft(): void {
     if (this.creating()) return;
+    if (!this.confirmed()) {
+      this.errorMessage.set('Review the product, quantity, supplier and estimated subtotal, then confirm before submission.');
+      return;
+    }
     this.errorMessage.set('');
     if (!this.lines().length) {
       this.errorMessage.set('Add at least one product before creating the purchase order.');

@@ -22,6 +22,8 @@ export interface DistributorDriver {
   email: string;
   phone: string;
   license: string;
+  nationalId?: string;
+  licenseExpiryDate?: string;
   accountStatus: DriverAccountStatus;
   operationalStatus: DriverOperationalStatus;
   status: DriverStatus;

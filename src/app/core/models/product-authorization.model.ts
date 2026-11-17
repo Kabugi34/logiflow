@@ -10,6 +10,13 @@ export interface ProductAuthorization {
   distributorOrganizationId: string;
   distributorName: string;
   status: ProductAuthorizationStatus;
+  requestNote?: string | null;
+  targetMarket?: string | null;
+  salesChannels?: string | null;
+  geographicalCoverage?: string | null;
+  distributionStrategy?: string | null;
+  agreedWholesalePrice?: number | null;
+  minimumOrderQuantity?: number | null;
   requestedAt: string;
   decidedAt: string | null;
 }

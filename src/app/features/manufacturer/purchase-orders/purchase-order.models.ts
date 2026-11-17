@@ -1,6 +1,6 @@
 import { PaymentStatus } from '../../../core/models/payment.model';
 
-export type PurchaseOrderStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'FULFILLED';
+export type PurchaseOrderStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'FULFILLED';
 export type PurchasePaymentStatus = PaymentStatus;
 
 export interface PurchaseOrderLine {

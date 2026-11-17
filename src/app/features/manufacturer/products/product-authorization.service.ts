@@ -4,6 +4,10 @@ import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import { ProductAuthorization } from '../../../core/models/product-authorization.model';
 
 interface Page<T> { content?: T[]; }
+interface ApiAuthorization extends Partial<ProductAuthorization> {
+  manufacturerProductId?: string;
+  createdAt?: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class ProductAuthorizationService {
@@ -15,10 +19,22 @@ export class ProductAuthorizationService {
   refresh(): void {
     this.loading.set(true);
     this.error.set('');
-    this.http.get<Page<ProductAuthorization> | ProductAuthorization[]>(API_ENDPOINTS.manufacturer.productAuthorizations)
+    this.http.get<Page<ApiAuthorization> | ApiAuthorization[]>(API_ENDPOINTS.manufacturer.incomingProductAuthorizations)
       .subscribe({
         next: result => {
-          this.requests.set(Array.isArray(result) ? result : result.content ?? []);
+          const rows = Array.isArray(result) ? result : result.content ?? [];
+          this.requests.set(rows.map(row => ({
+            ...row,
+            productId: row.manufacturerProductId ?? row.productId ?? '',
+            requestedAt: row.createdAt ?? row.requestedAt ?? '',
+            productName: row.productName ?? '',
+            sku: row.sku ?? '',
+            manufacturerOrganizationId: row.manufacturerOrganizationId ?? '',
+            manufacturerName: row.manufacturerName ?? '',
+            distributorOrganizationId: row.distributorOrganizationId ?? '',
+            distributorName: row.distributorName ?? '',
+            decidedAt: row.decidedAt ?? null,
+          } as ProductAuthorization)));
           this.loading.set(false);
         },
         error: () => {
@@ -28,7 +44,7 @@ export class ProductAuthorizationService {
       });
   }
 
-  decide(id: string, decision: 'APPROVED' | 'REJECTED') {
-    return this.http.patch(API_ENDPOINTS.manufacturer.productAuthorizationDecision(id), { decision });
+  decide(id: string, status: 'APPROVED' | 'REJECTED', note: string) {
+    return this.http.patch(API_ENDPOINTS.manufacturer.productAuthorizationDecision(id), { status, note });
   }
 }

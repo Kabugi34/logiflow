@@ -1,11 +1,11 @@
-import { CurrencyPipe, DecimalPipe } from '@angular/common';
+import { CurrencyPipe } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DistributorProcurementService } from '../procurement.service';
 
 @Component({
   selector: 'app-manufacturer-catalog',
-  imports: [CurrencyPipe, DecimalPipe, RouterLink],
+  imports: [CurrencyPipe, RouterLink],
   templateUrl: './manufacturer-catalog.component.html',
 })
 export class ManufacturerCatalogComponent {

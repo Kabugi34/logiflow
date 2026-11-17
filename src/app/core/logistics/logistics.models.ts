@@ -1,4 +1,4 @@
-export type InboundLogisticsStatus = 'PENDING' | 'PROCESSING' | 'REJECTED' | 'IN_TRANSIT' | 'DELIVERED';
+export type InboundLogisticsStatus = 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'FULFILLED' | 'PENDING' | 'PROCESSING' | 'IN_TRANSIT' | 'DELIVERED';
 
 export interface LogisticsRoutePoint {
   latitude: number;

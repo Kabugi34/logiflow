@@ -30,7 +30,7 @@ export class ManufacturersNetworkComponent {
   protected orderCount(manufacturerId: string): number {
     return this.procurement
       .orders()
-      .filter((order) => order.manufacturerId === manufacturerId && order.status !== 'DELIVERED')
+      .filter((order) => order.manufacturerId === manufacturerId && order.status !== 'FULFILLED')
       .length;
   }
 

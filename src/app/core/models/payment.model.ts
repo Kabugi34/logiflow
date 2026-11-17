@@ -58,6 +58,7 @@ export function normalizePaymentTransactionStatus(
     case 'SUCCESS':
     case 'CONFIRMED':
     case 'RECONCILED':
+    case 'SETTLED':
       return 'SUCCEEDED';
     case 'PENDING':
     case 'INITIATED':
@@ -83,6 +84,7 @@ export function normalizePaymentStatus(status: string | null | undefined): Payme
     case 'SUCCESS':
     case 'CONFIRMED':
     case 'RECONCILED':
+    case 'SETTLED':
       return 'PAID';
     case 'PENDING':
     case 'INITIATED':

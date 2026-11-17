@@ -17,6 +17,7 @@ interface ApiProduct {
   unit?: string | null;
   description?: string | null;
   imageUrl?: string | null;
+  image?: string | null;
   unitPrice?: number | null;
   publicationStatus: ProductPublicationStatus;
 }
@@ -45,6 +46,10 @@ export interface ManufacturerProductDraft {
   reorderThreshold: number;
   publicationStatus?: ProductPublicationStatus;
 }
+export type ManufacturerProductUpdate = Pick<
+  ManufacturerProductDraft,
+  'name' | 'category' | 'sku' | 'brand' | 'unit' | 'description' | 'unitPrice'
+>;
 
 function rows<T>(response: ApiPage<T> | T[]): T[] {
   return Array.isArray(response) ? response : (response.content ?? []);
@@ -81,13 +86,16 @@ export class ManufacturerProductService {
         finalize(() => this.loading.set(false)),
       )
       .subscribe(({ products, stock }) => {
-        const stockByProduct = new Map<string, StockItemResponse>();
-        for (const item of rows(stock)) stockByProduct.set(item.productId ?? item.sku, item);
+        const stockByProduct = new Map<string, StockItemResponse[]>();
+        for (const item of rows(stock)) {
+          const key = item.productId ?? item.sku;
+          stockByProduct.set(key, [...(stockByProduct.get(key) ?? []), item]);
+        }
         this.productRecords.set(
           rows(products).map((product) =>
             this.toProduct(
               product,
-              stockByProduct.get(product.id) ?? stockByProduct.get(product.sku),
+              stockByProduct.get(product.id) ?? stockByProduct.get(product.sku) ?? [],
             ),
           ),
         );
@@ -105,7 +113,7 @@ export class ManufacturerProductService {
     );
   }
 
-  update(id: string, product: ManufacturerProductDraft, image?: File) {
+  update(id: string, product: ManufacturerProductUpdate, image?: File) {
     return this.http.patch<ApiProduct>(
       API_ENDPOINTS.manufacturer.product(id),
       this.toFormData(product, image),
@@ -118,9 +126,17 @@ export class ManufacturerProductService {
     });
   }
 
-  private toProduct(product: ApiProduct, stock?: StockItemResponse): ManufacturerProduct {
-    const quantity = stock?.quantityOnHand ?? 0;
-    const threshold = stock?.reorderThreshold ?? 0;
+  private toProduct(product: ApiProduct, stock: StockItemResponse[]): ManufacturerProduct {
+    const quantity = stock.reduce((total, item) => total + item.quantityOnHand, 0);
+    const threshold = stock.reduce((total, item) => total + item.reorderThreshold, 0);
+    const reserved = stock.reduce((total, item) => total + (item.reservedQuantity ?? 0), 0);
+    const available = stock.reduce(
+      (total, item) =>
+        total +
+        (item.availableQuantity ??
+          Math.max(0, item.quantityOnHand - (item.reservedQuantity ?? 0))),
+      0,
+    );
     const status =
       quantity <= threshold
         ? 'CRITICAL STOCK'
@@ -134,19 +150,19 @@ export class ManufacturerProductService {
       brand: product.brand ?? '',
       category: product.category ?? 'Uncategorized',
       unit: product.unit ?? '—',
-      unitPrice: product.unitPrice ?? stock?.unitPrice ?? null,
+      unitPrice: product.unitPrice ?? stock[0]?.unitPrice ?? null,
       stock: quantity,
+      reorderThreshold: threshold,
       status,
       publicationStatus: product.publicationStatus,
-      image: product.imageUrl ?? '',
+      image: this.resolveImageUrl(product.imageUrl ?? product.image ?? ''),
       description: product.description ?? '',
-      inventory: stock
+      inventory: stock.length
         ? [
             {
               terminal: 'Organization stock',
-              reserved: stock.reservedQuantity ?? 0,
-              available:
-                stock.availableQuantity ?? Math.max(0, quantity - (stock.reservedQuantity ?? 0)),
+              reserved,
+              available,
             },
           ]
         : [],
@@ -154,11 +170,18 @@ export class ManufacturerProductService {
     };
   }
 
-  private toFormData(product: ManufacturerProductDraft, image?: File): FormData {
+  private toFormData(
+    product: ManufacturerProductDraft | ManufacturerProductUpdate,
+    image?: File,
+  ): FormData {
     const data = new FormData();
     for (const [key, value] of Object.entries(product)) data.append(key, String(value));
     if (image) data.append('image', image, image.name);
-    if (product.publicationStatus) data.set('publicationStatus', product.publicationStatus);
     return data;
+  }
+
+  private resolveImageUrl(imageUrl: string): string {
+    if (!imageUrl || /^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(imageUrl)) return imageUrl;
+    return new URL(imageUrl, new URL(API_ENDPOINTS.manufacturer.products).origin).toString();
   }
 }

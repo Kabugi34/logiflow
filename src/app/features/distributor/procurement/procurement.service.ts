@@ -24,7 +24,7 @@ interface ApiProduct {
   category: string | null;
   unitPrice: number;
   active: boolean;
-  inStock?: boolean;
+  inStock?: boolean | null;
 }
 interface ApiPo {
   id: string;
@@ -57,7 +57,7 @@ interface ProcurementProduct {
   description: string;
   category: string;
   unitPrice: number;
-  stock: number;
+  inStock: boolean | null;
   unit: string;
 }
 
@@ -87,9 +87,6 @@ export class DistributorProcurementService {
     })),
   );
   readonly orders = this.orderRecords.asReadonly();
-  readonly inTransitOrders = computed(() =>
-    this.orderRecords().filter((order) => order.status === 'IN_TRANSIT'),
-  );
 
   constructor() {
     this.refreshProducts();
@@ -121,7 +118,7 @@ export class DistributorProcurementService {
                 description: '',
                 category: product.category ?? 'Uncategorized',
                 unitPrice: product.unitPrice,
-                stock: product.inStock ? 1 : 0,
+                inStock: product.inStock ?? null,
                 unit: '\u2014',
               })),
           );
@@ -244,16 +241,9 @@ export class DistributorProcurementService {
   }
 
   private toPurchaseOrder(po: ApiPo): DistributorPurchaseOrder {
-    const status =
-      po.status === 'IN_TRANSIT' || po.status === 'SHIPPED' || po.status === 'DISPATCHED'
-        ? 'IN_TRANSIT'
-        : po.status === 'APPROVED'
-          ? 'PROCESSING'
-          : po.status === 'FULFILLED'
-            ? 'DELIVERED'
-            : po.status === 'REJECTED'
-              ? 'REJECTED'
-              : 'PENDING';
+    const status = ['SUBMITTED', 'APPROVED', 'REJECTED', 'CANCELLED', 'FULFILLED'].includes(po.status)
+      ? po.status as DistributorPurchaseOrder['status']
+      : 'SUBMITTED';
     const lines: ProcurementOrderLine[] = (po.items ?? []).map((item) => ({
       sku: item.sku,
       productName: item.name,

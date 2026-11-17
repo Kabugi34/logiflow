@@ -65,7 +65,7 @@ describe('PaymentService', () => {
     expect(duplicateError).toContain('pending');
   });
 
-  it('verifies customer order status from the existing server status endpoint', () => {
+  it('verifies customer order status from the server status endpoint', () => {
     let verifiedStatus = '';
     service.verifyOrderPayment('CUSTOMER_ORDER', 'order-7').subscribe((result) => {
       verifiedStatus = result.status;
@@ -99,28 +99,8 @@ describe('PaymentService', () => {
       status = result.status;
     });
     http
-      .expectOne(
-        (request) =>
-          request.url === API_ENDPOINTS.payments.transactions &&
-          request.params.get('orderType') === 'PURCHASE_ORDER' &&
-          request.params.get('orderId') === 'po-retry',
-      )
-      .flush({
-        content: [
-          {
-            id: 'payment-first',
-            orderId: 'po-retry',
-            orderType: 'PURCHASE_ORDER',
-            direction: 'OUTGOING',
-            amount: 125,
-            currency: 'KES',
-            provider: 'MPESA',
-            status: 'FAILED',
-            createdAt: '2026-10-28T09:00:00Z',
-            updatedAt: '2026-10-28T09:01:00Z',
-          },
-        ],
-      });
+      .expectOne(API_ENDPOINTS.distributor.paymentStatus('po-retry'))
+      .flush({ orderId: 'po-retry', paymentId: 'payment-first', status: 'FAILED', amount: 125, mpesaReceiptNumber: null, failureReason: 'Declined' });
 
     expect(status).toBe('FAILED');
     service.initiate(request).subscribe();

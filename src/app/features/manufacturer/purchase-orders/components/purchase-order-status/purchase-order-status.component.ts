@@ -14,6 +14,7 @@ export class PurchaseOrderStatusComponent {
       case 'PENDING': return 'border-amber-200 bg-amber-50 text-amber-700';
       case 'ACCEPTED': return 'border-slate-200 bg-slate-50 text-slate-600';
       case 'REJECTED': return 'border-red-200 bg-red-50 text-red-700';
+      case 'CANCELLED': return 'border-slate-200 bg-slate-50 text-slate-600';
       case 'FULFILLED': return 'border-emerald-200 bg-emerald-50 text-emerald-700';
     }
   }

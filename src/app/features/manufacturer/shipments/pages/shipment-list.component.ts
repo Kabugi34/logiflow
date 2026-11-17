@@ -1,10 +1,8 @@
 import { FormValidationSummaryComponent } from '../../../../shared/forms/form-validation-summary.component';
-import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ManufacturerPurchaseOrderService } from '../../purchase-orders/purchase-order.service';
-import { ManufacturerFleetService } from '../../fleet/fleet.service';
 import { ManufacturerShipmentService, NewShipment } from '../shipment.service';
 import { ShipmentStatus } from '../shipment.models';
 import { trimmedRequired } from '../../../../core/forms/form-validators';
@@ -13,13 +11,12 @@ import { finalize } from 'rxjs';
 @Component({
   selector: 'app-shipment-list',
   standalone: true,
-  imports: [FormValidationSummaryComponent, DecimalPipe, ReactiveFormsModule, RouterLink],
+  imports: [FormValidationSummaryComponent, ReactiveFormsModule, RouterLink],
   templateUrl: './shipment-list.component.html',
 })
 export class ShipmentListComponent {
   private readonly shipmentService = inject(ManufacturerShipmentService);
   private readonly purchaseOrderService = inject(ManufacturerPurchaseOrderService);
-  private readonly fleetService = inject(ManufacturerFleetService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly router = inject(Router);
   protected readonly selectedStatus = signal('ACTIVE');
@@ -31,36 +28,21 @@ export class ShipmentListComponent {
       .orders()
       .filter((order) => order.status === 'ACCEPTED' && order.paymentStatus === 'PAID'),
   );
-  protected readonly availableDrivers = computed(() =>
-    this.fleetService.drivers().filter((driver) => {
-      const vehicle = driver.vehicleId
-        ? this.fleetService.findVehicle(driver.vehicleId)
-        : undefined;
-      return (
-        driver.accountStatus === 'ACTIVE' &&
-        driver.operationalStatus === 'AVAILABLE' &&
-        driver.currentTripId === null &&
-        vehicle?.assignedDriverId === driver.id &&
-        this.fleetService.vehicleStatus(vehicle) === 'STANDBY' &&
-        vehicle.currentTripId === null
-      );
-    }),
-  );
   protected readonly shipments = computed(() =>
     this.shipmentService.shipments().filter((shipment) => {
       const status = this.selectedStatus();
       return (
         status === 'ALL' ||
-        (status === 'ACTIVE' ? shipment.status !== 'DELIVERED' : shipment.status === status)
+        (status === 'ACTIVE'
+          ? shipment.status === 'READY_FOR_DISPATCH' || shipment.status === 'IN_TRANSIT'
+          : shipment.status === status)
       );
     }),
   );
   protected readonly form = this.formBuilder.nonNullable.group({
     poReference: ['', trimmedRequired],
-    destination: ['', [trimmedRequired, Validators.maxLength(100)]],
-    freightDetails: ['', [trimmedRequired, Validators.maxLength(100)]],
-    quantity: [1, [Validators.required, Validators.min(1)]],
-    driverId: ['', trimmedRequired],
+    destination: ['', [trimmedRequired, Validators.pattern(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)]],
+    freightDetails: ['', Validators.maxLength(100)],
   });
 
   protected setStatus(event: Event): void {
@@ -74,21 +56,13 @@ export class ShipmentListComponent {
       poReference: firstOrderId,
       destination: '',
       freightDetails: '',
-      quantity: 1,
-      driverId: '',
     });
     this.updateOrderDefaults();
     this.isAllocationOpen.set(true);
   }
 
   protected updateOrderDefaults(): void {
-    const order = this.purchaseOrderService.findById(this.form.controls.poReference.value);
-    if (!order) return;
-    this.form.patchValue({
-      destination: order.destinationHub,
-      freightDetails: order.lines.map((line) => line.productName).join(', '),
-      quantity: order.lines.reduce((total, line) => total + line.requestedQuantity, 0),
-    });
+    // The PO response has no destination warehouse; the manufacturer supplies the buyer's warehouse UUID.
   }
 
   protected closeAllocation(): void {
@@ -112,22 +86,12 @@ export class ShipmentListComponent {
       );
       return;
     }
-    const driver = this.fleetService.findDriver(this.form.controls.driverId.value);
-    const vehicle = driver?.vehicleId ? this.fleetService.findVehicle(driver.vehicleId) : undefined;
-    if (!driver || !vehicle) {
-      this.allocationError.set('Choose a standby driver with an assigned vehicle.');
-      return;
-    }
-
     this.saving.set(true);
     this.shipmentService
       .create({
         poReference: this.form.controls.poReference.value,
         destination: this.form.controls.destination.value,
         freightDetails: this.form.controls.freightDetails.value,
-        quantity: this.form.controls.quantity.value,
-        driverId: driver.id,
-        vehicleId: vehicle.id,
       })
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
@@ -146,25 +110,40 @@ export class ShipmentListComponent {
       });
   }
 
-  protected driverVehicleLabel(driverId: string): string {
-    const driver = this.fleetService.findDriver(driverId);
-    const vehicle = driver?.vehicleId ? this.fleetService.findVehicle(driver.vehicleId) : undefined;
-    return vehicle ? `${vehicle.plate} · ${vehicle.type}` : 'No assigned vehicle';
-  }
-
   protected statusLabel(status: ShipmentStatus): string {
-    return status === 'BORDER_HOLD'
-      ? 'BORDER HOLD'
-      : status === 'IN_TRANSIT'
-        ? 'IN TRANSIT'
-        : 'DELIVERED';
+    switch (status) {
+      case 'BORDER_HOLD':
+        return 'BORDER HOLD';
+      case 'READY_FOR_DISPATCH':
+        return 'READY FOR DISPATCH';
+      case 'RECEIVED':
+        return 'RECEIVED';
+      case 'CANCELLED':
+        return 'CANCELLED';
+      case 'IN_TRANSIT':
+        return 'IN TRANSIT';
+      case 'DELIVERED':
+        return 'DELIVERED';
+      case 'UNKNOWN':
+        return 'UNKNOWN STATUS';
+    }
   }
 
   protected statusClass(status: ShipmentStatus): string {
-    return status === 'BORDER_HOLD'
-      ? 'border-red-200 bg-red-50 text-red-700'
-      : status === 'IN_TRANSIT'
-        ? 'border-amber-200 bg-amber-50 text-amber-700'
-        : 'border-emerald-200 bg-emerald-50 text-emerald-700';
+    switch (status) {
+      case 'BORDER_HOLD':
+        return 'border-red-200 bg-red-50 text-red-700';
+      case 'READY_FOR_DISPATCH':
+        return 'border-blue-200 bg-blue-50 text-blue-700';
+      case 'RECEIVED':
+      case 'CANCELLED':
+        return 'border-slate-200 bg-slate-50 text-slate-600';
+      case 'IN_TRANSIT':
+        return 'border-amber-200 bg-amber-50 text-amber-700';
+      case 'DELIVERED':
+        return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      case 'UNKNOWN':
+        return 'border-slate-200 bg-slate-50 text-slate-600';
+    }
   }
 }

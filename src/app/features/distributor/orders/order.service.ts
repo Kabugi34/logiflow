@@ -23,7 +23,14 @@ interface ApiOrder {
   totalAmount: number;
   placedAt: string;
   paymentStatus?: string;
-  items?: { stockItemId: string; quantity: number; unitPrice: number }[];
+  items?: {
+    id: string;
+    stockItemId: string;
+    quantity: number;
+    pickedQuantity?: number;
+    packedQuantity?: number;
+    unitPrice: number;
+  }[];
 }
 interface ApiPage<T> {
   content?: T[];
@@ -199,6 +206,10 @@ export class DistributorOrderService {
   private toOrder(row: ApiOrder): CustomerOrder {
     const status = row.status as CustomerOrder['status'];
     const lines = (row.items ?? []).map((item) => ({
+      orderItemId: item.id,
+      stockItemId: item.stockItemId,
+      pickedQuantity: item.pickedQuantity ?? 0,
+      packedQuantity: item.packedQuantity ?? 0,
       sku: item.stockItemId,
       productName: item.stockItemId,
       quantity: item.quantity,

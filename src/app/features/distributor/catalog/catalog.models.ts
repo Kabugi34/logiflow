@@ -29,9 +29,8 @@ export interface DistributorCatalogProduct {
   brand: string;
   unit: string;
   wholesalePrice: number | null;
-  availableQuantity: number | null;
   inStock: boolean | null;
   description: string;
   imageUrl: string;
-  authorizationStatus: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
+  authorizationStatus: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVOKED';
 }

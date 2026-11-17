@@ -11,7 +11,22 @@ export const routes: Routes = [
   {
     path: '',
     pathMatch: 'full',
-    redirectTo: '/auth/request-access',
+    redirectTo: 'home',
+  },
+  {
+    path: 'home',
+    pathMatch: 'full',
+    loadComponent: () =>
+      import('./features/landing/landing-page.component').then(
+        (module) => module.LandingPageComponent,
+      ),
+  },
+  {
+      path: 'accept-invitation',
+      loadComponent: () =>
+        import('./features/auth/pages/accept-driver-invitation.component').then(
+          (module) => module.AcceptDriverInvitationComponent,
+        ),
   },
 
   {

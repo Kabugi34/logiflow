@@ -47,17 +47,17 @@
     </button>
     <button
       type="button"
-      (click)="updateStatus('IN_TRANSIT')"
-      [attr.aria-pressed]="selectedStatus() === 'IN_TRANSIT'"
+      (click)="updateStatus('SUBMITTED')"
+      [attr.aria-pressed]="selectedStatus() === 'SUBMITTED'"
       class="h-8 rounded-md border px-3 text-xs font-medium"
-      [class.border-blue-600]="selectedStatus() === 'IN_TRANSIT'"
-      [class.bg-blue-50]="selectedStatus() === 'IN_TRANSIT'"
-      [class.text-blue-700]="selectedStatus() === 'IN_TRANSIT'"
-      [class.border-slate-200]="selectedStatus() !== 'IN_TRANSIT'"
-      [class.bg-white]="selectedStatus() !== 'IN_TRANSIT'"
-      [class.text-slate-600]="selectedStatus() !== 'IN_TRANSIT'"
+      [class.border-blue-600]="selectedStatus() === 'SUBMITTED'"
+      [class.bg-blue-50]="selectedStatus() === 'SUBMITTED'"
+      [class.text-blue-700]="selectedStatus() === 'SUBMITTED'"
+      [class.border-slate-200]="selectedStatus() !== 'SUBMITTED'"
+      [class.bg-white]="selectedStatus() !== 'SUBMITTED'"
+      [class.text-slate-600]="selectedStatus() !== 'SUBMITTED'"
     >
-      In Transit ({{ procurement.inTransitOrders().length }})
+      Awaiting manufacturer review ({{ submittedCount() }})
     </button>
     <label class="sr-only" for="procurement-search">Search purchase orders</label>
     <input

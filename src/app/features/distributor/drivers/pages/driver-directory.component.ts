@@ -14,7 +14,7 @@ import {
   personName,
   trimmedRequired,
 } from '../../../../core/forms/form-validators';
-import { finalize } from 'rxjs';
+import { finalize, map } from 'rxjs';
 
 type DriverAction = 'APPROVE' | 'REJECT' | 'RESEND' | 'REVOKE' | 'SUSPEND' | 'REACTIVATE';
 @Component({
@@ -64,10 +64,25 @@ export class DriverDirectoryComponent {
     email: ['', [trimmedRequired, Validators.email, Validators.maxLength(120)]],
     phone: ['', [trimmedRequired, internationalPhone, Validators.maxLength(32)]],
     license: ['', [trimmedRequired, licenceValue, Validators.maxLength(40)]],
+    nationalId: ['', [trimmedRequired, Validators.maxLength(32)]],
+    licenseExpiryDate: ['', [trimmedRequired, Validators.pattern(/^\d{4}-\d{2}-\d{2}$/)]],
     baseWarehouseId: [''],
   });
 
-  protected fieldError(field: 'name' | 'email' | 'phone' | 'license'): string {
+  private setProfileFieldValidators(required: boolean): void {
+    this.form.controls.nationalId.setValidators(
+      required ? [trimmedRequired, Validators.maxLength(32)] : [],
+    );
+    this.form.controls.licenseExpiryDate.setValidators(
+      required ? [trimmedRequired, Validators.pattern(/^\d{4}-\d{2}-\d{2}$/)] : [],
+    );
+    this.form.controls.nationalId.updateValueAndValidity();
+    this.form.controls.licenseExpiryDate.updateValueAndValidity();
+  }
+
+  protected fieldError(
+    field: 'name' | 'email' | 'phone' | 'license' | 'nationalId' | 'licenseExpiryDate',
+  ): string {
     const control = this.form.controls[field];
     if (!control.touched || control.valid) return '';
     if (control.hasError('required')) return 'This field is required.';
@@ -78,6 +93,7 @@ export class DriverDirectoryComponent {
       return 'Use letters, spaces, apostrophes, periods, or hyphens.';
     if (control.hasError('licenceValue'))
       return 'Use 2–40 letters, numbers, spaces, slashes, or hyphens.';
+    if (control.hasError('pattern')) return 'Enter a valid licence expiry date.';
     if (control.hasError('maxlength'))
       return `Maximum length is ${control.getError('maxlength').requiredLength} characters.`;
     return 'Check this value.';
@@ -95,7 +111,16 @@ export class DriverDirectoryComponent {
   }
   protected openOnboard(): void {
     this.editingId.set('');
-    this.form.reset({ name: '', email: '', phone: '', license: '', baseWarehouseId: '' });
+    this.setProfileFieldValidators(false);
+    this.form.reset({
+      name: '',
+      email: '',
+      phone: '',
+      license: '',
+      nationalId: '',
+      licenseExpiryDate: '',
+      baseWarehouseId: '',
+    });
     this.formError.set('');
     this.form.controls.email.enable();
     this.dialogOpen.set(true);
@@ -106,11 +131,14 @@ export class DriverDirectoryComponent {
       return;
     }
     this.editingId.set(driver.id);
+    this.setProfileFieldValidators(true);
     this.form.reset({
       name: driver.name,
       email: driver.email,
       phone: driver.phone,
       license: driver.license,
+      nationalId: driver.nationalId ?? '',
+      licenseExpiryDate: driver.licenseExpiryDate ?? '',
       baseWarehouseId: driver.baseWarehouseId ?? '',
     });
     this.form.controls.email.disable();
@@ -127,23 +155,33 @@ export class DriverDirectoryComponent {
       return;
     }
     const value = this.form.getRawValue();
+    const isEditing = !!this.editingId();
     this.saving.set(true);
-    const request = this.editingId()
-      ? this.fleet.saveDriverProfile(this.editingId(), value)
-      : this.fleet.createDriver(value);
+    const request = isEditing
+      ? this.fleet.saveDriverProfile(this.editingId(), value).pipe(map((driver) => driver.id))
+      : this.fleet.createDriver({
+          name: value.name,
+          email: value.email,
+          phone: value.phone,
+          license: value.license,
+        }).pipe(map((invitation) => invitation.id));
     request.pipe(finalize(() => this.saving.set(false))).subscribe({
-      next: driver => {
-        if (!this.editingId()) {
-        this.selectedId.set(driver.id);
-        this.statusFilter.set('ALL');
-        this.query.set('');
-        this.notice.set(driver.invitationStatus === 'FAILED'
-          ? 'Driver profile was saved, but the invitation email failed. Retry with Resend invitation.'
-          : 'Driver saved. The backend has queued or sent an activation invitation to the email provided.');
-        } else this.notice.set('Driver profile updated.');
+      next: id => {
+        if (!isEditing) {
+          this.selectedId.set('');
+          this.statusFilter.set('ALL');
+          this.query.set('');
+          this.notice.set(
+            `Invitation ${id} was created. Email delivery is not confirmed; check the refreshed driver list for status.`,
+          );
+        } else {
+          this.notice.set('Driver profile updated.');
+        }
         this.dialogOpen.set(false);
       },
-      error: error => this.formError.set(error?.error?.message ?? 'Driver could not be saved. Check the driver API and organization permission.'),
+      error: error => this.formError.set(error?.status === 403
+        ? 'Your organization is not currently permitted to create driver invitations. No driver record was created; contact an administrator.'
+        : error?.error?.message ?? 'Could not confirm invitation creation. Check the refreshed driver list before trying again.'),
     });
   }
   protected ask(driver: DistributorDriver, action: DriverAction): void {

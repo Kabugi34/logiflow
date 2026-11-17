@@ -85,7 +85,7 @@ production identity provider.
 |---|---|---|
 | `GET /api/v1/products?size=100` | Array or page `content`; product fields currently consumed include `id`, `sku`, `name`, nullable `category`, optional `brand`, `unit`, `description`, `imageUrl`, `unitPrice`, `publicationStatus`, optional organization/manufacturer IDs and name, optional `sourceStockItemId`, availability and active flags. | Manufacturer product list and Distributor manufacturer catalog / procurement. |
 | `POST /api/v1/products` | `multipart/form-data`: serialized `ManufacturerProductDraft` (`name`, `category`, `sku`, `brand`, `unit`, `description`, `unitPrice`, `initialQuantity`, `reorderThreshold`, optional `publicationStatus`) and optional file field `image`; typed product response. | Create Manufacturer product. |
-| `PATCH /api/v1/products/{id}` | Same multipart draft shape; optional `image`; typed product response. | Edit Manufacturer product. |
+| `PATCH /api/v1/products/{id}` | Editable catalog metadata and optional replacement `image`; typed product response. Must preserve publication state and stock. Stock fields such as `initialQuantity` and `reorderThreshold` are create-time only. | Edit Manufacturer product. |
 | `PATCH /api/v1/products/{id}/publication` | `{ status: 'DRAFT' \| 'PUBLISHED' \| 'DISCONTINUED' }`; typed product response. | Publish/unpublish/discontinue. |
 | `GET /api/v1/products/authorizations` | Array or `{ content }` of `ProductAuthorization`; frontend uses product, distributor, status, and request identifiers/values. | Manufacturer decisions and Distributor authorization state. |
 | `POST /api/v1/products/{productId}/authorization-requests` | `{ requestNote: string }`; typed `ProductAuthorization`. | Distributor requests permission. |
@@ -180,9 +180,9 @@ reloads.
 | `PATCH /api/v1/trips/{id}/status` | `{ status, note }`; typed trip response. | Update trip status. |
 | `POST /api/v1/trips/{id}/driver-ping` | Empty JSON object; response untyped. | Manufacturer request driver update. |
 | `POST /api/v1/trips/{id}/reroute-proposals` | Empty JSON object; response untyped. | Manufacturer propose reroute. |
-| `GET /api/v1/drivers?size=100` | Array/page. Fields consumed include ID, names, email, phone, license, account/operational status, base warehouse, creation time, optional vehicle and invitation state. | Both workspaces' driver directories. |
-| `POST /api/v1/drivers` | Manufacturer and Distributor submit driver identity/contact/license/base warehouse fields; Manufacturer uses `{ fullName,email,phoneNumber,licenseNumber,baseWarehouseId }`; Distributor equivalent. | Register/invite driver. |
-| `PATCH /api/v1/drivers/{id}` | Distributor profile update: `{ fullName, phoneNumber, licenseNumber, baseWarehouseId }`; typed driver response. | Edit Distributor driver profile. |
+| `GET /api/v1/drivers?size=100` | Array/page. Fields consumed include ID, names, email, phone, license, national ID, license expiry date, account/operational status, base warehouse, creation time, optional vehicle and invitation state. | Both workspaces' driver directories. |
+| `POST /api/v1/drivers` | Both workspaces send `{ fullName, email, phoneNumber, licenseNumber, nationalId, licenseExpiryDate, baseWarehouseId }`; `licenseExpiryDate` is the date-input string formatted `YYYY-MM-DD`. The user-provided 400 response confirms `nationalId` is nonblank and `licenseExpiryDate` is required by the deployed validator; other validation/notification behavior remains unverified. | Register/invite driver. |
+| `PATCH /api/v1/drivers/{id}` | Distributor profile update sends `{ fullName, phoneNumber, licenseNumber, nationalId, licenseExpiryDate, baseWarehouseId }`; typed driver response. | Edit Distributor driver profile. |
 | `POST /api/v1/drivers/{id}/invitation/resend` | Empty JSON object; response untyped. | Resend driver invite. |
 | `DELETE /api/v1/drivers/{id}/invitation` | No body; response untyped. | Revoke pending invitation. |
 | `PATCH /api/v1/drivers/{id}/status` | `{ status: 'SUSPENDED' \| 'ACTIVE' }`; response untyped. | Suspend/reactivate account. |
@@ -198,6 +198,13 @@ route templates only once. Manufacturer logistics does not fetch a distinct trip
 derives trip display data from shipment records and fleet state. Some UI metrics, route progress,
 location labels, invitation resend counts, and service/operational statuses are synthesized by
 Angular and must not be persisted as authoritative backend facts.
+
+**User-reported runtime evidence:** `POST /api/v1/drivers` first returned `400
+VALIDATION_FAILED` for missing `nationalId` and `licenseExpiryDate`; after those fields were added,
+a request from `http://localhost:4200` was reported to return `403 Forbidden` with JSON. This
+confirms the server applies validation and later denied a driver-create request, but does not
+identify which authorization rule caused the denial. The actual JWT claims, backend security logs,
+CSRF configuration, and CORS policy were not independently inspected.
 
 #### Organization profile and notification preferences — 4 operations
 
@@ -232,7 +239,8 @@ Those are open contract questions, not fields to infer.
 The create draft includes `initialQuantity` and `reorderThreshold` in the same multipart form as
 the product. The Angular code cannot establish whether the backend creates stock atomically,
 what warehouse owns that quantity, or whether the field is currently accepted. Confirm or split
-product creation from a warehouse-scoped production/stock operation.
+product creation from a warehouse-scoped production/stock operation. Product metadata edits must
+omit stock fields so catalog changes cannot reset stock quantities.
 
 ### 3.2 Listing permission decisions
 
@@ -240,6 +248,9 @@ Manufacturer reads authorization requests and sends approve/reject decision patc
 scope both the product and request to the Manufacturer organization and persist decision actor,
 timestamp, and reason if supported. The UI decision body is only modeled as `{ decision }`; any
 note/reason field requires frontend/backend confirmation.
+Removing a product from the active catalog uses the `DISCONTINUED` publication state rather than
+hard deletion. The UI blocks this transition while reported on-hand stock remains; the backend
+must enforce the same rule against current stock so stale client data cannot bypass it.
 
 ### 3.3 Manufacturer stock and warehouses
 

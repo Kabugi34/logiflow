@@ -31,6 +31,7 @@ export class ProcurementCenterComponent {
       return matchesQuery && matchesStatus;
     });
   });
+  protected readonly submittedCount = computed(() => this.procurement.orders().filter((order) => order.status === 'SUBMITTED').length);
 
   protected updateSearch(event: Event): void {
     this.searchTerm.set((event.target as HTMLInputElement).value);
@@ -42,14 +43,14 @@ export class ProcurementCenterComponent {
 
   protected orderStatusClass(status: ProcurementStatus): string {
     switch (status) {
-      case 'IN_TRANSIT':
-        return 'border-blue-200 bg-blue-50 text-blue-700';
-      case 'PROCESSING':
+      case 'APPROVED':
         return 'border-amber-200 bg-amber-50 text-amber-700';
-      case 'PENDING':
+      case 'SUBMITTED':
         return 'border-orange-200 bg-orange-50 text-orange-700';
-      case 'DELIVERED':
+      case 'FULFILLED':
         return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      case 'CANCELLED':
+        return 'border-slate-200 bg-slate-50 text-slate-600';
       case 'REJECTED':
         return 'border-red-200 bg-red-50 text-red-700';
     }

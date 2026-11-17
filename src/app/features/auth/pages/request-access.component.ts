@@ -2,9 +2,10 @@ import { FormValidationSummaryComponent } from '../../../shared/forms/form-valid
 import { Component, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { LoadingIndicatorComponent } from '../../../shared/loading/loading-indicator.component';
+import { BrandLogoComponent } from '../../../shared/brand-logo.component';
 import { OrganizationType } from '../../../core/models/organization.model';
 import {
   internationalPhone,
@@ -17,11 +18,18 @@ import { countryFlag as getCountryFlag, PHONE_COUNTRY_CODES } from '../../../cor
 @Component({
   selector: 'app-request-access',
   standalone: true,
-  imports: [FormValidationSummaryComponent, LoadingIndicatorComponent, ReactiveFormsModule, RouterLink],
+  imports: [
+    BrandLogoComponent,
+    FormValidationSummaryComponent,
+    LoadingIndicatorComponent,
+    ReactiveFormsModule,
+    RouterLink,
+  ],
   templateUrl: './request-access.component.html',
 })
 export class RequestAccessComponent {
   private readonly formBuilder = inject(FormBuilder);
+  private readonly route = inject(ActivatedRoute);
   private readonly authService = inject(AuthService);
 
   protected readonly errorMessage = signal('');
@@ -33,6 +41,10 @@ export class RequestAccessComponent {
   protected readonly duplicateOrganizationEmail = signal(false);
   protected readonly documentErrors = signal<Record<string, string>>({});
   protected readonly phoneCountries = PHONE_COUNTRY_CODES;
+  private readonly initialOrganizationType: OrganizationType =
+    this.route.snapshot.queryParamMap.get('organizationType') === 'DISTRIBUTOR'
+      ? 'DISTRIBUTOR'
+      : 'MANUFACTURER';
 
   private readonly documentValidator = (control: AbstractControl): ValidationErrors | null => {
     const file = control.value as File | null;
@@ -43,7 +55,7 @@ export class RequestAccessComponent {
   };
 
   protected readonly form = this.formBuilder.nonNullable.group({
-    organizationType: ['MANUFACTURER' as OrganizationType, Validators.required],
+    organizationType: [this.initialOrganizationType, Validators.required],
     organizationName: ['', [trimmedRequired, Validators.minLength(2), Validators.maxLength(120)]],
     contactName: ['', [trimmedRequired, personName, Validators.maxLength(80)]],
     representativeRole: ['', [trimmedRequired, Validators.maxLength(80)]],

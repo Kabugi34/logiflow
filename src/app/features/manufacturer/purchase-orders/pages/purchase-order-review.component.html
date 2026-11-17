@@ -138,7 +138,7 @@
                 : 'This order has already been processed. Its current status and timeline are shown below.'
             }}
           </p>
-          @if (currentOrder.status === 'PENDING') {
+          @if (currentOrder.status === 'PENDING' && canReview) {
             <button
               type="button"
               (click)="acceptAndGenerateManifest()"

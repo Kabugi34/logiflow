@@ -1,292 +1,446 @@
+import { HttpClient } from '@angular/common/http';
+import { of, throwError } from 'rxjs';
+import { API_ENDPOINTS } from '../../core/api/api-endpoints';
 import { WarehouseOperationsService } from './warehouse-operations.service';
-import {
-  WarehouseInventorySource,
-  WarehouseOrderSource,
-  WarehouseReceiptSource,
-} from './warehouse-operations.models';
 
 describe('WarehouseOperationsService', () => {
   let service: WarehouseOperationsService;
+  let getResponses: Map<string, unknown>;
+  let postResponses: Map<string, unknown>;
+  let postErrors: Map<string, unknown>;
+  let getCalls: string[];
+  let postCalls: { url: string; body: unknown }[];
 
-  const inventory: WarehouseInventorySource[] = [
-    { id: 'stock-1', sku: 'SKU-1', name: 'Rice', onHand: 20 },
-    { id: 'stock-2', sku: 'SKU-2', name: 'Oil', onHand: 2 },
-  ];
-  const orders: WarehouseOrderSource[] = [
-    {
-      id: 'order-1',
-      orderNumber: 'ORD-1',
-      status: 'CONFIRMED',
-      paymentStatus: 'PAID',
-      lines: [{ sku: 'stock-1', product: 'Rice', quantity: 5 }],
-    },
-    {
-      id: 'order-2',
-      orderNumber: 'ORD-2',
-      status: 'CONFIRMED',
-      paymentStatus: 'PAID',
-      lines: [{ sku: 'SKU-2', product: 'Oil', quantity: 4 }],
-    },
-  ];
-  const receipts: WarehouseReceiptSource[] = [
-    {
-      id: 'PO-1',
-      status: 'IN_TRANSIT',
-      lines: [{ sku: 'SKU-1', product: 'Rice', quantity: 10 }],
-    },
-  ];
+  const stockId = 'stock-uuid-1';
+  const orderId = 'order-uuid-1';
+  const orderItemId = 'order-item-uuid-1';
+  const shipmentId = 'shipment-uuid-1';
+  const purchaseOrderItemId = 'purchase-order-item-uuid-1';
 
   beforeEach(() => {
-    service = new WarehouseOperationsService();
-    service.synchronize(inventory, orders, receipts);
+    getResponses = new Map();
+    postResponses = new Map();
+    postErrors = new Map();
+    getCalls = [];
+    postCalls = [];
+    const http = {
+      get: (url: string) => {
+        getCalls.push(url);
+        const response = getResponses.get(url) ??
+          (url.includes('/movements?') ? { content: [] } : []);
+        return of(response);
+      },
+      post: (url: string, body: unknown) => {
+        postCalls.push({ url, body });
+        const error = postErrors.get(url);
+        if (error) return throwError(() => error);
+        return of(postResponses.get(url) ?? {});
+      },
+    };
+    service = new WarehouseOperationsService(http as unknown as HttpClient);
   });
 
-  it('only adds accepted quantities after a reconciled receipt is confirmed', () => {
-    const receipt = service.receipts()[0];
+  function synchronizeDistributor(): void {
+    service.synchronize(
+      [{ id: stockId, sku: 'SKU-1', name: 'Rice', onHand: 20 }],
+      [
+        {
+          id: orderId,
+          orderNumber: 'ORD-1',
+          status: 'CONFIRMED',
+          paymentStatus: 'PAID',
+          lines: [
+            {
+              orderItemId,
+              stockItemId: stockId,
+              sku: 'SKU-1',
+              product: 'Rice',
+              quantity: 5,
+              pickedQuantity: 0,
+              packedQuantity: 0,
+            },
+          ],
+        },
+      ],
+      'DISTRIBUTOR',
+    );
+  }
 
-    expect(() => service.receive(receipt.id, 8, 1, 0)).toThrow(/must equal the expected/);
-    expect(service.stock().find((item) => item.sku === 'SKU-1')?.onHand).toBe(20);
-    expect(service.receipts()[0].status).toBe('PENDING');
+  it('loads persisted shipment receipts and posts every canonical line only on confirmation', () => {
+    getResponses.set(API_ENDPOINTS.warehouseOperations.shipments, {
+      content: [
+        {
+          id: shipmentId,
+          purchaseOrderNumber: 'PO-42',
+          status: 'DELIVERED',
+          receiptLines: [
+            {
+              purchaseOrderItemId,
+              stockItemId: stockId,
+              productName: 'Rice',
+              expectedQuantity: 8,
+            },
+          ],
+        },
+      ],
+    });
+    service.loadShipments();
 
-    service.receive(receipt.id, 7, 2, 1);
+    expect(service.receipts()[0]).toMatchObject({
+      shipmentId,
+      reference: 'PO-42',
+      status: 'PENDING',
+      shipmentStatus: 'DELIVERED',
+      lines: [{ purchaseOrderItemId, expected: 8 }],
+    });
 
-    expect(service.stock().find((item) => item.sku === 'SKU-1')?.onHand).toBe(27);
+    const receiveUrl = API_ENDPOINTS.warehouseOperations.receiveShipment(shipmentId);
+    const payload = {
+      note: 'One damaged bag',
+      lines: [
+        {
+          purchaseOrderItemId,
+          acceptedQuantity: 6,
+          damagedQuantity: 1,
+          missingQuantity: 1,
+        },
+      ],
+    };
+    postResponses.set(receiveUrl, {
+      id: shipmentId,
+      purchaseOrderNumber: 'PO-42',
+      status: 'RECEIVED',
+      receiptLines: [
+        {
+          purchaseOrderItemId,
+          stockItemId: stockId,
+          productName: 'Rice',
+          expectedQuantity: 8,
+          acceptedQuantity: 6,
+          damagedQuantity: 1,
+          missingQuantity: 1,
+        },
+      ],
+    });
+    service.receiveShipment(shipmentId, payload).subscribe();
+
+    expect(postCalls.at(-1)).toEqual({ url: receiveUrl, body: payload });
     expect(service.receipts()[0]).toMatchObject({
       status: 'RECEIVED',
-      accepted: 7,
-      damaged: 2,
+      accepted: 6,
+      damaged: 1,
       missing: 1,
     });
+  });
+
+  it('loads persisted locations and server movement values for canonical stock IDs', () => {
+    const locationsUrl = API_ENDPOINTS.warehouseOperations.stockItemLocations(stockId);
+    const movementsUrl = `${API_ENDPOINTS.warehouseOperations.stockItemMovements(stockId)}?size=100`;
+    getResponses.set(locationsUrl, [
+      { id: 'location-uuid', stockItemId: stockId, sku: 'SKU-1', locationCode: 'A-01', quantity: 8 },
+    ]);
+    getResponses.set(movementsUrl, {
+      content: [
+        {
+          id: 'movement-uuid',
+          stockItemId: stockId,
+          movementType: 'RESTOCK_IN',
+          quantityDelta: 8,
+          referenceType: 'PURCHASE_ORDER_SHIPMENT',
+          referenceId: shipmentId,
+          performedBy: 'user-uuid',
+          note: 'Received',
+          createdAt: '2026-01-01T10:00:00Z',
+        },
+      ],
+    });
+    service.synchronize(
+      [{ id: stockId, sku: 'SKU-1', name: 'Rice', onHand: 20 }],
+      [],
+      'DISTRIBUTOR',
+    );
+
+    expect(getCalls).toContain(locationsUrl);
+    expect(service.stock()[0]).toMatchObject({ id: stockId, locations: { 'A-01': 8 } });
     expect(service.movements()[0]).toMatchObject({
-      type: 'RECEIPT',
-      quantity: 7,
-      reference: 'PO-1',
+      id: 'movement-uuid',
+      type: 'RESTOCK_IN',
+      quantity: 8,
+      reference: `PURCHASE_ORDER_SHIPMENT · ${shipmentId}`,
+      user: 'user-uuid',
     });
   });
 
-  it('registers manual receipts against known products and validates reference and quantity', () => {
-    expect(() => service.registerReceipt('   ', 'SKU-1', 1)).toThrow(
-      /Delivery reference is required/,
-    );
-    expect(() => service.registerReceipt('DEL-1', 'UNKNOWN', 1)).toThrow(/current inventory/);
-    expect(() => service.registerReceipt('DEL-1', 'SKU-1', 0)).toThrow(/positive whole number/);
-
-    const receipt = service.registerReceipt('DEL-1', 'SKU-1', 3);
-    expect(receipt).toMatchObject({
-      reference: 'DEL-1',
-      sku: 'SKU-1',
-      expected: 3,
-      status: 'PENDING',
+  it('sends a backend-supported adjustment enum and updates movement state after success', () => {
+    synchronizeDistributor();
+    const url = API_ENDPOINTS.warehouseOperations.stockItemMovements(stockId);
+    postResponses.set(url, {
+      id: 'adjustment-uuid',
+      stockItemId: stockId,
+      movementType: 'ADJUSTMENT',
+      quantityDelta: -2,
+      note: 'Damaged in storage',
+      performedBy: 'user-uuid',
+      createdAt: '2026-01-01T10:00:00Z',
     });
-    expect(() => service.registerReceipt('DEL-1', 'SKU-1', 2)).toThrow(/already exists/);
+    service.adjustStock(stockId, -2, 'Damaged in storage').subscribe();
+
+    expect(postCalls.at(-1)).toEqual({
+      url,
+      body: {
+        movementType: 'ADJUSTMENT',
+        quantityDelta: -2,
+        note: 'Damaged in storage',
+      },
+    });
+    expect(service.movements()[0]).toMatchObject({
+      id: 'adjustment-uuid',
+      type: 'ADJUSTMENT',
+      quantity: -2,
+      reason: 'Damaged in storage',
+    });
+    expect(service.stock()[0].onHand).toBe(20);
   });
 
-  it('rejects duplicate receipt confirmation and invalid quantities without changing state', () => {
-    const receiptId = service.receipts()[0].id;
-    service.receive(receiptId, 10, 0, 0);
-
-    expect(() => service.receive(receiptId, 10, 0, 0)).toThrow(/no longer pending/);
-    expect(() => service.adjust('SKU-1', 1.5, 'Count', 'Staff')).toThrow(/non-zero whole number/);
-    expect(service.stock().find((item) => item.sku === 'SKU-1')?.onHand).toBe(30);
-    expect(service.movements()).toHaveLength(1);
-  });
-
-  it('tracks put-away locations and prevents assigning more than unassigned stock', () => {
-    service.putAway('SKU-1', 'A-01', 10, 'Warehouse staff');
-
-    expect(service.stock().find((item) => item.sku === 'SKU-1')?.locations).toEqual({ 'A-01': 10 });
-    expect(() => service.putAway('SKU-1', 'A-01', 11, 'Warehouse staff')).toThrow(
-      /unassigned stock/,
-    );
-    expect(service.movements()[0]).toMatchObject({ type: 'PUT_AWAY', reference: 'PUT-1' });
-  });
-
-  it('allocates no more than available inventory and rejects picking beyond allocation', () => {
-    const order = service.orders().find((item) => item.id === 'order-2')!;
-    const line = order.lines[0];
-
-    expect(line.allocated).toBe(2);
-    expect(() => service.pick(order.id, line.id, 3, 'Warehouse staff')).toThrow(
-      /exceeds allocated stock/,
-    );
-    expect(service.stock().find((item) => item.sku === 'SKU-2')?.staged).toBe(0);
-    expect(service.orders().find((item) => item.id === order.id)?.status).toBe('AWAITING_PICK');
-  });
-
-  it('allocates received stock to a previously under-allocated order', () => {
-    service.synchronize(
-      [],
-      [],
-      [
+  it('posts the cumulative picked quantity with the canonical order-item ID and maps success', () => {
+    synchronizeDistributor();
+    const url = API_ENDPOINTS.warehouseOperations.orderPick(orderId);
+    postResponses.set(url, {
+      id: orderId,
+      orderNumber: 'ORD-1',
+      status: 'PROCESSING',
+      packageCount: 0,
+      items: [
         {
-          id: 'PO-2',
-          status: 'IN_TRANSIT',
-          lines: [{ sku: 'SKU-2', product: 'Oil', quantity: 5 }],
+          id: orderItemId,
+          stockItemId: stockId,
+          quantity: 5,
+          pickedQuantity: 2,
+          packedQuantity: 0,
         },
       ],
-    );
-    const receipt = service.receipts().find((item) => item.reference === 'PO-2')!;
-    service.receive(receipt.id, 5, 0, 0);
+    });
+    service.pickOrderItem(orderId, orderItemId, 2).subscribe();
 
-    const order = service.orders().find((item) => item.id === 'order-2')!;
-    expect(order.lines[0].allocated).toBe(4);
-    expect(service.stock().find((item) => item.sku === 'SKU-2')?.allocated).toBe(4);
-    service.pick(order.id, order.lines[0].id, 4, 'Picker');
-    expect(service.orders().find((item) => item.id === order.id)?.status).toBe('READY_TO_PACK');
+    expect(postCalls.at(-1)).toEqual({
+      url,
+      body: { orderItemId, pickedQuantity: 2 },
+    });
+    expect(service.orders()[0]).toMatchObject({
+      status: 'PICKING',
+      lines: [{ orderItemId, picked: 2 }],
+    });
+    expect(service.stock()[0].onHand).toBe(20);
   });
 
-  it('creates fulfillment work from accepted manufacturer purchase orders', () => {
-    service.synchronize(
-      [],
-      [
+  it('posts package count and reflects the backend order response after success', () => {
+    synchronizeDistributor();
+    const pickUrl = API_ENDPOINTS.warehouseOperations.orderPick(orderId);
+    postResponses.set(pickUrl, {
+      id: orderId,
+      orderNumber: 'ORD-1',
+      status: 'READY_TO_PACK',
+      packageCount: 0,
+      items: [
         {
-          id: 'accepted-po',
-          orderNumber: 'MPO-1',
-          status: 'ACCEPTED',
-          paymentStatus: 'PAID',
-          lines: [{ sku: 'SKU-1', product: 'Rice', quantity: 3 }],
+          id: orderItemId,
+          stockItemId: stockId,
+          quantity: 5,
+          pickedQuantity: 5,
+          packedQuantity: 0,
         },
       ],
-      [],
-    );
+    });
+    service.pickOrderItem(orderId, orderItemId, 5).subscribe();
 
-    expect(service.orders().map((order) => order.orderNumber)).toContain('MPO-1');
-    expect(
-      service.orders().find((order) => order.orderNumber === 'MPO-1')?.lines[0].allocated,
-    ).toBe(3);
-  });
-
-  it('does not allocate manufacturer orders unless payment is verified as paid', () => {
-    service.synchronize(
-      [],
-      [
+    const packUrl = API_ENDPOINTS.warehouseOperations.orderPack(orderId);
+    postResponses.set(packUrl, {
+      id: orderId,
+      orderNumber: 'ORD-1',
+      status: 'AWAITING_DISPATCH',
+      packageCount: 2,
+      items: [
         {
-          id: 'unpaid-po',
-          orderNumber: 'MPO-UNPAID',
-          status: 'ACCEPTED',
-          paymentStatus: 'UNKNOWN',
-          lines: [{ sku: 'SKU-1', product: 'Rice', quantity: 3 }],
-        },
-        {
-          id: 'failed-po',
-          orderNumber: 'MPO-FAILED',
-          status: 'ACCEPTED',
-          paymentStatus: 'FAILED',
-          lines: [{ sku: 'SKU-1', product: 'Rice', quantity: 2 }],
+          id: orderItemId,
+          stockItemId: stockId,
+          quantity: 5,
+          pickedQuantity: 5,
+          packedQuantity: 5,
         },
       ],
-      [],
-    );
+    });
+    service.packOrder(orderId, 2).subscribe();
 
-    expect(service.orders().map((order) => order.id)).not.toContain('unpaid-po');
-    expect(service.orders().map((order) => order.id)).not.toContain('failed-po');
-    expect(service.stock().find((item) => item.sku === 'SKU-1')?.allocated).toBe(5);
-  });
-
-  it('only creates incoming receipt work for shipped stock, not an approved purchase order', () => {
-    service.synchronize(
-      [],
-      [],
-      [
-        {
-          id: 'approved-po',
-          status: 'PROCESSING',
-          lines: [{ sku: 'SKU-1', product: 'Rice', quantity: 8 }],
-        },
-        {
-          id: 'shipped-po',
-          status: 'IN_TRANSIT',
-          lines: [{ sku: 'SKU-1', product: 'Rice', quantity: 3 }],
-        },
-      ],
-    );
-
-    expect(service.receipts().map((receipt) => receipt.reference)).toContain('shipped-po');
-    expect(service.receipts().map((receipt) => receipt.reference)).not.toContain('approved-po');
-  });
-
-  it('moves an order through picking and packing only with complete quantities', () => {
-    const order = service.orders().find((item) => item.id === 'order-1')!;
-    const line = order.lines[0];
-
-    expect(() => service.pack(order.id, { [line.id]: 5 }, 1)).toThrow(/All requested items/);
-    service.pick(order.id, line.id, 2, 'Picker');
-    expect(service.orders().find((item) => item.id === order.id)?.status).toBe('PICKING');
-    service.pick(order.id, line.id, 3, 'Picker');
-    expect(service.orders().find((item) => item.id === order.id)?.status).toBe('READY_TO_PACK');
-
-    expect(() => service.pack(order.id, { [line.id]: 4 }, 1)).toThrow(
-      /must match the picked quantities/,
-    );
-    service.pack(order.id, { [line.id]: 5 }, 2);
-
-    expect(service.orders().find((item) => item.id === order.id)).toMatchObject({
+    expect(postCalls.at(-1)).toEqual({ url: packUrl, body: { packageCount: 2 } });
+    expect(service.orders()[0]).toMatchObject({
       status: 'READY_TO_DISPATCH',
       packages: 2,
       lines: [{ packed: 5 }],
     });
   });
 
-  it('deducts dispatch stock once, records its trip reference, and rejects duplicate dispatch', () => {
-    const order = service.orders().find((item) => item.id === 'order-1')!;
-    const line = order.lines[0];
-    expect(() =>
-      service.dispatchOrders(['order-2'], {
-        tripId: 'trip-1',
-        vehicleId: 'vehicle-1',
-        driverId: 'driver-1',
-        user: 'Dispatcher',
-      }),
-    ).toThrow(/ready for dispatch/);
-    service.pick(order.id, line.id, 5, 'Picker');
-    service.pack(order.id, { [line.id]: 5 }, 1);
+  it('refuses order actions when only synthetic UI line IDs are available', () => {
+    service.synchronize(
+      [{ id: stockId, sku: 'SKU-1', name: 'Rice', onHand: 20 }],
+      [
+        {
+          id: orderId,
+          orderNumber: 'PO-1',
+          status: 'ACCEPTED',
+          paymentStatus: 'PAID',
+          lines: [{ sku: 'SKU-1', product: 'Rice', quantity: 2 }],
+        },
+      ],
+      'MANUFACTURER',
+    );
 
-    const dispatch = () =>
-      service.dispatchOrders([order.id], {
-        tripId: 'trip-1',
-        vehicleId: 'vehicle-1',
-        driverId: 'driver-1',
-        user: 'Dispatcher',
-      });
-    dispatch();
-
-    expect(service.stock().find((item) => item.sku === 'SKU-1')).toMatchObject({
-      onHand: 15,
-      allocated: 0,
-      staged: 0,
-    });
-    expect(service.orders().find((item) => item.id === order.id)).toMatchObject({
-      status: 'DISPATCHED',
-      tripId: 'trip-1',
-      vehicleId: 'vehicle-1',
-      driverId: 'driver-1',
-    });
-    expect(service.movements()[0]).toMatchObject({
-      type: 'DISPATCH',
-      quantity: -5,
-      reference: 'trip-1',
-    });
-
-    expect(dispatch).toThrow(/ready for dispatch/);
-    expect(service.stock().find((item) => item.sku === 'SKU-1')?.onHand).toBe(15);
-    expect(service.movements().filter((movement) => movement.type === 'DISPATCH')).toHaveLength(1);
+    expect(service.orders()[0].lines[0].id).toBe(`${orderId}:0`);
+    expect(() => service.pickOrderItem(orderId, `${orderId}:0`, 1)).toThrow(
+      /canonical order-item ID/,
+    );
   });
 
-  it('requires a valid adjustment reason and actor and protects allocated stock', () => {
-    expect(() => service.adjust('SKU-1', -16, 'Count discrepancy', 'Auditor')).toThrow(
-      /below allocated or picked quantities/,
+  it('gates warehouse work on verified payment and allocates no more than available stock', () => {
+    service.synchronize(
+      [{ id: stockId, sku: 'SKU-1', name: 'Rice', onHand: 5 }],
+      [
+        {
+          id: 'paid-order',
+          orderNumber: 'ORD-PAID',
+          status: 'CONFIRMED',
+          paymentStatus: 'PAID',
+          lines: [
+            {
+              orderItemId: 'paid-item',
+              stockItemId: stockId,
+              sku: 'SKU-1',
+              product: 'Rice',
+              quantity: 4,
+            },
+          ],
+        },
+        {
+          id: 'unpaid-order',
+          orderNumber: 'ORD-UNPAID',
+          status: 'CONFIRMED',
+          paymentStatus: 'PENDING',
+          lines: [
+            {
+              orderItemId: 'unpaid-item',
+              stockItemId: stockId,
+              sku: 'SKU-1',
+              product: 'Rice',
+              quantity: 4,
+            },
+          ],
+        },
+        {
+          id: 'second-paid-order',
+          orderNumber: 'ORD-SECOND',
+          status: 'CONFIRMED',
+          paymentStatus: 'PAID',
+          lines: [
+            {
+              orderItemId: 'second-item',
+              stockItemId: stockId,
+              sku: 'SKU-1',
+              product: 'Rice',
+              quantity: 4,
+            },
+          ],
+        },
+      ],
+      'DISTRIBUTOR',
     );
-    expect(() => service.adjust('SKU-1', -1, '   ', 'Auditor')).toThrow(/reason is required/);
-    expect(() => service.adjust('SKU-1', 1, 'Count correction', '')).toThrow(/responsible user/);
 
-    service.adjust('SKU-1', -1, 'Damaged during count', 'Auditor');
-    expect(service.stock().find((item) => item.sku === 'SKU-1')?.onHand).toBe(19);
-    expect(service.movements()[0]).toMatchObject({
-      type: 'ADJUSTMENT',
-      quantity: -1,
-      reason: 'Damaged during count',
-      user: 'Auditor',
-      reference: 'ADJ-1',
+    expect(service.orders().map((order) => order.id)).toEqual([
+      'paid-order',
+      'second-paid-order',
+    ]);
+    expect(service.orders().map((order) => order.lines[0].allocated)).toEqual([4, 1]);
+    expect(service.stock()[0].allocated).toBe(5);
+  });
+
+  it('rejects dispatch validation until every order is backend-ready', () => {
+    synchronizeDistributor();
+    expect(() => service.validateDispatchOrders([orderId])).toThrow(
+      /ready for dispatch/,
+    );
+
+    const stock = [
+      { id: stockId, sku: 'SKU-1', name: 'Rice', onHand: 20 },
+    ];
+    service.synchronize(
+      stock,
+      [
+        {
+          id: orderId,
+          orderNumber: 'ORD-1',
+          status: 'AWAITING_DISPATCH',
+          paymentStatus: 'PAID',
+          lines: [
+            {
+              orderItemId,
+              stockItemId: stockId,
+              sku: 'SKU-1',
+              product: 'Rice',
+              quantity: 5,
+              pickedQuantity: 5,
+              packedQuantity: 5,
+            },
+          ],
+        },
+      ],
+      'DISTRIBUTOR',
+    );
+    expect(() => service.validateDispatchOrders([orderId])).not.toThrow();
+  });
+
+  it('does not mark a receipt complete when the backend rejects confirmation', () => {
+    const receiveUrl = API_ENDPOINTS.warehouseOperations.receiveShipment(shipmentId);
+    getResponses.set(API_ENDPOINTS.warehouseOperations.shipments, {
+      content: [
+        {
+          id: shipmentId,
+          purchaseOrderNumber: 'PO-42',
+          status: 'DELIVERED',
+          receiptLines: [
+            {
+              purchaseOrderItemId,
+              stockItemId: stockId,
+              productName: 'Rice',
+              expectedQuantity: 8,
+            },
+          ],
+        },
+      ],
     });
+    service.loadShipments();
+    postErrors.set(receiveUrl, new Error('Rejected by server'));
+    let failed = false;
+    service
+      .receiveShipment(shipmentId, {
+        lines: [
+          {
+            purchaseOrderItemId,
+            acceptedQuantity: 8,
+            damagedQuantity: 0,
+            missingQuantity: 0,
+          },
+        ],
+      })
+      .subscribe({ error: () => (failed = true) });
+
+    expect(failed).toBe(true);
+    expect(service.receipts()[0].status).toBe('PENDING');
+  });
+
+  it('rejects invalid adjustments before calling the backend', () => {
+    synchronizeDistributor();
+    expect(() => service.adjustStock(stockId, 0, 'Correction')).toThrow(
+      /non-zero whole number/,
+    );
+    expect(() => service.adjustStock(stockId, 1, '  ')).toThrow(/reason is required/);
+    expect(postCalls).toEqual([]);
   });
 });

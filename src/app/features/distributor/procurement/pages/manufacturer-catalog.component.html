@@ -36,9 +36,8 @@
               <th scope="col" class="px-4 py-3">Product</th>
               <th scope="col" class="px-3 py-3">SKU</th>
               <th scope="col" class="px-3 py-3">Category</th>
-              <th scope="col" class="px-3 py-3 text-right">Available Stock</th>
+              <th scope="col" class="px-3 py-3">Manufacturer stock availability</th>
               <th scope="col" class="px-3 py-3 text-right">Indicative Unit Cost</th>
-              <th scope="col" class="px-3 py-3">Availability</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
@@ -50,28 +49,31 @@
                 </td>
                 <td class="whitespace-nowrap px-3 py-3">{{ product.sku }}</td>
                 <td class="whitespace-nowrap px-3 py-3">{{ product.category }}</td>
-                <td class="whitespace-nowrap px-3 py-3 text-right">
-                  {{ product.stock | number }} {{ product.unit }}
+                <td class="px-3 py-3">
+                  <span
+                    class="rounded border px-2 py-1 text-[9px] font-medium"
+                    [class.border-emerald-200]="product.inStock === true"
+                    [class.bg-emerald-50]="product.inStock === true"
+                    [class.text-emerald-700]="product.inStock === true"
+                    [class.border-slate-200]="product.inStock !== true"
+                    [class.bg-slate-50]="product.inStock !== true"
+                    [class.text-slate-600]="product.inStock !== true"
+                    >{{
+                      product.inStock === null
+                        ? 'UNKNOWN'
+                        : product.inStock
+                          ? 'AVAILABLE'
+                          : 'OUT OF STOCK'
+                    }}</span
+                  >
                 </td>
                 <td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-900">
                   {{ unitCost(product.sku) | currency: 'KES' : 'symbol' : '1.0-0' }}
                 </td>
-                <td class="px-3 py-3">
-                  <span
-                    class="rounded border px-2 py-1 text-[9px] font-medium"
-                    [class.border-emerald-200]="product.stock > 0"
-                    [class.bg-emerald-50]="product.stock > 0"
-                    [class.text-emerald-700]="product.stock > 0"
-                    [class.border-slate-200]="product.stock === 0"
-                    [class.bg-slate-50]="product.stock === 0"
-                    [class.text-slate-600]="product.stock === 0"
-                    >{{ product.stock > 0 ? 'AVAILABLE' : 'OUT OF STOCK' }}</span
-                  >
-                </td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="6" class="px-4 py-12 text-center text-sm text-slate-500">
+                <td colspan="5" class="px-4 py-12 text-center text-sm text-slate-500">
                   No products are currently listed for this manufacturer.
                 </td>
               </tr>

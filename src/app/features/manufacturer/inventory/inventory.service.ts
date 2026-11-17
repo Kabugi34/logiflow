@@ -3,12 +3,14 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import { InventoryRow, InventoryTerminal, TerminalInventoryRecord } from './inventory.models';
+import { ManufacturerProductService } from '../products/product.service';
 
-interface StockItem { sku: string; name: string; category: string | null; quantityOnHand: number; reservedQuantity?: number; availableQuantity?: number; reorderThreshold: number; }
+interface StockItem { id: string; sku: string; name: string; category: string | null; quantityOnHand: number; reservedQuantity?: number; availableQuantity?: number; reorderThreshold: number; active?: boolean; }
 interface ApiPage<T> { content?: T[]; }
 
 @Injectable({ providedIn: 'root' })
 export class ManufacturerInventoryService {
+  private readonly productService = inject(ManufacturerProductService);
   readonly terminals: InventoryTerminal[] = [{ id: 'ORG', name: 'Organization stock', city: '' }];
   private readonly activeTerminalId = signal('ORG');
   private readonly records = signal<TerminalInventoryRecord[]>([]);
@@ -22,7 +24,8 @@ export class ManufacturerInventoryService {
     this.loading.set(true);
     this.http.get<ApiPage<StockItem>>(`${API_ENDPOINTS.manufacturer.stockItems}?size=100`).subscribe({
       next: page => {
-        this.records.set((page.content ?? []).map(item => ({
+        this.records.set((page.content ?? []).filter(item => item.active !== false).map(item => ({
+          id: item.id,
           productName: item.name, sku: item.sku, category: item.category ?? 'Uncategorized', terminalId: 'ORG',
           totalStock: item.quantityOnHand, reservedHolds: item.reservedQuantity ?? Math.max(0, item.quantityOnHand - (item.availableQuantity ?? item.quantityOnHand))
         })));
@@ -36,7 +39,13 @@ export class ManufacturerInventoryService {
   setTerminal(terminalId: string): void { this.activeTerminalId.set(terminalId); }
   getCategories(): string[] { return [...new Set(this.records().map(record => record.category).filter((x): x is string => !!x))]; }
   getRows(category = 'All categories'): InventoryRow[] {
+    const unpublishedSkus = new Set(
+      this.productService.products()
+        .filter(product => product.publicationStatus !== 'PUBLISHED')
+        .map(product => product.sku),
+    );
     return this.records().filter(record => record.terminalId === this.activeTerminalId())
+      .filter(record => !unpublishedSkus.has(record.sku))
       .filter(record => category === 'All categories' || record.category === category)
       .map(record => {
         const availableNet = Math.max(0, record.totalStock - record.reservedHolds);

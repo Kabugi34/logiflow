@@ -7,7 +7,6 @@ import {
   DriverOperationalStatus,
 } from '../../fleet/fleet.models';
 import { ManufacturerFleetService } from '../../fleet/fleet.service';
-import { ManufacturerWarehouseService } from '../../warehouses/warehouse.service';
 import {
   internationalPhone,
   licenceValue,
@@ -25,8 +24,6 @@ type Action = 'APPROVE' | 'REJECT' | 'RESEND' | 'REVOKE' | 'SUSPEND' | 'REACTIVA
 export class DriverDirectoryComponent {
   private fleet = inject(ManufacturerFleetService);
   private fb = inject(FormBuilder);
-  private warehouseService = inject(ManufacturerWarehouseService);
-  protected warehouses = this.warehouseService.warehouses;
   protected drivers = this.fleet.drivers;
   protected search = signal('');
   protected filter = signal<DriverAccountStatus | 'ALL'>('ALL');
@@ -40,7 +37,6 @@ export class DriverDirectoryComponent {
     email: ['', [trimmedRequired, Validators.email, Validators.maxLength(120)]],
     phone: ['', [trimmedRequired, internationalPhone, Validators.maxLength(32)]],
     license: ['', [trimmedRequired, licenceValue, Validators.maxLength(40)]],
-    baseWarehouseId: [''],
   });
   protected fieldError(field: 'name' | 'email' | 'phone' | 'license') {
     const c = this.form.controls[field];
@@ -84,8 +80,14 @@ export class DriverDirectoryComponent {
     }
     this.saving.set(true);
     this.fleet.createDriverApi(this.form.getRawValue()).pipe(finalize(() => this.saving.set(false))).subscribe({
-      next: driver => { this.selected.set(driver.id); this.showForm.set(false); this.notice.set(driver.invitationStatus === 'FAILED' ? 'Driver profile was saved, but the invitation email failed. Retry with Resend invitation.' : 'Driver saved. The backend has queued or sent an activation invitation to the email provided.'); },
-      error: error => this.notice.set(error?.error?.message ?? 'Driver could not be saved. Check the driver API and organization permission.')
+      next: invitation => {
+        this.selected.set('');
+        this.showForm.set(false);
+        this.notice.set(`Invitation ${invitation.id} was created. Email delivery is not confirmed; check the refreshed driver list for status.`);
+      },
+      error: error => this.notice.set(error?.status === 403
+        ? 'Your organization is not currently permitted to create driver invitations. No driver record was created; contact an administrator.'
+        : error?.error?.message ?? 'Could not confirm invitation creation. Check the refreshed driver list before trying again.')
     });
   }
   protected ask(driver: FleetDriver, action: Action) {
@@ -128,5 +130,3 @@ export class DriverDirectoryComponent {
     }[s];
   }
 }
-
-
