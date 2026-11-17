@@ -111,7 +111,7 @@ export class ManufacturerPurchaseOrderService {
       destinationHub: '\u2014',
       issueDate: row.submittedAt,
       status,
-      paymentStatus: this.mapPaymentStatus(row.settlements?.at(-1)?.status ?? row.paymentStatus),
+      paymentStatus: this.mapPaymentStatus(row.paymentStatus),
       lines: (row.items ?? []).map((item) => {
         const matching = stock.find((stockItem) => stockItem.sku === item.sku);
         return {
