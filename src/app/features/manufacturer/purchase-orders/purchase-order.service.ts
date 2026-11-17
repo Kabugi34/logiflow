@@ -107,7 +107,7 @@ export class ManufacturerPurchaseOrderService {
             : 'PENDING';
     return {
       id: row.id,
-      distributorName: row.buyerOrganizationId,
+      distributorName: 'Distributor name unavailable',
       destinationHub: '\u2014',
       issueDate: row.submittedAt,
       status,

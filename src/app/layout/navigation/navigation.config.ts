@@ -109,7 +109,7 @@ export const distributorNavigation: NavigationItem[] = [
     icon: 'layers',
   },
   {
-    label: 'Procurement',
+    label: 'Purchases',
     route: '/distributor/procurement',
     icon: 'file-text',
   },

@@ -1,0 +1,51 @@
+<section class="space-y-5">
+  <header class="border-b border-slate-200 pb-4">
+    <a routerLink="/distributor/procurement" class="text-xs text-blue-700">Back to purchases</a>
+    <h1 class="mt-2 text-xl font-semibold text-slate-900">Centralized supplier checkout</h1>
+    <p class="mt-1 text-sm text-slate-600">Choose products, quantities and a destination warehouse for each supplier. Stock, MOQ, terms and final prices are checked by the server.</p>
+  </header>
+
+  @if (!checkout()) {
+    @for (supplier of suppliers(); track supplier.id) {
+      <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+          <h2 class="text-sm font-semibold">{{ supplier.name }}</h2>
+          <label class="flex items-center gap-2 text-xs text-slate-600">Destination warehouse
+            <select [value]="warehouse(supplier.id)" (change)="setWarehouse(supplier.id, $any($event.target).value)" class="h-9 rounded border border-slate-200 bg-white px-2">
+              <option value="">Choose warehouse</option>
+              @for (location of activeWarehouses(); track location.id) { <option [value]="location.id">{{ location.name }} · {{ location.code }}</option> }
+            </select>
+          </label>
+        </div>
+        <div class="divide-y divide-slate-100">
+          @for (product of supplier.products; track product.id) {
+            <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+              <div><p class="text-sm font-medium text-slate-800">{{ product.name }}</p><p class="text-xs text-slate-500">{{ product.sku }} · {{ product.availableQuantity === null ? (product.inStock === false ? 'Out of stock' : 'Available quantity not provided') : (product.availableQuantity + ' available') }}</p>@if (product.description) { <p class="mt-1 text-xs text-slate-500">{{ product.description }}</p> }<p class="mt-1 text-xs text-slate-600">Catalog unit price: {{ product.unitPrice | currency: 'KES' : 'symbol' : '1.2-2' }} · final price confirmed at checkout</p></div>
+              <label class="text-xs text-slate-600">Quantity <input type="number" min="0" step="1" [max]="product.availableQuantity ?? null" [disabled]="product.inStock === false || product.availableQuantity === 0" [value]="quantity(product.id)" (input)="setQuantity(product.id, $any($event.target).value)" class="ml-2 h-9 w-24 rounded border border-slate-200 px-2 disabled:bg-slate-100" /></label>
+            </div>
+          } @empty { <p class="px-4 py-5 text-xs text-slate-500">No approved products are available for this supplier.</p> }
+        </div>
+      </section>
+    } @empty { <p class="rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Approved supplier products are unavailable. Check the catalog and supplier authorizations.</p> }
+    @if (!activeWarehouses().length) { <p class="rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Create and activate a distributor warehouse before checking out.</p> }
+    <div class="rounded-lg border border-slate-200 bg-white p-4"><div class="flex flex-wrap items-center justify-between gap-3"><span class="text-sm text-slate-600">{{ selectedCount() }} product lines · {{ selectedSupplierCount() }} suppliers</span><button type="button" (click)="createCheckout()" [disabled]="busy() || selectedCount() === 0" class="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{{ busy() ? 'Creating checkout…' : 'Review server checkout' }}</button></div></div>
+  } @else {
+    <section class="rounded-lg border border-blue-200 bg-blue-50 p-4">
+      <div class="flex flex-wrap items-start justify-between gap-3"><div><p class="text-xs font-medium uppercase tracking-wide text-blue-800">{{ checkout()!.demoLabel }}</p><h2 class="mt-1 text-lg font-semibold text-slate-900">Checkout {{ checkout()!.checkoutReference }}</h2><p class="mt-1 text-xs text-slate-600">{{ checkout()!.status }} · Buyer payment and supplier settlement are separate.</p></div><button type="button" (click)="refresh()" [disabled]="busy()" class="rounded border border-blue-200 bg-white px-3 py-2 text-xs text-blue-800">Refresh status</button></div>
+      <p class="mt-4 text-xl font-semibold text-slate-900">{{ checkout()!.totalAmount | currency: checkout()!.currency }}</p>
+    </section>
+    @for (order of checkout()!.supplierOrders; track order.purchaseOrderId) {
+      <section class="rounded-lg border border-slate-200 bg-white p-4"><div class="flex flex-wrap justify-between gap-2"><div><h3 class="text-sm font-semibold">{{ order.supplierOrganizationName }}</h3><p class="text-xs text-slate-500">{{ order.purchaseOrderNumber }} · {{ order.status }}</p><p class="mt-1 text-[10px] text-slate-500">Destination warehouse: {{ order.destinationWarehouseId }}</p></div><p class="text-sm font-semibold">{{ order.totalAmount | currency: order.currency }}</p></div><ul class="mt-3 space-y-1 text-xs text-slate-600">@for (item of order.items; track item.productId) { <li class="flex justify-between gap-3"><span>{{ item.quantity }} × {{ item.productName }} ({{ item.sku }})</span><span>{{ item.unitPrice | currency: order.currency }} · {{ item.lineTotal | currency: order.currency }}</span></li> }</ul><a [routerLink]="['/distributor/procurement', order.purchaseOrderId]" queryParamsHandling="preserve" class="mt-3 inline-block text-xs font-medium text-blue-700">Track this supplier order</a></section>
+    }
+    @if (checkout()!.status === 'PAYMENT_PENDING' && !checkout()!.payment) {
+      <section class="rounded-lg border border-amber-200 bg-amber-50 p-4"><p class="text-sm font-semibold text-amber-900">Demo payment · no money transferred</p><p class="mt-1 text-xs text-amber-800">The backend determines the result. No card number or M-Pesa PIN is collected here.</p><div class="mt-3 flex flex-wrap items-center gap-3"><label class="text-xs">Demo label <select [value]="paymentMethod()" (change)="paymentMethod.set($any($event.target).value)" class="ml-2 h-9 rounded border border-amber-200 bg-white px-2"><option value="DEMO_MPESA">DEMO_MPESA</option><option value="DEMO_CARD">DEMO_CARD</option></select></label><button type="button" (click)="pay()" [disabled]="busy()" class="rounded bg-amber-700 px-4 py-2 text-xs font-medium text-white disabled:opacity-50">{{ busy() ? 'Checking payment…' : 'Start demo payment' }}</button><button type="button" (click)="cancel()" [disabled]="busy()" class="rounded border border-amber-300 bg-white px-4 py-2 text-xs">Cancel checkout</button></div></section>
+    } @else if (checkout()!.payment) {
+      <section class="rounded-lg border border-slate-200 bg-white p-4"><p class="text-sm font-semibold">Payment: {{ checkout()!.payment!.status }} <span class="ml-2 rounded bg-amber-100 px-2 py-1 text-[10px]">DEMO</span></p><p class="mt-1 text-xs text-slate-600">{{ checkout()!.payment!.demoLabel }}</p></section>
+    }
+    @if (checkout()!.allocations.length) {
+      <section class="rounded-lg border border-slate-200 bg-white p-4"><h3 class="text-sm font-semibold">Supplier allocations · accounting demonstration</h3><p class="mt-1 text-xs text-slate-500">Allocations are not payouts. Supplier settlement remains independently pending.</p>@for (allocation of checkout()!.allocations; track allocation.purchaseOrderId) { <p class="mt-2 text-xs text-slate-700">{{ allocation.supplierOrganizationName }} · {{ allocation.supplierAmount | currency: allocation.currency }} · Settlement {{ allocation.settlementStatus }}</p> }</section>
+    }
+    @if (checkout()!.status === 'PAID') { <a routerLink="/distributor/warehouses/operations" queryParamsHandling="preserve" class="inline-flex rounded border border-blue-200 bg-white px-3 py-2 text-xs font-medium text-blue-700">Open supplier shipment tracking and receipt</a> }
+  }
+  @if (error()) { <p role="alert" class="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">{{ error() }}</p> }
+</section>
