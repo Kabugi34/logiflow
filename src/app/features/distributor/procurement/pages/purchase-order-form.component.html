@@ -21,7 +21,7 @@
         class="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus:border-blue-400"
       >
         @for (manufacturer of procurement.manufacturers(); track manufacturer.id) {
-          <option [value]="manufacturer.id">{{ manufacturer.id }}</option>
+          <option [value]="manufacturer.id">{{ manufacturer.name || manufacturer.id }}</option>
         }
       </select></label
     >

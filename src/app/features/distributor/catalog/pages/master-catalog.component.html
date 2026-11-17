@@ -169,12 +169,12 @@
                       Add to catalog
                     </a>
                     <a
-                      [routerLink]="['/distributor/procurement/new']"
+                      [routerLink]="['/distributor/procurement/checkout']"
                       [queryParams]="{ manufacturer: product.manufacturerId, sku: product.sku }"
                       queryParamsHandling="merge"
                       class="ml-3 font-medium text-emerald-700 hover:text-emerald-800"
                     >
-                      Buy / Purchase Stock
+                      Buy Stock
                     </a>
                   } @else if (product.authorizationStatus === 'PENDING') {
                     <span class="text-amber-700">Request pending</span>

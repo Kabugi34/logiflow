@@ -19,6 +19,8 @@ export const API_ENDPOINTS = {
     passwordReset: `${API_CONFIG.apiRoot}/auth/reset-password`,
   },
   manufacturer: {
+    purchaseOrderFinancialStatus: (id: string) =>
+      `${API_CONFIG.baseUrl}/manufacturer/purchase-orders/${encodeURIComponent(id)}/financial-status`,
     drivers: `${API_CONFIG.baseUrl}/drivers`,
     driverInvitations: `${API_CONFIG.baseUrl}/drivers/invitations`,
     driver: (id: string) => `${API_CONFIG.baseUrl}/drivers/${encodeURIComponent(id)}`,
@@ -71,6 +73,13 @@ export const API_ENDPOINTS = {
     tripStatus: (id: string) => `${API_CONFIG.baseUrl}/trips/${encodeURIComponent(id)}/status`,
   },
   distributor: {
+    checkouts: `${API_CONFIG.baseUrl}/checkouts`,
+    checkout: (id: string) => `${API_CONFIG.baseUrl}/checkouts/${encodeURIComponent(id)}`,
+    checkoutOrders: (id: string) => `${API_CONFIG.baseUrl}/checkouts/${encodeURIComponent(id)}/orders`,
+    checkoutPayment: (id: string) => `${API_CONFIG.baseUrl}/checkouts/${encodeURIComponent(id)}/payment`,
+    checkoutAllocations: (id: string) => `${API_CONFIG.baseUrl}/checkouts/${encodeURIComponent(id)}/allocations`,
+    checkoutPaymentState: (id: string) => `${API_CONFIG.baseUrl}/checkouts/${encodeURIComponent(id)}/payment`,
+    checkoutCancel: (id: string) => `${API_CONFIG.baseUrl}/checkouts/${encodeURIComponent(id)}/cancel`,
     products: `${API_CONFIG.baseUrl}/products`,
     productAuthorizations: `${API_CONFIG.baseUrl}/products/authorizations`,
     productAuthorizationRequest: (id: string) =>

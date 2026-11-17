@@ -21,16 +21,21 @@ interface ApiProduct {
   publicationStatus?: string | null;
   sku: string;
   name: string;
+  description?: string | null;
   category: string | null;
   unitPrice: number;
+  unit?: string | null;
   active: boolean;
   inStock?: boolean | null;
+  availableQuantity?: number | null;
 }
 interface ApiPo {
   id: string;
   purchaseOrderNumber: string;
   buyerOrganizationId: string;
   supplierOrganizationId: string;
+  supplierOrganizationName?: string | null;
+  manufacturerName?: string | null;
   status: string;
   paymentStatus?: string | null;
   totalAmount: number;
@@ -59,6 +64,7 @@ interface ProcurementProduct {
   unitPrice: number;
   inStock: boolean | null;
   unit: string;
+  availableQuantity: number | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -115,12 +121,26 @@ export class DistributorProcurementService {
                 manufacturerName: product.manufacturerName?.trim() || 'Manufacturer',
                 sku: product.sku,
                 name: product.name,
-                description: '',
+                description: product.description?.trim() ?? '',
                 category: product.category ?? 'Uncategorized',
                 unitPrice: product.unitPrice,
                 inStock: product.inStock ?? null,
-                unit: '\u2014',
+                availableQuantity:
+                  typeof product.availableQuantity === 'number' &&
+                  Number.isInteger(product.availableQuantity) &&
+                  product.availableQuantity >= 0
+                    ? product.availableQuantity
+                    : null,
+                unit: product.unit?.trim() || '\u2014',
               })),
+          );
+          // Orders can load before products; resolve their supplier labels again once
+          // the product directory (which carries manufacturer names) is available.
+          this.orderRecords.update((orders) =>
+            orders.map((order) => ({
+              ...order,
+              manufacturerName: this.supplierName(order.manufacturerId),
+            })),
           );
         },
         error: () => this.error.set('Supplier products could not be loaded from the API.'),
@@ -183,6 +203,11 @@ export class DistributorProcurementService {
       (product) =>
         product.organizationId === manufacturerId &&
         this.catalog.authorizationStatus(product.productId) === 'APPROVED',
+    );
+  }
+  checkoutProducts(): ProcurementProduct[] {
+    return this.productRecords().filter(
+      (product) => this.catalog.authorizationStatus(product.productId) === 'APPROVED',
     );
   }
   findOrder(id: string): DistributorPurchaseOrder | undefined {
@@ -255,7 +280,10 @@ export class DistributorProcurementService {
     return {
       id: po.id,
       manufacturerId: po.supplierOrganizationId,
-      manufacturerName: po.supplierOrganizationId,
+      manufacturerName:
+        po.supplierOrganizationName?.trim() ||
+        po.manufacturerName?.trim() ||
+        this.supplierName(po.supplierOrganizationId),
       manufacturerLocation: '',
       orderDate: po.submittedAt,
       expectedDelivery: '',
@@ -268,5 +296,16 @@ export class DistributorProcurementService {
       route: [],
       currentRouteIndex: 0,
     };
+  }
+
+  private supplierName(organizationId: string): string {
+    const productName = this.productRecords().find(
+      (product) => product.organizationId === organizationId && product.manufacturerName.trim(),
+    )?.manufacturerName.trim();
+    if (productName && productName !== 'Manufacturer') return productName;
+    const catalogName = this.catalog.manufacturers().find(
+      (manufacturer) => manufacturer.id === organizationId && manufacturer.name.trim(),
+    )?.name.trim();
+    return catalogName && catalogName !== 'Manufacturer' ? catalogName : 'Supplier';
   }
 }

@@ -56,6 +56,16 @@ export class ProcurementCenterComponent {
     }
   }
 
+  protected orderStatusLabel(order: DistributorPurchaseOrder): string {
+    if (order.status === 'FULFILLED') return 'Fulfilled';
+    if (order.status === 'REJECTED' || order.status === 'CANCELLED') return order.status;
+    if (order.paymentStatus === 'PAID') return 'Paid — Awaiting Fulfilment';
+    if (order.paymentStatus === 'PENDING') return 'Payment pending';
+    if (order.status === 'SUBMITTED') return 'Awaiting manufacturer review';
+    if (order.status === 'APPROVED') return `Awaiting payment · ${order.paymentStatus}`;
+    return 'Purchase status unavailable';
+  }
+
   protected itemSummary(order: { lines: { quantity: number; productName: string }[] }): string {
     const first = order.lines[0];
     if (!first) return 'No items';

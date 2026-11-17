@@ -16,6 +16,13 @@ export const PROCUREMENT_ROUTES: Routes = [
       ),
   },
   {
+    path: 'checkout',
+    loadComponent: () =>
+      import('./pages/centralized-checkout.component').then(
+        (module) => module.CentralizedCheckoutComponent,
+      ),
+  },
+  {
     path: 'manufacturers',
     loadComponent: () =>
       import('./pages/manufacturers-network.component').then(
