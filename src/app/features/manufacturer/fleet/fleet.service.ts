@@ -33,12 +33,15 @@ export class ManufacturerFleetService {
     });
   }
 
-  createDriverApi(details: Pick<NewFleetDriver, 'name' | 'email' | 'phone' | 'license'>): Observable<DriverInvitationCreatedResponse> {
+  createDriverApi(details: Pick<NewFleetDriver, 'name' | 'email' | 'phone' | 'license' | 'nationalId' | 'licenseExpiryDate'> & { notes?: string }): Observable<DriverInvitationCreatedResponse> {
     return this.http.post<DriverInvitationCreatedResponse>(API_ENDPOINTS.manufacturer.driverInvitations, {
       fullName: details.name.trim(),
       email: details.email.trim().toLowerCase(),
       phoneNumber: details.phone.trim(),
       licenseNumber: details.license.trim().toUpperCase(),
+      nationalId: details.nationalId?.trim(),
+      licenseExpiryDate: details.licenseExpiryDate,
+      notes: details.notes?.trim() || undefined,
     }).pipe(tap({
       next: () => this.refresh(),
       error: () => this.refresh(),

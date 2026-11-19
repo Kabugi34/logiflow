@@ -1,10 +1,13 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { DistributorCatalogService } from '../catalog.service';
+import { DistributorProcurementService } from '../../procurement/procurement.service';
+import { DistributorPurchaseCartService } from '../../procurement/purchase-cart.service';
 import { finalize } from 'rxjs';
 import { trimmedRequired } from '../../../../core/forms/form-validators';
+import { AuthService } from '../../../../core/auth/auth.service';
 import { AuthenticatedImageComponent } from '../../../../shared/authenticated-image.component';
 
 function authorizationRequestError(error: unknown): string {
@@ -38,6 +41,10 @@ function authorizationRequestError(error: unknown): string {
 })
 export class MasterCatalogComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly procurement = inject(DistributorProcurementService);
+  protected readonly cart = inject(DistributorPurchaseCartService);
   protected readonly catalogService = inject(DistributorCatalogService);
   protected readonly searchTerm = signal('');
   protected readonly selectedCategory = signal('All categories');
@@ -115,6 +122,27 @@ export class MasterCatalogComponent {
     this.authorizationForm.reset({ requestNote: '', targetMarket: '', salesChannels: '', geographicalCoverage: '', distributionStrategy: '' });
     this.actionMessage.set('');
   }
+  protected addToPurchaseCart(product: import('../catalog.models').DistributorCatalogProduct): void {
+    const liveProduct = this.procurement.checkoutProducts().find((row) => row.productId === product.id);
+    if (product.authorizationStatus !== 'APPROVED' || !liveProduct) {
+      this.actionMessage.set('This product is not currently available for purchase. Refresh the catalog and try again.');
+      return;
+    }
+    if (liveProduct.inStock === false || liveProduct.availableQuantity === 0) {
+      this.actionMessage.set('This product is currently out of stock.');
+      return;
+    }
+    this.cart.add({
+      productId: liveProduct.productId,
+      stockItemId: liveProduct.id,
+      supplierOrganizationId: liveProduct.organizationId,
+      supplierName: liveProduct.manufacturerName,
+      name: liveProduct.name,
+      sku: liveProduct.sku,
+      quantity: 0,
+    });
+    void this.router.navigate(['/distributor/procurement/checkout']);
+  }
   protected submitAuthorizationRequest(): void {
     const productId = this.authorizationProductId();
     if (!productId || this.pendingProductId()) return;
@@ -123,8 +151,13 @@ export class MasterCatalogComponent {
       return;
     }
     this.pendingProductId.set(productId);
+    const organizationName = this.auth.user()?.organization.name?.trim();
+    const request = this.authorizationForm.getRawValue();
+    const requestNote = organizationName
+      ? `Distributor organization: ${organizationName}\n\n${request.requestNote}`
+      : request.requestNote;
     this.catalogService
-      .requestAuthorization(productId, this.authorizationForm.getRawValue())
+      .requestAuthorization(productId, { ...request, requestNote })
       .pipe(finalize(() => this.pendingProductId.set('')))
       .subscribe({
         next: () => {

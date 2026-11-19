@@ -9,6 +9,10 @@ interface ApiAuthorization extends Partial<ProductAuthorization> {
   createdAt?: string;
 }
 
+function distributorNameFromNote(note: string | null | undefined): string {
+  return note?.match(/^Distributor organization:\s*(.+)$/m)?.[1]?.trim() ?? '';
+}
+
 @Injectable({ providedIn: 'root' })
 export class ProductAuthorizationService {
   private readonly http = inject(HttpClient);
@@ -32,7 +36,7 @@ export class ProductAuthorizationService {
             manufacturerOrganizationId: row.manufacturerOrganizationId ?? '',
             manufacturerName: row.manufacturerName ?? '',
             distributorOrganizationId: row.distributorOrganizationId ?? '',
-            distributorName: row.distributorName ?? '',
+            distributorName: row.distributorName || distributorNameFromNote(row.requestNote),
             decidedAt: row.decidedAt ?? null,
           } as ProductAuthorization)));
           this.loading.set(false);

@@ -66,6 +66,7 @@ export class DriverDirectoryComponent {
     license: ['', [trimmedRequired, licenceValue, Validators.maxLength(40)]],
     nationalId: ['', [trimmedRequired, Validators.maxLength(32)]],
     licenseExpiryDate: ['', [trimmedRequired, Validators.pattern(/^\d{4}-\d{2}-\d{2}$/)]],
+    notes: ['', Validators.maxLength(1000)],
     baseWarehouseId: [''],
   });
 
@@ -81,7 +82,7 @@ export class DriverDirectoryComponent {
   }
 
   protected fieldError(
-    field: 'name' | 'email' | 'phone' | 'license' | 'nationalId' | 'licenseExpiryDate',
+    field: 'name' | 'email' | 'phone' | 'license' | 'nationalId' | 'licenseExpiryDate' | 'notes',
   ): string {
     const control = this.form.controls[field];
     if (!control.touched || control.valid) return '';
@@ -111,7 +112,7 @@ export class DriverDirectoryComponent {
   }
   protected openOnboard(): void {
     this.editingId.set('');
-    this.setProfileFieldValidators(false);
+    this.setProfileFieldValidators(true);
     this.form.reset({
       name: '',
       email: '',
@@ -119,6 +120,7 @@ export class DriverDirectoryComponent {
       license: '',
       nationalId: '',
       licenseExpiryDate: '',
+      notes: '',
       baseWarehouseId: '',
     });
     this.formError.set('');
@@ -139,6 +141,7 @@ export class DriverDirectoryComponent {
       license: driver.license,
       nationalId: driver.nationalId ?? '',
       licenseExpiryDate: driver.licenseExpiryDate ?? '',
+      notes: '',
       baseWarehouseId: driver.baseWarehouseId ?? '',
     });
     this.form.controls.email.disable();
@@ -164,6 +167,9 @@ export class DriverDirectoryComponent {
           email: value.email,
           phone: value.phone,
           license: value.license,
+          nationalId: value.nationalId,
+          licenseExpiryDate: value.licenseExpiryDate,
+          notes: value.notes,
         }).pipe(map((invitation) => invitation.id));
     request.pipe(finalize(() => this.saving.set(false))).subscribe({
       next: id => {

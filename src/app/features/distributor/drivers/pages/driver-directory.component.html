@@ -190,33 +190,38 @@
         class="w-full max-w-lg space-y-3 rounded-xl bg-white p-5 shadow-xl"
       >
         <app-form-validation-summary [form]="form" />
-        <h2 class="text-lg font-semibold">{{ editingId() ? 'Edit driver' : 'Invite driver' }}</h2>
+        <h2 class="text-lg font-semibold">{{ editingId() ? 'Edit driver' : 'Driver onboarding' }}</h2>
+        <h3 class="text-sm font-semibold text-slate-800 sm:col-span-2">Personal information</h3>
         <div class="grid gap-3 sm:grid-cols-2">
           <label class="text-xs">
-            Full name
-            <input formControlName="name" autocomplete="name" maxlength="80" class="mt-1 h-9 w-full rounded border px-3" />
+            Full name *
+            <input formControlName="name" autocomplete="name" maxlength="80" placeholder="Enter full legal name" class="mt-1 h-9 w-full rounded border px-3" />
           </label>
           <label class="text-xs">
-            Email
-            <input type="email" formControlName="email" autocomplete="email" maxlength="120" class="mt-1 h-9 w-full rounded border px-3" />
+            Email address *
+            <input type="email" formControlName="email" autocomplete="email" maxlength="120" placeholder="driver@example.com" class="mt-1 h-9 w-full rounded border px-3" />
           </label>
           <label class="text-xs">
-            Phone
+            Phone number *
             <input type="tel" formControlName="phone" autocomplete="tel" inputmode="tel" placeholder="+254712345678" maxlength="32" class="mt-1 h-9 w-full rounded border px-3" />
           </label>
           <label class="text-xs">
-            Licence details
-            <input formControlName="license" maxlength="40" class="mt-1 h-9 w-full rounded border px-3" />
+            National ID / identity reference *
+            <input formControlName="nationalId" autocomplete="off" maxlength="32" placeholder="Enter identity reference" class="mt-1 h-9 w-full rounded border px-3" />
           </label>
+          <h3 class="text-sm font-semibold text-slate-800 sm:col-span-2">Driving credentials</h3>
+          <label class="text-xs sm:col-span-2">
+            Driving licence number *
+            <input formControlName="license" maxlength="40" placeholder="Enter licence number" class="mt-1 h-9 w-full rounded border px-3" />
+          </label>
+          <label class="text-xs sm:col-span-2">
+            Licence expiry date *
+            <input type="date" formControlName="licenseExpiryDate" class="mt-1 h-9 w-full rounded border px-3" />
+          </label>
+          @if (!editingId()) {
+            <label class="text-xs sm:col-span-2">Internal notes<textarea formControlName="notes" maxlength="1000" rows="3" placeholder="Optional notes for the reviewing administrator" class="mt-1 w-full rounded border px-3 py-2"></textarea></label>
+          }
           @if (editingId()) {
-            <label class="text-xs">
-              National ID
-              <input formControlName="nationalId" autocomplete="off" maxlength="32" class="mt-1 h-9 w-full rounded border px-3" />
-            </label>
-            <label class="text-xs">
-              Licence expiry date
-              <input type="date" formControlName="licenseExpiryDate" class="mt-1 h-9 w-full rounded border px-3" />
-            </label>
             <label class="text-xs sm:col-span-2">
               Base warehouse (optional)
               <select formControlName="baseWarehouseId" class="mt-1 h-9 w-full rounded border px-3">
@@ -240,14 +245,15 @@
         @if (fieldError('license')) {
           <p role="alert" class="text-xs text-red-600">{{ fieldError('license') }}</p>
         }
-        @if (editingId() && fieldError('nationalId')) {
+        @if (fieldError('nationalId')) {
           <p role="alert" class="text-xs text-red-600">{{ fieldError('nationalId') }}</p>
         }
-        @if (editingId() && fieldError('licenseExpiryDate')) {
+        @if (fieldError('licenseExpiryDate')) {
           <p role="alert" class="text-xs text-red-600">
             {{ fieldError('licenseExpiryDate') }}
           </p>
         }
+        @if (!editingId() && fieldError('notes')) { <p role="alert" class="text-xs text-red-600">{{ fieldError('notes') }}</p> }
         @if (!editingId()) {
           <p class="rounded bg-slate-50 p-2 text-xs text-slate-600">
             This requests a driver invitation. The API response does not confirm email delivery.
@@ -259,7 +265,7 @@
         <div class="flex justify-end gap-2">
           <button type="button" (click)="closeDialog()" class="rounded border px-3 py-2 text-xs">
             Cancel</button
-          ><button class="rounded bg-blue-600 px-3 py-2 text-xs text-white">
+          ><button [disabled]="saving()" class="rounded bg-blue-600 px-3 py-2 text-xs text-white disabled:opacity-50">
             {{ editingId() ? 'Save changes' : 'Request invitation' }}
           </button>
         </div>

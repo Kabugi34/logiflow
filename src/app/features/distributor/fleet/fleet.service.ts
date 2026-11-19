@@ -41,12 +41,15 @@ export class DistributorFleetService {
 
   constructor() { this.refresh(); }
 
-  createDriver(details: { name: string; email: string; phone: string; license: string }): Observable<DriverInvitationCreatedResponse> {
+  createDriver(details: { name: string; email: string; phone: string; license: string; nationalId: string; licenseExpiryDate: string; notes?: string }): Observable<DriverInvitationCreatedResponse> {
     return this.http.post<DriverInvitationCreatedResponse>(API_ENDPOINTS.distributor.driverInvitations, {
       fullName: details.name.trim(),
       email: details.email.trim().toLowerCase(),
       phoneNumber: details.phone.trim(),
       licenseNumber: details.license.trim().toUpperCase(),
+      nationalId: details.nationalId.trim(),
+      licenseExpiryDate: details.licenseExpiryDate,
+      notes: details.notes?.trim() || undefined,
     }).pipe(tap({
       next: () => this.refresh(),
       error: () => this.refresh(),

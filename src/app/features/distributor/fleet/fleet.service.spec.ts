@@ -32,6 +32,9 @@ describe('DistributorFleetService', () => {
         email: 'JORDAN@example.com',
         phone: '+254712345678',
         license: 'ab-1234',
+        nationalId: '12345678',
+        licenseExpiryDate: '2030-12-31',
+        notes: 'Night shift candidate',
       })
       .subscribe(response => responseId = response.id);
 
@@ -42,6 +45,9 @@ describe('DistributorFleetService', () => {
       email: 'jordan@example.com',
       phoneNumber: '+254712345678',
       licenseNumber: 'AB-1234',
+      nationalId: '12345678',
+      licenseExpiryDate: '2030-12-31',
+      notes: 'Night shift candidate',
     });
     request.flush({
       id: 'invitation-1',
