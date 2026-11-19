@@ -352,14 +352,7 @@
                       {{ pendingTripAction() === trip.id ? 'Updating…' : 'Start' }}
                     </button>
                   } @else if (trip.status === 'ONGOING') {
-                    <button
-                      type="button"
-                      (click)="updateTripStatus(trip.id, 'COMPLETED')"
-                      [disabled]="!!pendingTripAction()"
-                      class="text-blue-600 disabled:cursor-wait disabled:opacity-50"
-                    >
-                      {{ pendingTripAction() === trip.id ? 'Updating…' : 'Complete' }}
-                    </button>
+                    <span class="text-[10px] text-slate-500">Awaiting verified stop completion</span>
                   }
                 </td>
               </tr>

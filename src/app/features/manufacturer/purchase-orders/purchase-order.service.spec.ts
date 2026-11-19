@@ -48,6 +48,9 @@ describe('ManufacturerPurchaseOrderService', () => {
     httpTesting
       .expectOne(`${API_ENDPOINTS.manufacturer.stockItems}?size=100`)
       .flush({ content: [] });
+    httpTesting
+      .expectOne(`${API_ENDPOINTS.payments.transactions}?orderType=PURCHASE_ORDER`)
+      .flush({ content: [] });
   });
 
   afterEach(() => {

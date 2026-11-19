@@ -22,6 +22,7 @@ export interface PurchaseOrderTimelineEvent {
 export interface ManufacturerPurchaseOrder {
   id: string;
   distributorName: string;
+  manufacturerName: string;
   destinationHub: string;
   issueDate: string;
   status: PurchaseOrderStatus;
