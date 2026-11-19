@@ -72,17 +72,17 @@
     @if (paymentWaiting()) {
       <section role="status" class="rounded-lg border border-blue-200 bg-blue-50 p-4">
         <p class="text-sm font-semibold text-blue-900">Waiting for payment confirmation</p>
-        <p class="mt-1 text-xs text-blue-800">@if (checkout()!.payment?.method === 'MPESA_SANDBOX') { Complete the STK Push prompt on the customer's phone. The server will confirm the result. } @else { Demo payment is processing. The confirmed result will be read from the server. }</p>
-        @if (checkout()!.payment?.customerMessage) { <p class="mt-2 text-xs text-blue-800">{{ checkout()!.payment!.customerMessage }}</p> }
+        <p class="mt-1 text-xs text-blue-800">@if (isMpesaPayment()) { Complete the STK Push prompt on the customer's phone. The server will confirm the result. } @else { Demo payment is processing. The confirmed result will be read from the server. }</p>
+        @if (statusMessage()) { <p class="mt-2 text-xs text-blue-800">{{ statusMessage() }}</p> }
       </section>
     }
     @if (checkout()!.payment || checkout()!.status === 'PAID' || checkout()!.status === 'PAYMENT_FAILED' || checkout()!.status === 'CANCELLED') {
-      <section class="rounded-lg border p-4" [class.border-emerald-200]="checkout()!.status === 'PAID' || checkout()!.payment?.status === 'SUCCESS'" [class.bg-emerald-50]="checkout()!.status === 'PAID' || checkout()!.payment?.status === 'SUCCESS'" [class.border-red-200]="checkout()!.payment?.status === 'FAILED' || checkout()!.payment?.status === 'TIMED_OUT' || checkout()!.payment?.status === 'EXPIRED'" [class.bg-red-50]="checkout()!.payment?.status === 'FAILED' || checkout()!.payment?.status === 'TIMED_OUT' || checkout()!.payment?.status === 'EXPIRED'">
+      <section class="rounded-lg border p-4" [class.border-emerald-200]="checkout()!.status === 'PAID' || checkout()!.payment?.status === 'SUCCESS'" [class.bg-emerald-50]="checkout()!.status === 'PAID' || checkout()!.payment?.status === 'SUCCESS'" [class.border-red-200]="checkout()!.payment?.status === 'FAILED' || checkout()!.payment?.status === 'TIMED_OUT'" [class.bg-red-50]="checkout()!.payment?.status === 'FAILED' || checkout()!.payment?.status === 'TIMED_OUT'">
         <p class="text-sm font-semibold">{{ paymentStatusLabel() }}</p>
         @if (checkout()!.payment?.method === 'DEMO') { <p class="mt-1 text-xs font-semibold">DEMO — NO MONEY TRANSFERRED</p> }
-        @if (checkout()!.payment?.method === 'MPESA_SANDBOX') { <p class="mt-1 text-xs">M-Pesa STK Push (Sandbox) — no real money is deducted.</p> }
-        @if (paymentReference(); as reference) { <p class="mt-2 text-xs">Payment reference: <span class="font-mono font-medium">{{ reference }}</span></p> } @else if (checkout()!.payment?.id) { <p class="mt-2 text-xs">Payment ID: <span class="font-mono">{{ checkout()!.payment!.id }}</span></p> }
-        @if (checkout()!.payment?.failureReason) { <p class="mt-2 text-xs text-red-800">{{ checkout()!.payment!.failureReason }}</p> }
+        @if (isMpesaPayment()) { <p class="mt-1 text-xs">M-Pesa STK Push (Sandbox) — no real money is deducted.</p> }
+        @if (paymentReference(); as reference) { <p class="mt-2 text-xs">Payment reference: <span class="font-mono font-medium">{{ reference }}</span></p> } @else if (checkout()!.payment?.id && checkout()!.payment?.method === 'DEMO') { <p class="mt-2 text-xs">DEMO payment reference: <span class="font-mono font-medium">{{ checkout()!.payment!.id }}</span></p> } @else if (checkout()!.payment?.id) { <p class="mt-2 text-xs">Payment attempt ID: <span class="font-mono">{{ checkout()!.payment!.id }}</span></p> }
+        @if (statusMessage(); as message) { <p class="mt-2 text-xs" [class.text-red-800]="checkout()!.payment?.status === 'FAILED'" [class.text-blue-800]="checkout()!.payment?.status !== 'FAILED'">{{ message }}</p> }
       </section>
     }
     @if (checkout()!.allocations.length) {

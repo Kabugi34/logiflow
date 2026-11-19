@@ -4,6 +4,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { DistributorPurchaseCartService, PurchaseCartLine } from './purchase-cart.service';
 
 const ORGANIZATION_ID = 'cart-test-distributor';
+const STORAGE_KEY_V2 = `logiflow.distributor.purchaseCart.v2.${ORGANIZATION_ID}`;
 const STORAGE_KEY = `logiflow.distributor.purchaseCart.v1.${ORGANIZATION_ID}`;
 
 function line(productId: string, supplierOrganizationId = 'supplier-a'): PurchaseCartLine {
@@ -15,11 +16,12 @@ describe('DistributorPurchaseCartService', () => {
 
   beforeEach(() => {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEY_V2);
     TestBed.configureTestingModule({ providers: [{ provide: AuthService, useValue: { user: signal({ organization: { id: ORGANIZATION_ID } }) } }] });
     cart = TestBed.inject(DistributorPurchaseCartService);
   });
 
-  afterEach(() => { localStorage.removeItem(STORAGE_KEY); TestBed.resetTestingModule(); });
+  afterEach(() => { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(STORAGE_KEY_V2); TestBed.resetTestingModule(); });
 
   it('adds only selected products and groups mixed suppliers without duplicates', () => {
     cart.add(line('one'));
