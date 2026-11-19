@@ -4,12 +4,9 @@ import { Observable } from 'rxjs';
 import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 
 export type CheckoutStatus = 'PAYMENT_PENDING' | 'PAID' | 'PAYMENT_FAILED' | 'CANCELLED' | 'UNKNOWN';
-export type CheckoutPaymentMethod = 'MPESA_SANDBOX' | 'DEMO';
+export type CheckoutPaymentMethod = 'MPESA_SANDBOX' | 'MPESA' | 'DEMO';
 export type CheckoutPaymentStatus =
-  | 'PENDING' | 'INITIATED' | 'PROCESSING'
-  | 'SUCCESS' | 'SUCCEEDED' | 'PAID'
-  | 'FAILED' | 'CANCELLED' | 'TIMED_OUT' | 'EXPIRED'
-  | 'REVERSED' | 'REFUNDED' | 'UNKNOWN';
+  | 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED' | 'TIMED_OUT' | 'UNKNOWN';
 
 export interface CheckoutResponse {
   id: string;
@@ -25,6 +22,15 @@ export interface CheckoutResponse {
     status: CheckoutPaymentStatus;
     demo: boolean;
     demoLabel: string;
+    providerReference?: string | null;
+    checkoutReference?: string | null;
+    initiatedAt?: string | null;
+    confirmedAt?: string | null;
+    updatedAt?: string | null;
+    terminal: boolean;
+    retryAllowed: boolean;
+    userMessage?: string | null;
+    // Retained as optional aliases for older checkout deployments.
     paymentReference?: string | null;
     reference?: string | null;
     customerMessage?: string | null;
