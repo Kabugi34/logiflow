@@ -43,6 +43,27 @@ describe('DistributorOrderService', () => {
           scheduledStartLabel: null,
           totalDistanceKm: 0,
         },
+        {
+          id: 'trip-without-order',
+          tripNumber: 'TRIP-EMPTY',
+          type: 'DELIVERY',
+          status: 'SCHEDULED',
+          origin: { name: 'Warehouse', address: 'Nairobi', latitude: -1.28, longitude: 36.82 },
+          stops: [
+            {
+              id: 'stop-empty',
+              sequence: 1,
+              location: { name: 'Soap', address: 'Nairobi', latitude: -1.27, longitude: 36.81 },
+              status: 'PENDING',
+              etaLabel: null,
+              orderNumber: null,
+              contactName: null,
+            },
+          ],
+          itemsOnBoard: [],
+          scheduledStartLabel: null,
+          totalDistanceKm: 0,
+        },
       ],
     });
     httpTesting.expectOne(API_ENDPOINTS.distributor.orders).flush({
@@ -76,6 +97,10 @@ describe('DistributorOrderService', () => {
     expect(shipments[0].routeLabel).toBe('Westlands');
     expect(shipments[0].orderIds).toEqual(['order-1']);
     expect(shipments[0].status).toBe('IN_TRANSIT');
+  });
+
+  it('does not list a scheduled trip with no matching customer order as an outbound shipment', () => {
+    expect(service.groupOrdersByRoute().map((shipment) => shipment.id)).toEqual(['trip-1']);
   });
 
   it('keeps failed, expired, reversed, and unknown payments distinct from pending', () => {
