@@ -101,7 +101,10 @@ export class DistributorOrderService {
           route,
           currentRouteIndex: Math.max(0, route.length - 1),
         };
-      });
+      })
+      // A scheduled DELIVERY trip can exist without any customer orders. Keep it
+      // in Organization trips, but do not present it as an outbound delivery.
+      .filter((shipment) => shipment.orders.length > 0);
   }
   findShipmentForOrder(orderId: string): DistributorShipmentGroup | undefined {
     return this.groupOrdersByRoute().find((group) => group.orderIds.includes(orderId));
