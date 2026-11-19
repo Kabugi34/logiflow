@@ -37,8 +37,11 @@ export class DriverDirectoryComponent {
     email: ['', [trimmedRequired, Validators.email, Validators.maxLength(120)]],
     phone: ['', [trimmedRequired, internationalPhone, Validators.maxLength(32)]],
     license: ['', [trimmedRequired, licenceValue, Validators.maxLength(40)]],
+    nationalId: ['', [trimmedRequired, Validators.maxLength(32)]],
+    licenseExpiryDate: ['', [trimmedRequired, Validators.pattern(/^\d{4}-\d{2}-\d{2}$/)]],
+    notes: ['', Validators.maxLength(1000)],
   });
-  protected fieldError(field: 'name' | 'email' | 'phone' | 'license') {
+  protected fieldError(field: 'name' | 'email' | 'phone' | 'license' | 'nationalId' | 'licenseExpiryDate' | 'notes') {
     const c = this.form.controls[field];
     if (!c.touched || c.valid) return '';
     if (c.hasError('required')) return 'This field is required.';
@@ -48,6 +51,7 @@ export class DriverDirectoryComponent {
     if (c.hasError('personName')) return 'Use letters, spaces, apostrophes, periods, or hyphens.';
     if (c.hasError('licenceValue'))
       return 'Use 2–40 letters, numbers, spaces, slashes, or hyphens.';
+    if (c.hasError('pattern')) return 'Enter a valid licence expiry date.';
     if (c.hasError('maxlength'))
       return `Maximum length is ${c.getError('maxlength').requiredLength} characters.`;
     return 'Check this value.';

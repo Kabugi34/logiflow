@@ -4,7 +4,12 @@ import { Observable } from 'rxjs';
 import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 
 export type CheckoutStatus = 'PAYMENT_PENDING' | 'PAID' | 'PAYMENT_FAILED' | 'CANCELLED' | 'UNKNOWN';
-export type CheckoutPaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED' | 'TIMED_OUT' | 'UNKNOWN';
+export type CheckoutPaymentMethod = 'MPESA_SANDBOX' | 'DEMO';
+export type CheckoutPaymentStatus =
+  | 'PENDING' | 'INITIATED' | 'PROCESSING'
+  | 'SUCCESS' | 'SUCCEEDED' | 'PAID'
+  | 'FAILED' | 'CANCELLED' | 'TIMED_OUT' | 'EXPIRED'
+  | 'REVERSED' | 'REFUNDED' | 'UNKNOWN';
 
 export interface CheckoutResponse {
   id: string;
@@ -14,7 +19,17 @@ export interface CheckoutResponse {
   currency: string;
   demo: boolean;
   demoLabel: string;
-  payment: null | { id: string; method: 'DEMO_MPESA' | 'DEMO_CARD'; status: CheckoutPaymentStatus; demo: boolean; demoLabel: string };
+  payment: null | {
+    id: string;
+    method: CheckoutPaymentMethod;
+    status: CheckoutPaymentStatus;
+    demo: boolean;
+    demoLabel: string;
+    paymentReference?: string | null;
+    reference?: string | null;
+    customerMessage?: string | null;
+    failureReason?: string | null;
+  };
   supplierOrders: {
     purchaseOrderId: string;
     purchaseOrderNumber: string;
@@ -42,8 +57,12 @@ export class CentralizedCheckoutService {
     });
   }
 
-  initiatePayment(id: string, method: 'DEMO_MPESA' | 'DEMO_CARD', idempotencyKey: string): Observable<CheckoutResponse> {
-    return this.http.post<CheckoutResponse>(API_ENDPOINTS.distributor.checkoutPayment(id), { method }, {
+  initiatePayment(id: string, method: CheckoutPaymentMethod, idempotencyKey: string, phoneNumber?: string): Observable<CheckoutResponse> {
+    const normalizedPhone = phoneNumber?.trim().replace(/[\s()-]/g, '').replace(/^\+/, '');
+    const body = method === 'MPESA_SANDBOX'
+      ? { method, phoneNumber: normalizedPhone }
+      : { method };
+    return this.http.post<CheckoutResponse>(API_ENDPOINTS.distributor.checkoutPayment(id), body, {
       headers: new HttpHeaders({ 'Idempotency-Key': idempotencyKey }),
     });
   }

@@ -102,19 +102,21 @@
         (ngSubmit)="save()"
         class="w-full max-w-lg space-y-3 rounded-xl bg-white p-5"
       ><app-form-validation-summary [form]="form" />
-        <h2 class="font-semibold">Invite driver</h2>
+        <h2 class="font-semibold">Driver onboarding</h2>
+        <h3 class="text-sm font-semibold text-slate-800">Personal information</h3>
         <div class="grid gap-3 sm:grid-cols-2">
-          <label class="text-xs"
-            >Name<input formControlName="name" class="mt-1 w-full rounded border p-2" /></label
+          <label class="text-xs sm:col-span-2"
+            >Full name *<input formControlName="name" autocomplete="name" maxlength="80" placeholder="Enter full legal name" class="mt-1 w-full rounded border p-2" /></label
           ><label class="text-xs"
-            >Email<input
+            >Email address *<input
               formControlName="email"
               type="email"
               autocomplete="email"
               maxlength="120"
+              placeholder="driver@example.com"
               class="mt-1 w-full rounded border p-2" /></label
           ><label class="text-xs"
-            >Phone<input
+            >Phone number *<input
               formControlName="phone"
               type="tel"
               autocomplete="tel"
@@ -122,10 +124,12 @@
               placeholder="+254712345678"
               maxlength="32"
               class="mt-1 w-full rounded border p-2" /></label
-          ><label class="text-xs"
-            >Licence details<input
-              formControlName="license"
-              class="mt-1 w-full rounded border p-2" /></label
+          ><label class="text-xs sm:col-span-2"
+            >National ID / identity reference *<input formControlName="nationalId" autocomplete="off" maxlength="32" placeholder="Enter identity reference" class="mt-1 w-full rounded border p-2" /></label>
+          <h3 class="text-sm font-semibold text-slate-800 sm:col-span-2">Driving credentials</h3>
+          <label class="text-xs sm:col-span-2">Driving licence number *<input formControlName="license" maxlength="40" placeholder="Enter licence number" class="mt-1 w-full rounded border p-2" /></label>
+          <label class="text-xs sm:col-span-2">Licence expiry date *<input type="date" formControlName="licenseExpiryDate" class="mt-1 w-full rounded border p-2" /></label>
+          <label class="text-xs sm:col-span-2">Internal notes<textarea formControlName="notes" maxlength="1000" rows="3" placeholder="Optional notes for the reviewing administrator" class="mt-1 w-full rounded border p-2"></textarea></label>
           >
         </div>
         @if (fieldError('name')) {
@@ -140,6 +144,9 @@
         @if (fieldError('license')) {
           <p role="alert" class="text-xs text-red-600">{{ fieldError('license') }}</p>
         }
+        @if (fieldError('nationalId')) { <p role="alert" class="text-xs text-red-600">{{ fieldError('nationalId') }}</p> }
+        @if (fieldError('licenseExpiryDate')) { <p role="alert" class="text-xs text-red-600">{{ fieldError('licenseExpiryDate') }}</p> }
+        @if (fieldError('notes')) { <p role="alert" class="text-xs text-red-600">{{ fieldError('notes') }}</p> }
         <p class="text-xs text-slate-500">
           This creates an invitation request. The API response does not confirm email delivery.
         </p>
@@ -150,7 +157,7 @@
             class="rounded border px-3 py-2 text-xs"
           >
             Cancel</button
-          ><button class="rounded bg-blue-600 px-3 py-2 text-xs text-white">Request invitation</button>
+          ><button [disabled]="saving()" class="rounded bg-blue-600 px-3 py-2 text-xs text-white disabled:opacity-50">{{ saving() ? 'Saving…' : 'Request invitation' }}</button>
         </div>
       </form>
     </div>
