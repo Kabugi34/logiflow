@@ -265,27 +265,12 @@ export class DistributorLogisticsComponent {
       .subscribe({
         next: () => {
           this.tripService.refresh();
-          this.assignmentMessage.set(
-            'Trip dispatched. The backend will notify each customer with their delivery verification code.',
-          );
+          this.assignmentMessage.set('Trip dispatch was accepted by the backend.');
         },
         error: (error) =>
           this.assignmentMessage.set(
             error?.error?.message ?? 'Trip dispatch could not be completed.',
           ),
-      });
-  }
-
-  protected updateTripStatus(id: string, status: 'ONGOING' | 'COMPLETED'): void {
-    if (this.pendingTripAction()) return;
-    this.pendingTripAction.set(id);
-    this.tripService
-      .updateStatus(id, status)
-      .pipe(finalize(() => this.pendingTripAction.set('')))
-      .subscribe({
-        next: () => this.tripService.refresh(),
-        error: (error) =>
-          this.tripService.error.set(error?.error?.message ?? 'Trip status could not be updated.'),
       });
   }
 

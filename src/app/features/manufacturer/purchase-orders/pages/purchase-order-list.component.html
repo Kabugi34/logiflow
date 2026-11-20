@@ -104,6 +104,7 @@
             <tr>
               <th scope="col" class="px-3 py-3">PO Number</th>
               <th scope="col" class="px-3 py-3">Distributor Client</th>
+              <th scope="col" class="px-3 py-3">Manufacturer</th>
               <th scope="col" class="px-3 py-3">Issue Date</th>
               <th scope="col" class="px-3 py-3">Procured Items</th>
               <th scope="col" class="px-3 py-3">Total Value</th>
@@ -124,6 +125,7 @@
                   >
                 </td>
                 <td class="whitespace-nowrap px-3 py-3">{{ order.distributorName }}</td>
+                <td class="whitespace-nowrap px-3 py-3">{{ order.manufacturerName }}</td>
                 <td class="whitespace-nowrap px-3 py-3">{{ order.issueDate }}</td>
                 <td class="max-w-48 truncate px-3 py-3">
                   {{ order.lines[0].requestedQuantity | number }} {{ order.lines[0].productName }}
@@ -132,13 +134,14 @@
                   {{ total(order) | currency: 'KES' : 'symbol' : '1.0-0' }}
                 </td>
                 <td class="px-3 py-3"><app-purchase-order-status [status]="order.status" /></td>
-                <td class="px-3 py-3 font-medium">{{ order.paymentStatus }}</td>
+                <td class="px-3 py-3 font-medium">{{ order.paymentStatus === 'UNKNOWN' ? 'NOT VERIFIED' : order.paymentStatus }}</td>
                 <td class="whitespace-nowrap px-3 py-3">
                   @if (order.status === 'PENDING') {
                     <button
                       type="button"
                       (click)="approve(order.id)"
-                      [disabled]="!!updatingOrderId()"
+                      [disabled]="!!updatingOrderId() || order.lines.some(line => line.availableStock < line.requestedQuantity)"
+                      [title]="order.lines.some(line => line.availableStock < line.requestedQuantity) ? 'Requested quantities exceed available stock.' : ''"
                       class="rounded bg-blue-600 px-3 py-1.5 text-[10px] font-medium text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"
                     >
                       {{ updatingOrderId() === order.id ? 'Approving…' : 'Approve' }}
@@ -155,7 +158,7 @@
               </tr>
             } @empty {
               <tr>
-                <td colspan="8" class="px-4 py-12 text-center text-sm text-slate-500">
+                <td colspan="9" class="px-4 py-12 text-center text-sm text-slate-500">
                   No purchase orders in this status.
                 </td>
               </tr>

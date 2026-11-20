@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
-import { ManufacturerShipment, normalizeShipmentStatus, ShipmentStatus } from './shipment.models';
+import { ManufacturerShipment, normalizeShipmentStatus } from './shipment.models';
 import { ManufacturerPurchaseOrderService } from '../purchase-orders/purchase-order.service';
 import { map, throwError } from 'rxjs';
 
@@ -85,7 +85,7 @@ export class ManufacturerShipmentService {
     }).pipe(map((row) => this.mapShipment(row)));
   }
 
-  updateStatus(id: string, status: Exclude<ShipmentStatus, 'UNKNOWN' | 'BORDER_HOLD'>, note = '') {
+  updateStatus(id: string, status: 'IN_TRANSIT' | 'CANCELLED', note = '') {
     if (status === 'IN_TRANSIT') {
       const shipment = this.findById(id);
       const order = shipment ? this.purchaseOrders.findById(shipment.poReference) : undefined;

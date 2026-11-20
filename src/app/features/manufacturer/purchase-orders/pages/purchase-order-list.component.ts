@@ -31,6 +31,11 @@ export class PurchaseOrderListComponent {
 
   protected approve(orderId: string): void {
     if (this.updatingOrderId()) return;
+    const order = this.orderService.findById(orderId);
+    if (!order || order.lines.some((line) => line.availableStock < line.requestedQuantity)) {
+      this.orderService.error.set('This purchase order cannot be accepted until all requested quantities are available.');
+      return;
+    }
     this.updatingOrderId.set(orderId);
     this.orderService.updateStatus(orderId, 'ACCEPTED').pipe(
       finalize(() => this.updatingOrderId.set('')),
@@ -58,6 +63,7 @@ export class PurchaseOrderListComponent {
       <tr>
         <td>${escapeHtml(order.id)}</td>
         <td>${escapeHtml(order.distributorName)}</td>
+        <td>${escapeHtml(order.manufacturerName)}</td>
         <td>${escapeHtml(order.issueDate)}</td>
         <td>${order.lines.map(line => `${line.requestedQuantity} ${escapeHtml(line.productName)}`).join('<br>')}</td>
         <td class="number">${currency(this.total(order))}</td>
@@ -79,8 +85,8 @@ export class PurchaseOrderListComponent {
       </style></head><body>
       <header><div class="brand">LogiFlow · Manufacturer Workspace</div><h1>Distributor Purchase Orders</h1>
       <p>${this.orderService.orders().length} purchase orders · Generated ${new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium' }).format(new Date())}</p></header>
-      <table><thead><tr><th>PO Number</th><th>Distributor</th><th>Issue Date</th><th>Products</th><th class="number">Total Value</th><th>Status</th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="6">No purchase orders found.</td></tr>'}</tbody></table>
+      <table><thead><tr><th>PO Number</th><th>Distributor</th><th>Manufacturer</th><th>Issue Date</th><th>Products</th><th class="number">Total Value</th><th>Status</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="7">No purchase orders found.</td></tr>'}</tbody></table>
       <footer>LogiFlow purchase order report</footer></body></html>`;
 
     printWindow.document.open();

@@ -26,23 +26,17 @@ export class ShipmentAuditComponent {
   protected advanceStatus(): void {
     const shipment = this.shipment();
     if (!shipment || this.busy()) return;
-    const status =
-      shipment.status === 'READY_FOR_DISPATCH'
-        ? 'IN_TRANSIT'
-        : shipment.status === 'IN_TRANSIT'
-        ? 'DELIVERED'
-          : null;
-    if (!status) return;
+    if (shipment.status !== 'READY_FOR_DISPATCH') return;
     this.feedback.set('');
     this.busy.set(true);
-    this.shipmentService.updateStatus(shipment.id, status).pipe(finalize(() => this.busy.set(false))).subscribe({
+    this.shipmentService.updateStatus(shipment.id, 'IN_TRANSIT').pipe(finalize(() => this.busy.set(false))).subscribe({
       next: () => { this.feedback.set('Shipment status updated.'); this.shipmentService.refresh(); },
       error: error => this.feedback.set(error?.error?.message ?? 'Shipment status could not be updated.')
     });
   }
 
-  protected actionLabel(status: 'READY_FOR_DISPATCH' | 'IN_TRANSIT'): string {
-    return status === 'READY_FOR_DISPATCH' ? 'Dispatch Shipment' : 'Confirm Delivery';
+  protected actionLabel(): string {
+    return 'Dispatch Shipment';
   }
 
   protected cancelShipment(): void {

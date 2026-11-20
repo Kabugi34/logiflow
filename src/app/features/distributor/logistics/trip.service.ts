@@ -119,10 +119,4 @@ export class DistributorTripService {
   dispatch(tripId: string) {
     return this.http.post<DistributorTrip>(API_ENDPOINTS.distributor.tripDispatch(tripId), {});
   }
-  updateStatus(tripId: string, status: DistributorTrip['status'], note = '') {
-    return this.http.patch<DistributorTrip>(API_ENDPOINTS.distributor.tripStatus(tripId), {
-      status,
-      note,
-    });
-  }
 }

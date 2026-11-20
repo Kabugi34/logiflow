@@ -87,9 +87,9 @@
               <button type="button" (click)="togglePublication(productId(product.id), product.publicationStatus)" [disabled]="!!pendingProductId()" class="font-medium text-blue-600 disabled:opacity-40">
                 {{ pendingProductId() === productId(product.id) ? 'Saving…' : product.publicationStatus === 'PUBLISHED' ? 'Unpublish' : 'Publish' }}
               </button>
-              <button type="button" (click)="requestDiscontinue(product)" [disabled]="!!pendingProductId() || product.stock > 0" [title]="product.stock > 0 ? 'Reduce stock to zero before removing this product.' : ''" class="ml-auto font-medium text-red-600 disabled:opacity-40">Remove from catalog</button>
+              <button type="button" (click)="requestDiscontinue(product)" [disabled]="!!pendingProductId()" [attr.aria-describedby]="product.stock > 0 ? 'remove-stock-' + productId(product.id) : null" [title]="product.stock > 0 ? 'Reduce stock to zero before removing this product.' : ''" class="ml-auto font-medium text-red-600 disabled:opacity-40">Remove from catalog</button>
               @if (product.stock > 0) {
-                <p class="w-full text-[10px] leading-4 text-slate-500">Cannot remove while {{ product.stock | number }} units remain in stock.</p>
+                <p [id]="'remove-stock-' + productId(product.id)" class="w-full text-[10px] leading-4 text-slate-500">Cannot remove while {{ product.stock | number }} units remain in stock. Unpublish hides this product from the distributor catalog; remove marks it discontinued after stock reaches zero.</p>
               }
             }
           </div>
