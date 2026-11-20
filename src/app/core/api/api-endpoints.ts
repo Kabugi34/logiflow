@@ -18,6 +18,10 @@ export const API_ENDPOINTS = {
     passwordResetRequest: `${API_CONFIG.apiRoot}/auth/forgot-password`,
     passwordReset: `${API_CONFIG.apiRoot}/auth/reset-password`,
   },
+  users: {
+    me: `${API_CONFIG.apiRoot}/users/me`,
+    meAvatar: `${API_CONFIG.apiRoot}/users/me/avatar`,
+  },
   manufacturer: {
     purchaseOrderFinancialStatus: (id: string) =>
       `${API_CONFIG.baseUrl}/manufacturer/purchase-orders/${encodeURIComponent(id)}/financial-status`,

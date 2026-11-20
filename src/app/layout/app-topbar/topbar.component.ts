@@ -4,30 +4,38 @@ import {
   HostListener,
   inject,
   input,
+  OnInit,
   signal,
   viewChild,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { AuthenticatedImageComponent } from '../../shared/authenticated-image.component';
 import { AppearanceService } from '../../core/services/appearance.service';
 import { LayoutService } from '../../core/services/layout.service';
+import { ProfileService } from '../../features/profile/profile.service';
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, AuthenticatedImageComponent],
   templateUrl: './topbar.component.html',
 })
-export class TopbarComponent {
+export class TopbarComponent implements OnInit {
   readonly searchPlaceholder = input('Search...');
   protected readonly appearance = inject(AppearanceService);
   protected readonly layout = inject(LayoutService);
   protected readonly authService = inject(AuthService);
+  protected readonly profileService = inject(ProfileService);
   private readonly router = inject(Router);
   private readonly profileMenu = viewChild<ElementRef<HTMLElement>>('profileMenu');
   private readonly profileButton = viewChild<ElementRef<HTMLButtonElement>>('profileButton');
   protected readonly profileOpen = signal(false);
   protected readonly loggingOut = signal(false);
+
+  ngOnInit(): void {
+    this.profileService.getMe().subscribe({ error: () => undefined });
+  }
 
   protected readonly profileRoute = () =>
     this.authService.user()?.organization.type === 'DISTRIBUTOR'
