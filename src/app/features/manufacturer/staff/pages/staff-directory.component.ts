@@ -3,7 +3,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ManufacturerStaffService } from '../staff.service';
-import { ManufacturerStaffMember, StaffCategory, StaffStatus } from '../staff.models';
+import { ManufacturerStaffMember, StaffStatus } from '../staff.models';
 import { personName, trimmedRequired } from '../../../../core/forms/form-validators';
 import { finalize } from 'rxjs';
 
@@ -19,22 +19,17 @@ export class StaffDirectoryComponent {
   protected readonly staff = this.staffService.members;
   protected readonly warehouses = this.staffService.warehouses;
   protected readonly jobTitles = this.staffService.jobTitles;
-  protected readonly selectedCategory = signal<'ALL' | StaffCategory>('ALL');
   protected readonly selectedStatus = signal<'ALL' | StaffStatus>('ALL');
   protected readonly searchTerm = signal('');
   protected readonly selectedMemberId = signal<string | null>(null);
   protected readonly isInviteOpen = signal(false);
   protected readonly inviteError = signal('');
+  protected readonly actionError = signal('');
   protected readonly saving = signal(false);
-  protected readonly actionBusy = signal(false);
-  protected readonly driverActionMessage = signal('');
   protected readonly selectedMember = computed(
     () => this.staff().find((member) => member.id === this.selectedMemberId()) ?? null,
   );
-  protected readonly summary = computed(() => ({
-    employees: this.staff().filter((member) => member.category === 'EMPLOYEE').length,
-    drivers: this.staff().filter((member) => member.category === 'DRIVER').length,
-  }));
+  protected readonly summary = computed(() => ({ employees: this.staff().length }));
   protected readonly filteredStaff = computed(() => {
     const query = this.searchTerm().trim().toLowerCase();
     return this.staff().filter((member) => {
@@ -43,11 +38,9 @@ export class StaffDirectoryComponent {
         [member.name, member.email, member.jobTitle, member.warehouseName].some((value) =>
           value.toLowerCase().includes(query),
         );
-      const categoryMatches =
-        this.selectedCategory() === 'ALL' || member.category === this.selectedCategory();
       const statusMatches =
         this.selectedStatus() === 'ALL' || member.status === this.selectedStatus();
-      return queryMatches && categoryMatches && statusMatches;
+      return queryMatches && statusMatches;
     });
   });
   protected readonly form = this.formBuilder.nonNullable.group({
@@ -59,10 +52,6 @@ export class StaffDirectoryComponent {
 
   protected updateSearch(event: Event): void {
     this.searchTerm.set((event.target as HTMLInputElement).value);
-  }
-
-  protected updateCategory(event: Event): void {
-    this.selectedCategory.set((event.target as HTMLSelectElement).value as 'ALL' | StaffCategory);
   }
 
   protected updateStatus(event: Event): void {
@@ -93,7 +82,6 @@ export class StaffDirectoryComponent {
     this.saving.set(true);
     this.staffService.inviteEmployee(this.form.getRawValue()).pipe(finalize(() => this.saving.set(false))).subscribe({
       next: invitedMember => {
-      this.selectedCategory.set('ALL');
       this.selectedStatus.set('ALL');
       this.searchTerm.set('');
       this.selectedMemberId.set(invitedMember?.id ?? null);
@@ -109,33 +97,12 @@ export class StaffDirectoryComponent {
 
   protected updateSelectedStatus(event: Event): void {
     const member = this.selectedMember();
-    if (!member || member.category === 'DRIVER') return;
+    if (!member) return;
+    this.actionError.set('');
     this.staffService.updateEmployeeStatus(
       member.id,
       (event.target as HTMLSelectElement).value as StaffStatus,
-    ).subscribe({ error: error => this.driverActionMessage.set(error?.error?.message ?? 'Employee status could not be updated.') });
-  }
-
-  protected approveDriver(id: string): void {
-    this.updateDriverStatus(id, 'ACTIVE');
-  }
-
-  protected suspendDriver(id: string): void {
-    this.updateDriverStatus(id, 'SUSPENDED');
-  }
-
-  protected reinstateDriver(id: string): void {
-    this.updateDriverStatus(id, 'ACTIVE');
-  }
-
-  private updateDriverStatus(id: string, status: 'ACTIVE' | 'SUSPENDED'): void {
-    if (this.actionBusy()) return;
-    this.driverActionMessage.set('');
-    this.actionBusy.set(true);
-    this.staffService.updateDriverStatus(id, status).pipe(finalize(() => this.actionBusy.set(false))).subscribe({
-      next: () => this.driverActionMessage.set(`Driver status updated to ${status === 'ACTIVE' ? 'active' : 'suspended'}.`),
-      error: error => this.driverActionMessage.set(error?.error?.message ?? 'Driver status could not be updated.')
-    });
+    ).subscribe({ error: error => this.actionError.set(error?.error?.message ?? 'Employee status could not be updated.') });
   }
 
   protected statusClass(status: StaffStatus): string {

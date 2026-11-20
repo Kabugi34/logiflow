@@ -1,24 +1,30 @@
 import * as L from 'leaflet';
 
-export const MAPBOX_ACCESS_TOKEN = '';
+declare global {
+  interface Window {
+    __LOGIFLOW_CONFIG__?: { mapboxAccessToken?: string };
+  }
+}
+
+export const MAPBOX_ACCESS_TOKEN =
+  typeof window === 'undefined' ? '' : window.__LOGIFLOW_CONFIG__?.mapboxAccessToken?.trim() ?? '';
 export const KENYA_MAP_CENTER: L.LatLngTuple = [-1.286389, 36.817223];
 
 export function addMapBaseLayer(map: L.Map): void {
-  if (MAPBOX_ACCESS_TOKEN) {
-    L.tileLayer(
-      `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}?access_token=${MAPBOX_ACCESS_TOKEN}`,
-      {
-        maxZoom: 20,
-        attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-      }
-    ).addTo(map);
-    return;
-  }
+  const tileLayer = MAPBOX_ACCESS_TOKEN
+    ? L.tileLayer(
+        `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}?access_token=${encodeURIComponent(MAPBOX_ACCESS_TOKEN)}`,
+        {
+          maxZoom: 20,
+          attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }
+      )
+    : L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      });
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-  }).addTo(map);
+  tileLayer.addTo(map);
 }
 
 export function addCurrentLocationControl(map: L.Map, autoLocate = true): void {
