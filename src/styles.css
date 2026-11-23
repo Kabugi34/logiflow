@@ -3,6 +3,41 @@
 @import 'tailwindcss';
 @import 'leaflet/dist/leaflet.css';
 
+/* Shared workspace type scale. Keep labels compact while making dense screens easier to scan. */
+@theme {
+	--text-xs: 0.8125rem;
+	--text-xs--line-height: 1.2rem;
+	--text-sm: 0.9375rem;
+	--text-sm--line-height: 1.45rem;
+}
+
+html {
+	font-size: 16px;
+	text-size-adjust: 100%;
+}
+
+body {
+	line-height: 1.5;
+}
+
+/* Prevent dense tables, badges, and helper copy from dropping below readable metadata size. */
+[class*="text-[9px]"] {
+	font-size: 0.75rem;
+	line-height: 1.1rem;
+}
+
+[class*="text-[10px]"],
+[class*="text-[11px]"] {
+	font-size: 0.75rem;
+	line-height: 1.1rem;
+}
+
+[class*="text-[0.65rem]"],
+[class*="text-[0.68rem]"] {
+	font-size: 0.75rem;
+	line-height: 1.1rem;
+}
+
 html.dark {
 	color-scheme: dark;
 	background: #0b0c0f;

@@ -62,7 +62,13 @@ export class ShipmentListComponent {
   }
 
   protected updateOrderDefaults(): void {
-    // The PO response has no destination warehouse; the manufacturer supplies the buyer's warehouse UUID.
+    const order = this.purchaseOrderService.findById(this.form.controls.poReference.value);
+    this.form.controls.destination.setValue(order?.destinationWarehouseId ?? '');
+    this.form.controls.destination.markAsUntouched();
+  }
+
+  protected destinationFromOrder(): boolean {
+    return !!this.purchaseOrderService.findById(this.form.controls.poReference.value)?.destinationWarehouseId;
   }
 
   protected closeAllocation(): void {
@@ -78,6 +84,12 @@ export class ShipmentListComponent {
     const order = this.purchaseOrderService.findById(this.form.controls.poReference.value);
     if (!order) {
       this.allocationError.set('Select a valid purchase order.');
+      return;
+    }
+    if (!order.destinationWarehouseId) {
+      this.allocationError.set(
+        'The purchase-order API did not return the destination warehouse selected at checkout. Refresh the order or have the backend return destinationWarehouseId before allocating a shipment.',
+      );
       return;
     }
     if (order.status !== 'ACCEPTED' || order.paymentStatus !== 'PAID') {

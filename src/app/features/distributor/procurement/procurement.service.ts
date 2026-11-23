@@ -148,11 +148,14 @@ export class DistributorProcurementService {
   }
 
   refreshOrders(): void {
+    if (this.loading()) return;
     this.loading.set(true);
     this.http.get<ApiPage<ApiPo> | ApiPo[]>(API_ENDPOINTS.distributor.purchaseOrders).subscribe({
       next: (result) => {
         const page = Array.isArray(result) ? result : (result.content ?? []);
-        this.orderRecords.set(page.map((po) => this.toPurchaseOrder(po)));
+        const orders = page.map((po) => this.toPurchaseOrder(po));
+        this.orderRecords.set(orders);
+        for (const order of orders) this.refreshPaymentStatus(order.id);
         this.loading.set(false);
       },
       error: () => {
@@ -171,6 +174,7 @@ export class DistributorProcurementService {
             ? rows.map((existing) => (existing.id === id ? order : existing))
             : [order, ...rows],
         );
+        this.refreshPaymentStatus(order.id);
       },
       error: (error) =>
         this.error.set(error?.error?.message ?? 'Purchase order details could not be loaded.'),
@@ -234,6 +238,15 @@ export class DistributorProcurementService {
     this.orderRecords.update((rows) =>
       rows.map((order) => (order.id === orderId ? { ...order, paymentStatus } : order)),
     );
+  }
+
+  private refreshPaymentStatus(orderId: string): void {
+    this.payments.verifyOrderPayment('PURCHASE_ORDER', orderId).subscribe({
+      next: (verification) => {
+        if (verification.paymentExists) this.recordPaymentStatus(orderId, verification.status);
+      },
+      error: () => undefined,
+    });
   }
 
   createDraft(manufacturerId: string, draftLines: DraftProcurementLine[]): Observable<string> {

@@ -170,9 +170,13 @@
           ><span class="block text-xs font-medium text-slate-700">Distributor Destination Warehouse ID</span
           ><input
             formControlName="destination"
-            placeholder="Distributor warehouse UUID"
+            readonly
+            [placeholder]="destinationFromOrder() ? '' : 'Destination warehouse ID unavailable from the purchase order'"
             class="h-9 w-full rounded-md border border-slate-200 px-2 text-xs"
         /></label>
+        @if (!destinationFromOrder()) {
+          <p class="text-[10px] text-amber-700 sm:col-span-2">Shipment allocation is blocked until the PO API returns the destination selected during Distributor checkout.</p>
+        }
         <label class="space-y-1"
           ><span class="block text-xs font-medium text-slate-700">Carrier (optional)</span
           ><input
@@ -193,7 +197,8 @@
             Cancel</button
           ><button
             type="submit"
-            class="h-9 rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700"
+            [disabled]="saving() || !destinationFromOrder()"
+            class="h-9 rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
             Create Dispatch
           </button>

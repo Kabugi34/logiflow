@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -8,7 +8,8 @@ import {
   PurchaseOrderStatus,
   PurchasePaymentStatus,
 } from './purchase-order.models';
-import { Observable, catchError, forkJoin, map, of, tap } from 'rxjs';
+import { Observable, forkJoin, map, tap } from 'rxjs';
+import { PaymentService } from '../../payments/payment.service';
 
 interface ApiPo {
   id: string;
@@ -21,6 +22,7 @@ interface ApiPo {
   buyerOrganization?: { name?: string | null } | null;
   customerOrganizationName?: string | null;
   organizationName?: string | null;
+  destinationWarehouseId?: string | null;
   status: string;
   submittedAt: string;
   paymentStatus?: string | null;
@@ -39,17 +41,11 @@ interface ApiStock {
   reservedQuantity?: number;
   availableQuantity?: number;
 }
-interface ApiPayment {
-  orderId: string;
-  counterpartyName?: string | null;
-  status: string;
-  createdAt?: string;
-}
-
 @Injectable({ providedIn: 'root' })
 export class ManufacturerPurchaseOrderService {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  private readonly payments = inject(PaymentService);
   private readonly records = signal<ManufacturerPurchaseOrder[]>([]);
   readonly orders = this.records.asReadonly();
   readonly loading = signal(false);
@@ -70,30 +66,22 @@ export class ManufacturerPurchaseOrderService {
   }
 
   refresh(): void {
+    if (this.loading()) return;
     this.loading.set(true);
     forkJoin({
       orders: this.http.get<ApiPage<ApiPo> | ApiPo[]>(API_ENDPOINTS.manufacturer.purchaseOrders),
       stock: this.http.get<ApiPage<ApiStock> | ApiStock[]>(
         `${API_ENDPOINTS.manufacturer.stockItems}?size=100`,
       ),
-      payments: this.http
-        .get<ApiPage<ApiPayment> | ApiPayment[]>(API_ENDPOINTS.payments.transactions, {
-          params: new HttpParams().set('orderType', 'PURCHASE_ORDER'),
-        })
-        .pipe(catchError(() => of([] as ApiPayment[]))),
     }).subscribe({
-      next: ({ orders, stock, payments }) => {
+      next: ({ orders, stock }) => {
         const page = Array.isArray(orders) ? orders : (orders.content ?? []);
         const stockRows = Array.isArray(stock) ? stock : (stock.content ?? []);
-        const paymentRows = Array.isArray(payments) ? payments : (payments.content ?? []);
-        const paymentByOrder = new Map<string, ApiPayment>();
-        for (const payment of paymentRows) {
-          const existing = paymentByOrder.get(payment.orderId);
-          if (!existing || Date.parse(payment.createdAt ?? '') >= Date.parse(existing.createdAt ?? '')) {
-            paymentByOrder.set(payment.orderId, payment);
-          }
+        const mappedOrders = page.map((row) => this.mapOrder(row, stockRows));
+        this.records.set(mappedOrders);
+        for (const order of mappedOrders) {
+          if (order.status === 'ACCEPTED') this.refreshPaymentStatus(order.id);
         }
-        this.records.set(page.map((row) => this.mapOrder(row, stockRows, paymentByOrder.get(row.id))));
         this.error.set('');
         this.loading.set(false);
       },
@@ -122,7 +110,7 @@ export class ManufacturerPurchaseOrderService {
       );
   }
 
-  private mapOrder(row: ApiPo, stock: ApiStock[], payment?: ApiPayment): ManufacturerPurchaseOrder {
+  private mapOrder(row: ApiPo, stock: ApiStock[]): ManufacturerPurchaseOrder {
     const status: PurchaseOrderStatus =
       row.status === 'APPROVED'
         ? 'ACCEPTED'
@@ -144,14 +132,14 @@ export class ManufacturerPurchaseOrderService {
         row.buyerOrganization?.name?.trim() ||
         row.customerOrganizationName?.trim() ||
         row.organizationName?.trim() ||
-        payment?.counterpartyName?.trim() ||
         (row.buyerOrganizationId ? `Distributor ${row.buyerOrganizationId}` : 'Distributor name unavailable'),
       manufacturerName: this.auth.user()?.organization.name?.trim() || 'Manufacturer',
-      destinationHub: '\u2014',
+      destinationHub: row.destinationWarehouseId?.trim() || 'Destination unavailable from purchase-order API',
+      destinationWarehouseId: row.destinationWarehouseId?.trim() || undefined,
       issueDate: row.submittedAt,
       status,
       paymentStatus: this.mapPaymentStatus(
-        row.paymentStatus ?? row.settlements?.[row.settlements.length - 1]?.status ?? payment?.status,
+        row.paymentStatus,
       ),
       lines: (row.items ?? []).map((item) => {
         const matching = stock.find((stockItem) => stockItem.sku === item.sku);
@@ -172,5 +160,31 @@ export class ManufacturerPurchaseOrderService {
 
   private mapPaymentStatus(status: string | null | undefined): PurchasePaymentStatus {
     return normalizePaymentStatus(status);
+  }
+
+  private refreshPaymentStatus(orderId: string): void {
+    this.payments.verifyOrderPayment('PURCHASE_ORDER', orderId).subscribe({
+      next: (verification) => {
+        if (!verification.paymentExists) return;
+        this.records.update((rows) =>
+          rows.map((order) => order.id === orderId
+          ? {
+              ...order,
+              paymentStatus: verification.status,
+              paymentDetails: verification.status === 'PAID' && verification.transaction
+                ? {
+                    amount: verification.transaction.amount,
+                    currency: verification.transaction.currency,
+                    reference: verification.transaction.mpesaReceiptNumber || verification.transaction.paymentReference,
+                    mode: verification.transaction.provider,
+                    reconciledAt: verification.transaction.reconciledAt,
+                  }
+                : undefined,
+            }
+            : order),
+        );
+      },
+      error: () => undefined,
+    });
   }
 }

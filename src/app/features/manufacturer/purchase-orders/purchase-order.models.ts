@@ -24,9 +24,17 @@ export interface ManufacturerPurchaseOrder {
   distributorName: string;
   manufacturerName: string;
   destinationHub: string;
+  destinationWarehouseId?: string;
   issueDate: string;
   status: PurchaseOrderStatus;
   paymentStatus: PurchasePaymentStatus;
+  paymentDetails?: {
+    amount: number;
+    currency: string;
+    reference: string;
+    mode: string;
+    reconciledAt?: string | null;
+  };
   lines: PurchaseOrderLine[];
   timeline: PurchaseOrderTimelineEvent[];
 }

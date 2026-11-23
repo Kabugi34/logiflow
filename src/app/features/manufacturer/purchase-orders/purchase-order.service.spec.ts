@@ -23,6 +23,7 @@ describe('ManufacturerPurchaseOrderService', () => {
           buyerOrganizationId: 'distributor-1',
           status: 'APPROVED',
           paymentStatus: 'SUCCEEDED',
+          destinationWarehouseId: 'distributor-warehouse-1',
           submittedAt: '2026-10-28T09:00:00Z',
           items: [],
         },
@@ -48,9 +49,20 @@ describe('ManufacturerPurchaseOrderService', () => {
     httpTesting
       .expectOne(`${API_ENDPOINTS.manufacturer.stockItems}?size=100`)
       .flush({ content: [] });
-    httpTesting
-      .expectOne(`${API_ENDPOINTS.payments.transactions}?orderType=PURCHASE_ORDER`)
-      .flush({ content: [] });
+    const transactionRows = [
+      { id: 'pay-paid', orderId: 'paid-po', orderType: 'PURCHASE_ORDER', direction: 'INCOMING', amount: 600000, currency: 'KES', provider: 'MPESA', status: 'SUCCEEDED', createdAt: '2026-11-20T10:00:00Z', updatedAt: '2026-11-20T10:00:00Z' },
+      null,
+      { id: 'pay-failed', orderId: 'failed-po', orderType: 'PURCHASE_ORDER', direction: 'INCOMING', amount: 125, currency: 'KES', provider: 'MPESA', status: 'FAILED', createdAt: '2026-11-20T09:00:00Z', updatedAt: '2026-11-20T09:00:00Z' },
+    ];
+    for (let index = 0; index < ['paid-po', 'unknown-po', 'failed-po'].length; index++) {
+      const orderId = ['paid-po', 'unknown-po', 'failed-po'][index];
+      const request = httpTesting.expectOne(
+        (req) => req.url === API_ENDPOINTS.payments.transactions
+          && req.params.get('orderType') === 'PURCHASE_ORDER'
+          && req.params.get('orderId') === orderId,
+      );
+      request.flush({ content: transactionRows[index] ? [transactionRows[index]] : [] });
+    }
   });
 
   afterEach(() => {
@@ -64,5 +76,15 @@ describe('ManufacturerPurchaseOrderService', () => {
       'UNKNOWN',
       'FAILED',
     ]);
+    expect(service.orders()[0]).toMatchObject({
+      destinationWarehouseId: 'distributor-warehouse-1',
+      destinationHub: 'distributor-warehouse-1',
+      paymentDetails: {
+        amount: 600000,
+        currency: 'KES',
+        reference: 'pay-paid',
+        mode: 'MPESA',
+      },
+    });
   });
 });

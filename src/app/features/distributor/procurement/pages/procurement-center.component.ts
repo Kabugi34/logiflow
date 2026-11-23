@@ -1,5 +1,5 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { printPurchaseOrderPdf } from '../purchase-order-pdf';
 import { DistributorProcurementService } from '../procurement.service';
@@ -11,11 +11,15 @@ import { LoadingSkeletonComponent } from '../../../../shared/loading/loading-ske
   imports: [CurrencyPipe, DatePipe, LoadingSkeletonComponent, RouterLink],
   templateUrl: './procurement-center.component.html',
 })
-export class ProcurementCenterComponent {
+export class ProcurementCenterComponent implements OnInit {
   protected readonly procurement = inject(DistributorProcurementService);
   protected readonly searchTerm = signal('');
   protected readonly selectedStatus = signal<'ALL' | ProcurementStatus>('ALL');
   protected readonly exportError = signal('');
+
+  ngOnInit(): void {
+    this.procurement.refreshOrders();
+  }
   protected readonly filteredOrders = computed(() => {
     const query = this.searchTerm().trim().toLowerCase();
     return this.procurement.orders().filter((order) => {

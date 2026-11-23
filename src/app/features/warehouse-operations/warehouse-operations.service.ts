@@ -143,7 +143,9 @@ export class WarehouseOperationsService {
     const orders: WarehouseOrder[] = [];
     for (const source of sourceOrders) {
       if (source.paymentStatus !== 'PAID') continue;
-      const status = this.orderStatus(source.status);
+      const status = warehouseOwner === 'MANUFACTURER' && source.status === 'ACCEPTED'
+        ? 'READY_TO_DISPATCH'
+        : this.orderStatus(source.status);
       if (!status) continue;
 
       const lines: WarehouseLine[] = source.lines.map((line, index) => {
@@ -169,6 +171,8 @@ export class WarehouseOperationsService {
       orders.push({
         id: source.id,
         orderNumber: source.orderNumber,
+        receivingOrganization: source.receivingOrganization,
+        destinationWarehouseId: source.destinationWarehouseId,
         status,
         lines,
         packages: 0,

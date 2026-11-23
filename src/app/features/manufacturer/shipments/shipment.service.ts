@@ -39,6 +39,7 @@ export class ManufacturerShipmentService {
   }
 
   refresh(): void {
+    if (this.loading()) return;
     this.loading.set(true);
     this.http
       .get<Page<ApiShipment> | ApiShipment[]>(

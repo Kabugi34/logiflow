@@ -204,8 +204,8 @@
       <div>
         <h2 class="text-sm font-semibold text-slate-900">Distributor purchase order fulfillment</h2>
         <p class="mt-1 text-[10px] text-slate-500">
-          Accepted purchase orders only. Shipment creation uses the existing manufacturer shipment
-          workflow.
+          Backend-confirmed payment moves an accepted purchase order to ready for dispatch. Allocate
+          a shipment first, then dispatch it here once the shipment is ready.
         </p>
       </div>
       <div class="flex gap-2">
@@ -241,6 +241,7 @@
         <thead class="bg-slate-50 text-left text-[10px] text-slate-600">
           <tr>
             <th scope="col" class="px-4 py-3">Purchase order</th>
+            <th scope="col" class="px-3 py-3">Receiving organization / destination</th>
             <th scope="col" class="px-3 py-3">Items</th>
             <th scope="col" class="px-3 py-3">Picking progress</th>
             <th scope="col" class="px-3 py-3">Status</th>
@@ -252,6 +253,10 @@
             <tr>
               <td class="whitespace-nowrap px-4 py-3 font-medium text-slate-800">
                 {{ order.orderNumber }}
+              </td>
+              <td class="px-3 py-3 text-slate-600">
+                <p>{{ order.receivingOrganization || 'Distributor unavailable' }}</p>
+                <p class="mt-1 text-[10px]">Warehouse: {{ order.destinationWarehouseId || 'Unavailable from purchase-order API' }}</p>
               </td>
               <td class="px-3 py-3">
                 @for (line of order.lines; track line.id) {
@@ -303,13 +308,26 @@
                     Backend pack API does not support manufacturer purchase orders.
                   </p>
                 } @else if (order.status === 'READY_TO_DISPATCH') {
-                  <button
-                    type="button"
-                    (click)="openDispatch(order)"
-                    class="rounded bg-blue-600 px-2 py-1 text-[10px] font-medium text-white hover:bg-blue-700"
-                  >
-                    Create shipment
-                  </button>
+                  @if (shipmentForOrder(order.id); as shipment) {
+                    @if (shipment.status === 'READY_FOR_DISPATCH') {
+                      <button
+                        type="button"
+                        (click)="openDispatch(order)"
+                        class="rounded bg-blue-600 px-2 py-1 text-[10px] font-medium text-white hover:bg-blue-700"
+                      >
+                        Dispatch shipment
+                      </button>
+                    } @else {
+                      <span class="text-[10px] text-slate-500">Shipment {{ shipment.status.replaceAll('_', ' ') }}</span>
+                    }
+                  } @else {
+                    <a
+                      routerLink="/manufacturer/shipments"
+                      class="inline-flex rounded border border-blue-200 px-2 py-1 text-[10px] font-medium text-blue-700 hover:bg-blue-50"
+                    >
+                      Allocate shipment
+                    </a>
+                  }
                 } @else if (order.status === 'DISPATCHED') {
                   <span class="text-[10px] text-slate-500">{{ order.packages }} package(s)</span>
                 }
@@ -317,7 +335,7 @@
             </tr>
           } @empty {
             <tr>
-              <td colspan="5" class="px-4 py-8 text-center text-slate-500">
+              <td colspan="6" class="px-4 py-8 text-center text-slate-500">
                 No accepted distributor purchase orders are awaiting warehouse fulfillment.
               </td>
             </tr>

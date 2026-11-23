@@ -17,6 +17,8 @@ export interface WarehouseLine {
 export interface WarehouseOrder {
   id: string;
   orderNumber: string;
+  receivingOrganization?: string;
+  destinationWarehouseId?: string;
   status: WarehouseOrderStatus;
   lines: WarehouseLine[];
   packages: number;
@@ -83,6 +85,8 @@ export interface WarehouseInventorySource {
 export interface WarehouseOrderSource {
   id: string;
   orderNumber: string;
+  receivingOrganization?: string;
+  destinationWarehouseId?: string;
   status: string;
   paymentStatus: string;
   lines: {
