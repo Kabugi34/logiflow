@@ -76,7 +76,7 @@ export class DistributorFleetService {
   }
 
   createVehicle(details: { model: string; plate: string }): Observable<DistributorVehicle> {
-    return this.http.post<VehicleApiRow>(API_ENDPOINTS.distributor.vehicles, { model: details.model.trim(), plate: details.plate.trim().toUpperCase() })
+    return this.http.post<VehicleApiRow>(API_ENDPOINTS.distributor.vehicles, { model: details.model.trim(), registrationNumber: details.plate.trim().toUpperCase() })
       .pipe(map(row => this.mapVehicle(row)), tap(vehicle => this.vehicleRecords.update(rows => [vehicle, ...rows])));
   }
 

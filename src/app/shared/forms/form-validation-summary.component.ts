@@ -49,6 +49,8 @@ export class FormValidationSummaryComponent {
         else if (error['personName']) reason = 'contains unsupported characters';
         else if (error['licenceValue'])
           reason = 'must be 2 to 40 letters, numbers, spaces, slashes, or hyphens';
+        else if (error['kenyanRegistrationNumber'])
+          reason = 'must be a Kenyan plate such as KEA 090Y';
         else if (error['requiredTrue']) reason = 'must be accepted';
         if (reason) result.push(`${path} ${reason}.`);
       }

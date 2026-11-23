@@ -3,6 +3,20 @@ import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
 export const trimmedRequired: ValidatorFn = (control: AbstractControl): ValidationErrors | null =>
   String(control.value ?? '').trim().length ? null : { required: true };
 
+/** Kenyan vehicle registration format, e.g. KEA 090Y. */
+export const kenyanRegistrationNumber: ValidatorFn = (
+  control: AbstractControl,
+): ValidationErrors | null => {
+  const value = String(control.value ?? '').trim();
+  if (!value) return null; // pair with trimmedRequired
+  return /^K[A-Z]{2}\s?-?\d{3}\s?-?[A-Z]$/i.test(value) ? null : { kenyanRegistrationNumber: true };
+};
+
+export const normalizeKenyanRegistrationNumber = (value: string): string => {
+  const compact = value.replace(/[\s-]/g, '').toUpperCase();
+  return `${compact.slice(0, 3)} ${compact.slice(3)}`;
+};
+
 /** Accepts international E.164 numbers with optional common visual separators. */
 export const internationalPhone: ValidatorFn = (
   control: AbstractControl,
