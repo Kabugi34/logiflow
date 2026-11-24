@@ -19,7 +19,7 @@ describe('DistributorProcurementService', () => {
         provideHttpClientTesting(),
         {
           provide: DistributorCatalogService,
-          useValue: { authorizationStatus: () => authorizationStatus() },
+          useValue: { authorizationStatus: () => authorizationStatus(), manufacturers: () => [] },
         },
       ],
     });
@@ -60,5 +60,42 @@ describe('DistributorProcurementService', () => {
     expect(() =>
       service.createDraft('manufacturer-1', [{ sku: 'SKU-001', quantity: 2 }]),
     ).not.toThrow();
+  });
+
+  it('submits a bank transfer as multipart with the idempotency key and does not mark the order paid', () => {
+    const proof = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46])], 'slip.pdf', {
+      type: 'application/pdf',
+    });
+    service.submitBankTransfer('po-1', '  ref-123 ', proof, 'key-1').subscribe();
+
+    const request = httpTesting.expectOne(API_ENDPOINTS.distributor.purchaseOrderBankTransfer('po-1'));
+    expect(request.request.method).toBe('POST');
+    expect(request.request.headers.get('Idempotency-Key')).toBe('key-1');
+    const body = request.request.body as FormData;
+    expect(body.get('reference')).toBe('ref-123');
+    expect((body.get('file') as File).name).toBe('slip.pdf');
+    request.flush({
+      id: 'po-1',
+      purchaseOrderNumber: 'PO-1',
+      status: 'APPROVED',
+      paymentStatus: 'PENDING',
+      paymentTerms: 'PAY_NOW',
+      totalAmount: 200,
+      amountPaid: 0,
+      amountOutstanding: 200,
+      items: [],
+    });
+  });
+
+  it('sends the chosen payment terms when creating a purchase order', () => {
+    authorizationStatus.set('APPROVED');
+    service.createDraft('manufacturer-1', [{ sku: 'SKU-001', quantity: 2 }], 'CREDIT').subscribe();
+
+    const request = httpTesting.expectOne(API_ENDPOINTS.distributor.purchaseOrders);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body.paymentTerms).toBe('CREDIT');
+    request.flush({ id: 'po-new', purchaseOrderNumber: 'PO-N', status: 'SUBMITTED', totalAmount: 200, items: [] });
+    // Creating an order reloads the list.
+    httpTesting.expectOne(API_ENDPOINTS.distributor.purchaseOrders).flush([]);
   });
 });

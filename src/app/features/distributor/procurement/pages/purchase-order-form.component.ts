@@ -5,6 +5,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DistributorProcurementService } from '../procurement.service';
 import { DraftProcurementLine } from '../procurement.models';
+import { PurchasePaymentTerms } from '../../../../core/models/purchase-order-settlement.model';
 import { finalize } from 'rxjs';
 
 interface DraftLineView extends DraftProcurementLine {
@@ -42,6 +43,8 @@ export class PurchaseOrderFormComponent {
   protected readonly errorMessage = signal('');
   protected readonly creating = signal(false);
   protected readonly confirmed = signal(false);
+  /** Credit needs terms from the manufacturer; the API refuses the order if there are none. */
+  protected readonly paymentTerms = signal<PurchasePaymentTerms>('PAY_NOW');
   protected readonly form = this.formBuilder.nonNullable.group({
     sku: ['', Validators.required],
     quantity: [1, [Validators.required, Validators.min(1)]],
@@ -120,6 +123,7 @@ export class PurchaseOrderFormComponent {
         .createDraft(
           this.manufacturerId(),
           this.lines().map(({ sku, quantity }) => ({ sku, quantity })),
+          this.paymentTerms(),
         )
         .pipe(finalize(() => this.creating.set(false)))
         .subscribe({

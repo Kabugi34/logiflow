@@ -1,5 +1,6 @@
 import { LogisticsRoutePoint } from '../../../core/logistics/logistics.models';
 import { PaymentStatus } from '../../../core/models/payment.model';
+import { PurchasePaymentTerms } from '../../../core/models/purchase-order-settlement.model';
 
 export type ProcurementStatus = 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'FULFILLED';
 
@@ -34,6 +35,11 @@ export interface DistributorPurchaseOrder {
   expectedDelivery: string;
   status: ProcurementStatus;
   paymentStatus: PaymentStatus;
+  paymentTerms?: PurchasePaymentTerms;
+  dueAt?: string | null;
+  overdue?: boolean;
+  amountPaid?: number;
+  amountOutstanding?: number;
   destination: string;
   logisticsCost: number;
   lines: ProcurementOrderLine[];

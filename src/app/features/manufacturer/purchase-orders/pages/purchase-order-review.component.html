@@ -73,6 +73,169 @@
           </dl>
         </section>
 
+        @if (currentOrder.status === 'ACCEPTED' || payments().length) {
+          <section
+            class="rounded-lg border border-slate-200 bg-white p-4"
+            aria-labelledby="po-payment-heading"
+            data-testid="payment-section"
+          >
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h2 id="po-payment-heading" class="text-sm font-semibold text-slate-900">
+                Payment &amp; settlement
+              </h2>
+              <a
+                [routerLink]="['/manufacturer/purchase-orders/distributors', currentOrder.distributorId, 'credit']"
+                queryParamsHandling="preserve"
+                class="text-xs font-medium text-blue-600 hover:text-blue-700"
+                >Credit &amp; statement for this distributor</a
+              >
+            </div>
+            <dl class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div>
+                <dt class="text-[10px] uppercase text-slate-400">Terms</dt>
+                <dd class="mt-1 text-xs font-semibold text-slate-800">
+                  {{ currentOrder.paymentTerms === 'CREDIT' ? 'Credit' : 'Pay now' }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-[10px] uppercase text-slate-400">Received</dt>
+                <dd class="mt-1 text-xs font-semibold text-slate-800">
+                  {{ currentOrder.amountPaid | currency: 'KES' : 'symbol' : '1.2-2' }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-[10px] uppercase text-slate-400">Outstanding</dt>
+                <dd
+                  class="mt-1 text-xs font-semibold"
+                  [class.text-red-700]="currentOrder.overdue"
+                  [class.text-slate-800]="!currentOrder.overdue"
+                >
+                  {{ currentOrder.amountOutstanding | currency: 'KES' : 'symbol' : '1.2-2' }}
+                </dd>
+              </div>
+              @if (currentOrder.paymentTerms === 'CREDIT') {
+                <div>
+                  <dt class="text-[10px] uppercase text-slate-400">Due</dt>
+                  <dd
+                    class="mt-1 text-xs font-semibold"
+                    [class.text-red-700]="currentOrder.overdue"
+                    [class.text-slate-800]="!currentOrder.overdue"
+                  >
+                    {{ currentOrder.dueAt ? (currentOrder.dueAt | date: 'dd MMM y') : '—' }}
+                    @if (currentOrder.overdue) {
+                      <span class="ml-1 rounded bg-red-50 px-1.5 py-0.5 text-[9px] text-red-700"
+                        >OVERDUE</span
+                      >
+                    }
+                  </dd>
+                </div>
+              }
+            </dl>
+
+            @if (paymentError()) {
+              <p
+                role="alert"
+                class="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
+              >
+                {{ paymentError() }}
+              </p>
+            }
+            @if (paymentNotice()) {
+              <p
+                role="status"
+                class="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700"
+              >
+                {{ paymentNotice() }}
+              </p>
+            }
+
+            @if (payments().length) {
+              <ul class="mt-3 divide-y divide-slate-100 border-t border-slate-100">
+                @for (payment of payments(); track payment.id) {
+                  <li class="py-3 text-xs" [attr.data-testid]="'payment-' + payment.id">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p class="font-semibold text-slate-800">
+                          {{ payment.method === 'MPESA' ? 'M-Pesa' : 'Bank transfer' }} ·
+                          {{ payment.payerReference }}
+                        </p>
+                        <p class="mt-0.5 text-[10px] text-slate-500">
+                          Submitted {{ payment.submittedAt | date: 'medium' }}
+                        </p>
+                      </div>
+                      <div class="text-right">
+                        @if (payment.status === 'CONFIRMED') {
+                          <p class="font-semibold text-emerald-700">
+                            {{ payment.amount | currency: 'KES' : 'symbol' : '1.2-2' }} received
+                          </p>
+                        } @else {
+                          <p class="font-semibold text-amber-700">Awaiting your confirmation</p>
+                        }
+                      </div>
+                    </div>
+                    <div class="mt-2 flex flex-wrap items-end gap-2">
+                      @if (payment.proofDocumentId) {
+                        <button
+                          type="button"
+                          (click)="viewProof(payment)"
+                          class="min-h-8 rounded-md border border-slate-200 px-2.5 text-[11px] font-medium text-slate-700 hover:bg-slate-50"
+                        >
+                          Download proof
+                        </button>
+                      }
+                      @if (payment.status === 'SUBMITTED' && canConfirmPayments) {
+                        <label class="flex flex-col text-[10px] text-slate-500">
+                          Amount received (KES)
+                          <input
+                            type="text"
+                            inputmode="decimal"
+                            class="mt-1 h-8 w-36 rounded-md border border-slate-300 px-2 text-xs text-slate-900"
+                            [value]="amountFor(payment.id)"
+                            (input)="setAmount(payment.id, $any($event.target).value)"
+                            [attr.data-testid]="'amount-' + payment.id"
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          (click)="confirmPayment(payment)"
+                          [disabled]="confirmingPaymentId() !== null"
+                          class="min-h-8 rounded-md bg-blue-600 px-3 text-[11px] font-medium text-white hover:bg-blue-700 disabled:cursor-wait disabled:bg-slate-300"
+                          [attr.data-testid]="'confirm-' + payment.id"
+                        >
+                          {{ confirmingPaymentId() === payment.id ? 'Confirming…' : 'Confirm payment received' }}
+                        </button>
+                      }
+                    </div>
+                    @if (payment.status === 'SUBMITTED' && !canConfirmPayments) {
+                      <p class="mt-2 text-[10px] text-slate-500">
+                        Only an administrator of your organization can confirm this payment.
+                      </p>
+                    }
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="mt-3 text-xs text-slate-500">No payment has been submitted yet.</p>
+            }
+
+            @if (canCancelOverdue()) {
+              <div class="mt-3 border-t border-slate-100 pt-3">
+                <button
+                  type="button"
+                  (click)="cancelOverdue()"
+                  [disabled]="cancelling()"
+                  class="min-h-8 rounded-md border border-red-300 px-3 text-[11px] font-medium text-red-600 hover:bg-red-50 disabled:opacity-60"
+                >
+                  {{ cancelling() ? 'Cancelling…' : 'Cancel overdue order' }}
+                </button>
+                <p class="mt-1 text-[10px] text-slate-500">
+                  Available only while nothing has been paid or picked. Reserved stock is released.
+                </p>
+              </div>
+            }
+          </section>
+        }
+
         <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
           <h2 class="border-b border-slate-200 px-4 py-3 text-sm font-semibold text-slate-900">
             Procurement Requirement vs Available Stock
