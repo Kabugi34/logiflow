@@ -72,7 +72,7 @@ export class ManufacturerShipmentService {
 
   create(shipment: NewShipment) {
     const order = this.purchaseOrders.findById(shipment.poReference);
-    if (!order || order.status !== 'ACCEPTED' || order.paymentStatus !== 'PAID' || order.fulfilmentStatus !== 'READY_FOR_DISPATCH') {
+    if (!order || order.status !== 'ACCEPTED' || order.paymentStatus !== 'PAID') {
       return throwError(
         () =>
           new Error(

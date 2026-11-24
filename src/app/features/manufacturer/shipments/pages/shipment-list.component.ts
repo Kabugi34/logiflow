@@ -26,7 +26,7 @@ export class ShipmentListComponent {
   protected readonly dispatchableOrders = computed(() =>
     this.purchaseOrderService
       .orders()
-      .filter((order) => order.status === 'ACCEPTED' && order.paymentStatus === 'PAID' && order.fulfilmentStatus === 'READY_FOR_DISPATCH'),
+      .filter((order) => order.status === 'ACCEPTED' && order.paymentStatus === 'PAID'),
   );
   protected readonly shipments = computed(() =>
     this.shipmentService.shipments().filter((shipment) => {
@@ -94,9 +94,9 @@ export class ShipmentListComponent {
       );
       return;
     }
-    if (order.status !== 'ACCEPTED' || order.paymentStatus !== 'PAID' || order.fulfilmentStatus !== 'READY_FOR_DISPATCH') {
+    if (order.status !== 'ACCEPTED' || order.paymentStatus !== 'PAID') {
       this.allocationError.set(
-        'The purchase order must be approved, payment-verified, and fully picked and packed before consignment creation.',
+        'The purchase order must be approved and payment-verified before consignment creation.',
       );
       return;
     }
