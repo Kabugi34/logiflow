@@ -81,6 +81,20 @@
     <button
       type="button"
       role="tab"
+      [attr.aria-selected]="activeStatus() === 'UNKNOWN'"
+      (click)="setStatus('UNKNOWN')"
+      class="rounded-md border px-3 py-2 text-[10px] font-medium"
+      [class]="
+        activeStatus() === 'UNKNOWN'
+          ? 'border-blue-500 bg-white text-blue-700'
+          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+      "
+    >
+      Unknown status ({{ counts().UNKNOWN }})
+    </button>
+    <button
+      type="button"
+      role="tab"
       [attr.aria-selected]="activeStatus() === 'FULFILLED'"
       (click)="setStatus('FULFILLED')"
       class="rounded-md border px-3 py-2 text-[10px] font-medium"

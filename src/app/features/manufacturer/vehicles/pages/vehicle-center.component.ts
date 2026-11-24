@@ -5,7 +5,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { FleetDriver, FleetVehicle, VehicleStatus } from '../../fleet/fleet.models';
 import { ManufacturerFleetService } from '../../fleet/fleet.service';
-import { trimmedRequired } from '../../../../core/forms/form-validators';
+import { kenyanRegistrationNumber, normalizeKenyanRegistrationNumber, trimmedRequired } from '../../../../core/forms/form-validators';
 import { finalize } from 'rxjs';
 
 @Component({
@@ -40,7 +40,7 @@ export class VehicleCenterComponent {
   protected readonly form = this.formBuilder.nonNullable.group({
     plate: [
       '',
-      [trimmedRequired, Validators.maxLength(20), Validators.pattern(/^[A-Za-z0-9 -]+$/)],
+      [trimmedRequired, kenyanRegistrationNumber],
     ],
     type: ['', [trimmedRequired, Validators.maxLength(80)]],
     maxWeightCapacity: [26000, [Validators.required, Validators.min(1)]],
@@ -67,7 +67,8 @@ export class VehicleCenterComponent {
       return;
     }
     this.saving.set(true);
-    this.fleetService.createVehicleApi(this.form.getRawValue()).pipe(finalize(() => this.saving.set(false))).subscribe({
+    const vehicle = this.form.getRawValue();
+    this.fleetService.createVehicleApi({ ...vehicle, plate: normalizeKenyanRegistrationNumber(vehicle.plate) }).pipe(finalize(() => this.saving.set(false))).subscribe({
       next: () => { this.selectedStatus.set('ALL'); this.isRegisterOpen.set(false); },
       error: error => this.formError.set(error?.error?.message ?? 'Unable to register vehicle.')
     });

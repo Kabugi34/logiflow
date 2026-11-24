@@ -1,9 +1,10 @@
-export type ShipmentStatus = 'READY_FOR_DISPATCH' | 'IN_TRANSIT' | 'DELIVERED' | 'RECEIVED' | 'CANCELLED' | 'BORDER_HOLD' | 'UNKNOWN';
+export type ShipmentStatus = 'AWAITING_PICKING' | 'READY_FOR_DISPATCH' | 'IN_TRANSIT' | 'DELIVERED' | 'RECEIVED' | 'CANCELLED' | 'UNKNOWN';
 
 export function normalizeShipmentStatus(status: unknown): ShipmentStatus {
   if (typeof status !== 'string') return 'UNKNOWN';
 
   switch (status.trim().toUpperCase()) {
+    case 'AWAITING_PICKING': return 'AWAITING_PICKING';
     case 'IN_TRANSIT':
       return 'IN_TRANSIT';
     case 'READY_FOR_DISPATCH':
@@ -14,8 +15,6 @@ export function normalizeShipmentStatus(status: unknown): ShipmentStatus {
       return 'RECEIVED';
     case 'CANCELLED':
       return 'CANCELLED';
-    case 'BORDER_HOLD':
-      return 'BORDER_HOLD';
     default:
       return 'UNKNOWN';
   }

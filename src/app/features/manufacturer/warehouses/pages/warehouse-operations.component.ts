@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  OnInit,
   computed,
   effect,
   inject,
@@ -24,13 +25,18 @@ import { ManufacturerShipmentService } from '../../shipments/shipment.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './warehouse-operations.component.html',
 })
-export class ManufacturerWarehouseOperationsComponent {
+export class ManufacturerWarehouseOperationsComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   protected readonly operations = inject(WarehouseOperationsService);
   protected readonly inventory = inject(ManufacturerInventoryService);
   protected readonly purchaseOrders = inject(ManufacturerPurchaseOrderService);
   protected readonly shipments = inject(ManufacturerShipmentService);
+  ngOnInit(): void {
+    this.purchaseOrders.refresh();
+    this.shipments.refresh();
+  }
+
   private readonly sourceSync = effect(() => {
     if (this.inventory.loading() || this.purchaseOrders.loading()) return;
     const inventory = this.inventory.getRows().map((item) => ({
@@ -42,6 +48,8 @@ export class ManufacturerWarehouseOperationsComponent {
     const orders = this.purchaseOrders.orders().map((order) => ({
       id: order.id,
       orderNumber: order.id,
+      receivingOrganization: order.distributorName,
+      destinationWarehouseId: order.destinationWarehouseId,
       status: order.status,
       paymentStatus: order.paymentStatus,
       lines: order.lines.map((line) => ({
@@ -221,6 +229,10 @@ export class ManufacturerWarehouseOperationsComponent {
   protected openDispatch(order: WarehouseOrder): void {
     this.clearFeedback();
     this.selectedDispatchOrderId.set(order.id);
+  }
+
+  protected shipmentForOrder(orderId: string) {
+    return this.shipments.findByPurchaseOrderId(orderId);
   }
 
   protected confirmDispatch(): void {

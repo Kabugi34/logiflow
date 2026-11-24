@@ -141,6 +141,7 @@
         <thead class="bg-slate-50 text-left text-[10px] text-slate-600">
           <tr>
             <th scope="col" class="px-4 py-3">Purchase order</th>
+            <th scope="col" class="px-3 py-3">Manufacturer</th>
             <th scope="col" class="px-3 py-3">Product / SKU</th>
             <th scope="col" class="px-3 py-3">Expected</th>
             <th scope="col" class="px-3 py-3">Status</th>
@@ -153,6 +154,7 @@
               <td class="whitespace-nowrap px-4 py-3 font-medium text-slate-800">
                 {{ receipt.reference }}
               </td>
+              <td class="px-3 py-3">{{ receipt.manufacturerName || 'Not provided' }}</td>
               <td class="px-3 py-3">
                 <p class="font-medium text-slate-800">{{ receipt.product }}</p>
                 <p class="mt-0.5 text-[10px] text-slate-500">
@@ -201,7 +203,7 @@
             </tr>
           } @empty {
             <tr>
-              <td colspan="5" class="px-4 py-8 text-center text-slate-500">
+              <td colspan="6" class="px-4 py-8 text-center text-slate-500">
                 No incoming approved purchase order lines are available.
               </td>
             </tr>
@@ -541,6 +543,7 @@
           <p class="mt-1 text-xs text-slate-500">
             {{ receipt.reference }} · {{ receipt.product }} ({{ receipt.expected }} expected)
           </p>
+          <p class="mt-1 text-xs text-slate-500">Manufacturer: {{ receipt.manufacturerName || 'Not provided by shipment response' }}</p>
         </div>
         <button
           type="button"

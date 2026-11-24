@@ -61,4 +61,32 @@ describe('DistributorProcurementService', () => {
       service.createDraft('manufacturer-1', [{ sku: 'SKU-001', quantity: 2 }]),
     ).not.toThrow();
   });
+
+  it('allows published products into centralized checkout without legacy authorization approval', () => {
+    expect(authorizationStatus()).toBe('NONE');
+    expect(service.checkoutProducts().map((product) => product.productId)).toEqual(['product-1']);
+  });
+
+  it('updates a purchase to paid from backend-confirmed per-order payment history', () => {
+    service.refreshOrders();
+    httpTesting.expectOne(API_ENDPOINTS.distributor.purchaseOrders).flush({
+      content: [{
+        id: 'po-paid', purchaseOrderNumber: 'PO-PAID', buyerOrganizationId: 'buyer-1',
+        supplierOrganizationId: 'manufacturer-1', status: 'APPROVED', totalAmount: 600000,
+        submittedAt: '2026-11-20T10:00:00Z', items: [],
+      }],
+    });
+
+    httpTesting.expectOne((request) => request.url === API_ENDPOINTS.payments.transactions
+      && request.params.get('orderType') === 'PURCHASE_ORDER'
+      && request.params.get('orderId') === 'po-paid').flush({
+        content: [{
+          id: 'payment-1', orderId: 'po-paid', orderType: 'PURCHASE_ORDER',
+          direction: 'OUTGOING', amount: 600000, currency: 'KES', provider: 'MPESA',
+          status: 'SUCCEEDED', createdAt: '2026-11-20T10:01:00Z', updatedAt: '2026-11-20T10:02:00Z',
+        }],
+      });
+
+    expect(service.findOrder('po-paid')?.paymentStatus).toBe('PAID');
+  });
 });

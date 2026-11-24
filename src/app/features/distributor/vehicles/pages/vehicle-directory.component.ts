@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { DistributorFleetService } from '../../fleet/fleet.service';
 import { VehicleStatus } from '../../fleet/fleet.models';
-import { trimmedRequired } from '../../../../core/forms/form-validators';
+import { kenyanRegistrationNumber, normalizeKenyanRegistrationNumber, trimmedRequired } from '../../../../core/forms/form-validators';
 import { finalize } from 'rxjs';
 
 @Component({
@@ -43,7 +43,7 @@ export class VehicleDirectoryComponent {
     model: ['', [trimmedRequired, Validators.maxLength(80)]],
     plate: [
       '',
-      [trimmedRequired, Validators.maxLength(20), Validators.pattern(/^[A-Za-z0-9 -]+$/)],
+      [trimmedRequired, kenyanRegistrationNumber],
     ],
   });
   protected open(): void {
@@ -58,7 +58,8 @@ export class VehicleDirectoryComponent {
       return;
     }
     this.saving.set(true);
-    this.fleet.createVehicle(this.form.getRawValue()).pipe(finalize(() => this.saving.set(false))).subscribe({
+    const vehicle = this.form.getRawValue();
+    this.fleet.createVehicle({ ...vehicle, plate: normalizeKenyanRegistrationNumber(vehicle.plate) }).pipe(finalize(() => this.saving.set(false))).subscribe({
       next: vehicle => { this.dialog.set(false); this.status.set('ALL'); this.filter.set(''); this.message.set(`${vehicle.plate} added to the fleet.`); },
       error: error => this.error.set(error?.error?.message ?? 'Vehicle could not be created.')
     });

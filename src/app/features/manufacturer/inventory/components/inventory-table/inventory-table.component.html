@@ -1,7 +1,7 @@
 <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
   <div class="overflow-x-auto">
-    <table class="w-full min-w-150 text-xs">
-      <thead class="bg-slate-50 text-left font-medium text-slate-600"><tr><th scope="col" class="px-4 py-3">Product Name / SKU</th><th scope="col" class="px-3 py-3 text-right">Total Stock</th><th scope="col" class="px-3 py-3 text-right">Reserved Holds</th><th scope="col" class="px-3 py-3 text-right">Available Net</th><th scope="col" class="px-4 py-3 text-right">Status Alerts</th></tr></thead>
+    <table class="w-full min-w-225 text-xs">
+      <thead class="bg-slate-50 text-left font-medium text-slate-600"><tr><th scope="col" class="px-4 py-3">Product Name / SKU</th><th scope="col" class="px-3 py-3 text-right">On hand</th><th scope="col" class="px-3 py-3 text-right">Reserved</th><th scope="col" class="px-3 py-3 text-right">Available</th><th scope="col" class="px-4 py-3 text-right">Status</th><th scope="col" class="px-4 py-3">Warehouse &amp; production</th></tr></thead>
       <tbody class="divide-y divide-slate-100">
         @for (row of rows(); track row.sku) {
           <tr class="text-slate-700 hover:bg-slate-50">
@@ -10,9 +10,23 @@
             <td class="whitespace-nowrap px-3 py-3 text-right">{{ row.reservedHolds | number }} Pcs</td>
             <td class="whitespace-nowrap px-3 py-3 text-right font-semibold text-slate-900">{{ row.availableNet | number }} Pcs</td>
             <td class="px-4 py-3 text-right"><span class="inline-flex whitespace-nowrap rounded border px-2 py-1 text-[9px] font-medium" [class]="row.alert === 'HEALTHY LEVEL' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-700'">{{ row.alert }}</span></td>
+            <td class="px-4 py-3">
+              <div class="flex min-w-80 flex-wrap items-center gap-2">
+                <span class="text-[10px] text-slate-600">{{ row.warehouseName || row.warehouseId || 'No warehouse association' }}</span>
+                <select [value]="selectedWarehouses()[row.stockItemId] || ''" (change)="selectWarehouse(row.stockItemId, $event)" class="h-8 rounded border border-slate-200 bg-white px-2 text-[10px]">
+                  <option value="">Select active warehouse</option>
+                  @for (warehouse of warehouses(); track warehouse.id) { @if (warehouse.status === 'ACTIVE') { <option [value]="warehouse.id">{{ warehouse.name }}</option> } }
+                </select>
+                <button type="button" (click)="associate.emit({ stockItemId: row.stockItemId, warehouseId: selectedWarehouses()[row.stockItemId] || '' })" [disabled]="!selectedWarehouses()[row.stockItemId]" class="h-8 rounded border border-slate-200 px-2 text-[10px] font-medium disabled:opacity-40">Associate</button>
+                <input type="number" min="1" step="1" [value]="quantities()[row.stockItemId] || ''" (input)="setQuantity(row.stockItemId, $event)" placeholder="Qty" aria-label="Production quantity" class="h-8 w-16 rounded border border-slate-200 px-2 text-[10px]" />
+                <input type="text" [value]="references()[row.stockItemId] || ''" (input)="setReference(row.stockItemId, $event)" placeholder="Lot reference" aria-label="Production source reference" class="h-8 w-28 rounded border border-slate-200 px-2 text-[10px]" />
+                <button type="button" (click)="intake.emit({ stockItemId: row.stockItemId, quantity: quantities()[row.stockItemId] || 0, sourceReference: references()[row.stockItemId] || '' })" [disabled]="!row.warehouseId" class="h-8 rounded bg-blue-600 px-2 text-[10px] font-medium text-white disabled:opacity-40">Record intake</button>
+                <button type="button" (click)="movements.emit(row.stockItemId)" class="h-8 rounded border border-slate-200 px-2 text-[10px] font-medium">Movements</button>
+              </div>
+            </td>
           </tr>
         } @empty {
-          <tr><td colspan="5" class="px-4 py-10 text-center text-xs text-slate-500">No inventory for this terminal and category.</td></tr>
+          <tr><td colspan="6" class="px-4 py-10 text-center text-xs text-slate-500">No inventory for this terminal and category.</td></tr>
         }
       </tbody>
     </table>

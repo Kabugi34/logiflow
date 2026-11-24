@@ -36,15 +36,20 @@ export class PaymentsPageComponent {
 
   constructor() {
     if (this.organizationType() === 'MANUFACTURER' || this.organizationType() === 'DISTRIBUTOR') {
-      this.payments.refreshTransactions(this.orderType());
+      this.refreshTransactions();
     }
+  }
+
+  protected refreshTransactions(): void {
+    const organizationType = this.organizationType();
+    if (organizationType) this.payments.refreshTransactions(this.orderType(), organizationType);
   }
 
   protected selectOrderType(orderType: PaymentOrderType): void {
     if (this.isManufacturer() && orderType !== 'PURCHASE_ORDER') return;
     this.orderType.set(orderType);
     this.statusFilter.set('ALL');
-    this.payments.refreshTransactions(orderType);
+    this.refreshTransactions();
   }
 
   protected updateStatus(event: Event): void {

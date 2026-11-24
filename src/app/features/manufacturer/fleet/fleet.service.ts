@@ -8,7 +8,7 @@ import { DriverAccountStatus, DriverOperationalStatus, FleetDriver, FleetVehicle
 const initialDrivers: FleetDriver[] = [];
 const initialVehicles: FleetVehicle[] = [];
 interface DriverDto { id: string; fullName?: string; name?: string; email: string; phoneNumber?: string; phone?: string; licenseNumber?: string; license?: string; nationalId?: string; licenseExpiryDate?: string; accountStatus?: DriverAccountStatus; operationalStatus?: DriverOperationalStatus; baseWarehouseId?: string | null; vehicleId?: string | null; activeTripId?: string | null; createdAt?: string; invitationStatus?: 'QUEUED' | 'SENT' | 'FAILED'; }
-interface VehicleDto { id: string; plate: string; type?: string; model?: string; maxWeightCapacity?: number; status?: string; condition?: VehicleCondition; driverId?: string | null; activeTripId?: string | null; }
+interface VehicleDto { id: string; plate?: string; registrationNumber?: string; type?: string; model?: string; maxWeightCapacity?: number; status?: string; condition?: VehicleCondition; driverId?: string | null; activeTripId?: string | null; }
 interface Page<T> { content?: T[]; }
 
 @Injectable({ providedIn: 'root' })
@@ -60,7 +60,7 @@ export class ManufacturerFleetService {
   }
 
   createVehicleApi(vehicle: NewFleetVehicle): Observable<FleetVehicle> {
-    return this.http.post<VehicleDto>(API_ENDPOINTS.manufacturer.vehicles, { plate: vehicle.plate.trim().toUpperCase(), type: vehicle.type.trim(), maxWeightCapacity: vehicle.maxWeightCapacity })
+    return this.http.post<VehicleDto>(API_ENDPOINTS.manufacturer.vehicles, { registrationNumber: vehicle.plate.trim().toUpperCase(), type: vehicle.type.trim(), maxWeightCapacity: vehicle.maxWeightCapacity })
       .pipe(map(row => this.mapVehicle(row)), tap(row => this.vehicleRecords.update(rows => [row, ...rows])));
   }
 
@@ -80,7 +80,7 @@ export class ManufacturerFleetService {
 
   private mapVehicle(row: VehicleDto): FleetVehicle {
     const status = row.status ?? 'AVAILABLE';
-    return { id: row.id, plate: row.plate, type: row.type ?? row.model ?? '', maxWeightCapacity: row.maxWeightCapacity ?? 0, condition: row.condition ?? (status === 'MAINTENANCE' || status === 'OUT_OF_SERVICE' ? status : 'READY'), assignedDriverId: row.driverId ?? null, currentTripId: row.activeTripId ?? null };
+    return { id: row.id, plate: row.plate ?? row.registrationNumber ?? '', type: row.type ?? row.model ?? '', maxWeightCapacity: row.maxWeightCapacity ?? 0, condition: row.condition ?? (status === 'MAINTENANCE' || status === 'OUT_OF_SERVICE' ? status : 'READY'), assignedDriverId: row.driverId ?? null, currentTripId: row.activeTripId ?? null };
   }
 
   readonly driverMetrics = computed(() => {

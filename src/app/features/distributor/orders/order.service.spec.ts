@@ -81,6 +81,19 @@ describe('DistributorOrderService', () => {
           paymentStatus: 'PAID',
           items: [],
         },
+        {
+          id: 'order-unknown',
+          orderNumber: 'ORD-002',
+          customerId: 'customer-2',
+          organizationId: 'distributor-1',
+          status: 'FULFILLMENT_REVIEW',
+          deliveryAddress: 'Nairobi',
+          subtotalAmount: 100,
+          totalAmount: 100,
+          placedAt: '2026-10-28T09:00:00Z',
+          paymentStatus: 'PAID',
+          items: [],
+        },
       ],
     });
   });
@@ -101,6 +114,10 @@ describe('DistributorOrderService', () => {
 
   it('does not list a scheduled trip with no matching customer order as an outbound shipment', () => {
     expect(service.groupOrdersByRoute().map((shipment) => shipment.id)).toEqual(['trip-1']);
+  });
+
+  it('keeps unrecognized customer order states explicit', () => {
+    expect(service.findById('order-unknown')?.status).toBe('UNKNOWN');
   });
 
   it('keeps failed, expired, reversed, and unknown payments distinct from pending', () => {

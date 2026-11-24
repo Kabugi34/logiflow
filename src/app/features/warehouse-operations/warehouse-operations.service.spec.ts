@@ -295,9 +295,29 @@ describe('WarehouseOperationsService', () => {
     );
 
     expect(service.orders()[0].lines[0].id).toBe(`${orderId}:0`);
+    expect(service.orders()[0].status).toBe('READY_TO_DISPATCH');
     expect(() => service.pickOrderItem(orderId, `${orderId}:0`, 1)).toThrow(
       /canonical order-item ID/,
     );
+  });
+
+  it('marks accepted manufacturer purchase orders ready for dispatch only after verified payment', () => {
+    service.synchronize(
+      [{ id: stockId, sku: 'SKU-1', name: 'Rice', onHand: 5 }],
+      [
+        {
+          id: 'paid-po', orderNumber: 'PO-PAID', status: 'ACCEPTED', paymentStatus: 'PAID',
+          lines: [{ sku: 'SKU-1', product: 'Rice', quantity: 2 }],
+        },
+        {
+          id: 'pending-po', orderNumber: 'PO-PENDING', status: 'ACCEPTED', paymentStatus: 'PENDING',
+          lines: [{ sku: 'SKU-1', product: 'Rice', quantity: 2 }],
+        },
+      ],
+      'MANUFACTURER',
+    );
+
+    expect(service.readyToDispatch().map((order) => order.id)).toEqual(['paid-po']);
   });
 
   it('gates warehouse work on verified payment and allocates no more than available stock', () => {

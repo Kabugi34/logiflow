@@ -207,7 +207,14 @@ export class DistributorOrderService {
     }
   }
   private toOrder(row: ApiOrder): CustomerOrder {
-    const status = row.status as CustomerOrder['status'];
+    const knownStatuses: CustomerOrder['status'][] = [
+      'PREPARING', 'IN_TRANSIT', 'REROUTED', 'COMPLETED', 'PENDING', 'CONFIRMED',
+      'PROCESSING', 'AWAITING_DISPATCH', 'DELIVERED', 'PARTIALLY_DELIVERED',
+      'CANCELLED', 'REFUNDED', 'FAILED',
+    ];
+    const status = knownStatuses.includes(row.status as CustomerOrder['status'])
+      ? row.status as CustomerOrder['status']
+      : 'UNKNOWN';
     const lines = (row.items ?? []).map((item) => ({
       orderItemId: item.id,
       stockItemId: item.stockItemId,
