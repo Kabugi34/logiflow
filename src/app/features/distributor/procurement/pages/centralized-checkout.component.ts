@@ -39,11 +39,11 @@ export class CentralizedCheckoutComponent {
     product: this.procurement.checkoutProducts().find((row) => row.productId === line.productId),
   })));
   protected readonly invalidCartRows = computed(() => this.cartRows().filter(({ line, product }) =>
-    line.quantity < 1 || !product || this.catalog.authorizationStatus(line.productId) !== 'APPROVED' || product.inStock === false || product.availableQuantity === 0 ||
+    line.quantity < 1 || !product || product.inStock === false || product.availableQuantity === 0 ||
     (product.availableQuantity !== null && line.quantity > product.availableQuantity),
   ));
   protected readonly suppliers = computed(() => {
-    const rows = this.cartRows().filter(({ line, product }) => !!product && this.catalog.authorizationStatus(line.productId) === 'APPROVED');
+    const rows = this.cartRows().filter(({ product }) => !!product);
     return [...new Set(rows.map(({ line }) => line.supplierOrganizationId))].map((id) => ({
       id,
       name: rows.find(({ line }) => line.supplierOrganizationId === id)?.line.supplierName ?? 'Supplier',

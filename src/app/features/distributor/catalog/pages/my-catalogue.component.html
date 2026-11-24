@@ -1,0 +1,59 @@
+<section class="space-y-6">
+  <header class="flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-4">
+    <div>
+      <nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-xs text-slate-400">
+        <a routerLink="/distributor/dashboard" class="hover:text-blue-600">LogiFlow</a>
+        <span aria-hidden="true">›</span><a routerLink="/distributor/catalog" class="hover:text-blue-600">Manufacturer products</a>
+        <span aria-hidden="true">›</span><span class="font-medium text-slate-600">My Catalogue</span>
+      </nav>
+      <h1 class="text-xl font-semibold text-slate-900">My Catalogue</h1>
+      <p class="mt-1 text-sm text-slate-500">List paid wholesale products for resale by setting your retail price. Product information is inherited, and sellable quantity comes from accepted receipts.</p>
+    </div>
+    <button type="button" (click)="refresh()" [disabled]="loading()" class="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 disabled:opacity-50">Refresh</button>
+  </header>
+
+  @if (error()) { <p role="alert" class="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">{{ error() }}</p> }
+  @if (loading()) { <p role="status" class="rounded border border-slate-200 bg-white p-5 text-sm text-slate-600">Loading reseller listings and eligible purchases…</p> }
+
+  <section aria-labelledby="eligible-heading" class="space-y-3">
+    <div><h2 id="eligible-heading" class="text-base font-semibold text-slate-900">Eligible purchased products</h2><p class="mt-1 text-xs text-slate-500">Backend-confirmed paid purchases are eligible to list. Payment does not increase sellable stock.</p></div>
+    <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      @for (product of eligibleProducts(); track product.manufacturerProductId) {
+        <article class="rounded-lg border border-slate-200 bg-white p-4">
+          <div class="flex gap-3">
+            <app-authenticated-image [src]="imageUrl(product)" [alt]="product.name" fallback="Product" fit="cover" class="h-16 w-16 shrink-0 rounded border border-slate-200" />
+            <div class="min-w-0"><h3 class="text-sm font-semibold text-slate-900">{{ product.name }}</h3><p class="mt-1 text-xs text-slate-600">{{ product.manufacturerName }}</p><p class="mt-1 text-[11px] text-slate-500">{{ product.category || 'Uncategorized' }}@if (product.brand) { · {{ product.brand }}}</p></div>
+          </div>
+          @if (product.description) { <p class="mt-3 line-clamp-3 text-xs leading-5 text-slate-600">{{ product.description }}</p> }
+          <div class="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 text-xs"><span class="text-slate-500">Accepted receipts</span><span class="font-semibold text-slate-800">{{ product.acceptedQuantity }}</span></div>
+          @if (listingFor(product); as listing) {
+            <a [routerLink]="['/distributor/catalog/my', listing.id]" class="mt-3 inline-flex text-xs font-medium text-blue-700">Manage existing listing</a>
+          } @else if (product.alreadyListed) {
+            <p class="mt-3 text-xs text-amber-700">Already listed. Refresh to load its listing details.</p>
+          } @else {
+            <a [routerLink]="['/distributor/catalog/my/new']" [queryParams]="{ productId: product.manufacturerProductId }" class="mt-3 inline-flex rounded bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700">Set retail price</a>
+          }
+        </article>
+      } @empty {
+        @if (!loading()) { <p class="rounded-lg border border-slate-200 bg-white p-5 text-sm text-slate-600">No paid wholesale products are currently eligible for resale.</p> }
+      }
+    </div>
+  </section>
+
+  <section aria-labelledby="listings-heading" class="space-y-3">
+    <div><h2 id="listings-heading" class="text-base font-semibold text-slate-900">Your reseller listings</h2><p class="mt-1 text-xs text-slate-500">Prices and availability are read from the backend. Archived listings remain in history.</p></div>
+    <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <div class="overflow-x-auto"><table class="w-full min-w-[760px] text-left text-xs">
+        <thead class="bg-slate-50 text-slate-600"><tr><th class="px-4 py-3">Product</th><th class="px-3 py-3">Manufacturer</th><th class="px-3 py-3 text-right">Retail price</th><th class="px-3 py-3 text-right">Accepted</th><th class="px-3 py-3 text-right">Reserved</th><th class="px-3 py-3 text-right">Available</th><th class="px-3 py-3">State</th><th class="px-3 py-3">Manage</th></tr></thead>
+        <tbody class="divide-y divide-slate-100">
+          @for (listing of listings(); track listing.id) {
+            <tr><td class="px-4 py-3"><span class="font-medium text-slate-900">{{ listing.productName }}</span><span class="mt-1 block text-[10px] text-slate-500">{{ listing.category || 'Uncategorized' }}@if (listing.brand) { · {{ listing.brand }}}</span></td><td class="px-3 py-3">{{ listing.manufacturerName }}</td><td class="px-3 py-3 text-right font-semibold">{{ listing.retailPrice | currency: listing.currency : 'symbol' : '1.2-2' }}</td><td class="px-3 py-3 text-right">{{ acceptedQuantity(listing) }}</td><td class="px-3 py-3 text-right">{{ listing.reservedQuantity }}</td><td class="px-3 py-3 text-right font-semibold" [class.text-red-700]="listing.availableQuantity <= 0">{{ listing.availableQuantity }}</td><td class="px-3 py-3"><span class="rounded border px-2 py-1" [class.border-emerald-200]="listing.status === 'ACTIVE' && listing.availability === 'IN_STOCK'" [class.bg-emerald-50]="listing.status === 'ACTIVE' && listing.availability === 'IN_STOCK'" [class.text-emerald-700]="listing.status === 'ACTIVE' && listing.availability === 'IN_STOCK'" [class.border-amber-200]="listing.status === 'ACTIVE' && listing.availability === 'OUT_OF_STOCK'" [class.bg-amber-50]="listing.status === 'ACTIVE' && listing.availability === 'OUT_OF_STOCK'" [class.text-amber-800]="listing.status === 'ACTIVE' && listing.availability === 'OUT_OF_STOCK'" [class.border-slate-200]="listing.status !== 'ACTIVE' || listing.availability === 'UNKNOWN'" [class.bg-slate-50]="listing.status !== 'ACTIVE' || listing.availability === 'UNKNOWN'" [class.text-slate-700]="listing.status !== 'ACTIVE' || listing.availability === 'UNKNOWN'">{{ listing.status }} · {{ listing.availability === 'OUT_OF_STOCK' ? 'OUT OF STOCK' : listing.availability === 'IN_STOCK' ? 'IN STOCK' : 'UNKNOWN AVAILABILITY' }}</span></td><td class="px-3 py-3"><a [routerLink]="['/distributor/catalog/my', listing.id]" class="font-medium text-blue-700">Details</a></td></tr>
+          } @empty {
+            @if (!loading()) { <tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">You have no reseller listings yet.</td></tr> }
+          }
+        </tbody>
+      </table></div>
+    </div>
+  </section>
+</section>
+

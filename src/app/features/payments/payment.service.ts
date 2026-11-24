@@ -71,7 +71,6 @@ export class PaymentService {
   private readonly records = signal<PaymentTransaction[]>([]);
   private readonly requests = new Map<string, Observable<PaymentInitiationResult>>();
   private readonly pendingOrders = new Set<string>();
-  private historyRequestId = 0;
   readonly transactions = this.records.asReadonly();
   readonly loading = signal(false);
   readonly error = signal('');
@@ -80,17 +79,17 @@ export class PaymentService {
     orderType: PaymentOrderType,
     organizationType: OrganizationType = 'DISTRIBUTOR',
   ): void {
-    const requestId = ++this.historyRequestId;
+    // A history load can fan out into one request per purchase order. Ignore
+    // repeat refreshes until that batch settles instead of duplicating it.
+    if (this.loading()) return;
     this.loading.set(true);
     this.error.set('');
     this.fetchTransactions(orderType, undefined, organizationType).subscribe({
       next: (rows) => {
-        if (requestId !== this.historyRequestId) return;
         this.records.set(rows);
         this.loading.set(false);
       },
       error: (error: unknown) => {
-        if (requestId !== this.historyRequestId) return;
         this.error.set(
           this.errorMessage(error, 'Payment transactions could not be loaded from the API.'),
         );

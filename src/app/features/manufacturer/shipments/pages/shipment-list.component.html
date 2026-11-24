@@ -11,7 +11,7 @@
     </nav>
     <div class="flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 class="text-xl font-semibold text-slate-900">Consolidated Shipments</h1>
+        <h1 class="text-xl font-semibold text-slate-900">Individual Consignments &amp; Consolidations</h1>
         <p class="mt-1 text-sm text-slate-500">
           Create and track purchase order shipments. Driver and vehicle assignments belong to separate trips.
         </p>
@@ -21,7 +21,7 @@
         (click)="openAllocation()"
         class="h-9 rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700"
       >
-        + Allocate Shipment
+        + Create Consignment
       </button>
     </div>
   </header>
@@ -40,6 +40,7 @@
     >
       <option value="ACTIVE">Status: All Active</option>
       <option value="ALL">All statuses</option>
+      <option value="AWAITING_PICKING">Awaiting picking</option>
       <option value="DELIVERED">Delivered</option>
       <option value="READY_FOR_DISPATCH">Ready for dispatch</option>
       <option value="IN_TRANSIT">In transit</option>
@@ -128,7 +129,7 @@
             Allocate Shipment
           </h2>
           <p class="mt-1 text-xs text-slate-500">
-            Create a dispatch from an existing distributor purchase order.
+            Create an individual consignment for an eligible purchase order. Dispatch occurs through a trip.
           </p>
         </div>
         <button
@@ -148,13 +149,13 @@
         <app-form-validation-summary [form]="form" />
         <label class="space-y-1"
           ><span class="block text-xs font-medium text-slate-700"
-            >Accepted and paid Purchase Order</span
+            >Ready for dispatch Purchase Order</span
           ><select
             formControlName="poReference"
             (change)="updateOrderDefaults()"
             class="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-xs"
           >
-            <option value="">Choose an accepted, paid PO</option>
+            <option value="">Choose a paid, fully picked and packed PO</option>
             @for (order of dispatchableOrders(); track order.id) {
               <option [value]="order.id">{{ order.id }} · {{ order.distributorName }}</option>
             }
@@ -174,6 +175,7 @@
             [placeholder]="destinationFromOrder() ? '' : 'Destination warehouse ID unavailable from the purchase order'"
             class="h-9 w-full rounded-md border border-slate-200 px-2 text-xs"
         /></label>
+        <label class="space-y-1"><span class="block text-xs font-medium text-slate-700">Tracking number (optional)</span><input formControlName="trackingNumber" class="h-9 w-full rounded-md border border-slate-200 px-2 text-xs" /></label>
         @if (!destinationFromOrder()) {
           <p class="text-[10px] text-amber-700 sm:col-span-2">Shipment allocation is blocked until the PO API returns the destination selected during Distributor checkout.</p>
         }
@@ -200,7 +202,7 @@
             [disabled]="saving() || !destinationFromOrder()"
             class="h-9 rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            Create Dispatch
+            Create Consignment
           </button>
         </div>
       </form>

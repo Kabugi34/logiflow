@@ -44,6 +44,14 @@ describe('ManufacturerPurchaseOrderService', () => {
           submittedAt: '2026-10-28T09:00:00Z',
           items: [],
         },
+        {
+          id: 'unknown-status-po',
+          purchaseOrderNumber: 'MPO-4',
+          buyerOrganizationId: 'distributor-1',
+          status: 'PROCESSING',
+          submittedAt: '2026-10-28T09:00:00Z',
+          items: [],
+        },
       ],
     });
     httpTesting
@@ -75,6 +83,7 @@ describe('ManufacturerPurchaseOrderService', () => {
       'PAID',
       'UNKNOWN',
       'FAILED',
+      'UNKNOWN',
     ]);
     expect(service.orders()[0]).toMatchObject({
       destinationWarehouseId: 'distributor-warehouse-1',
@@ -86,5 +95,9 @@ describe('ManufacturerPurchaseOrderService', () => {
         mode: 'MPESA',
       },
     });
+  });
+
+  it('does not coerce an unrecognized purchase-order state to pending approval', () => {
+    expect(service.findById('unknown-status-po')?.status).toBe('UNKNOWN');
   });
 });

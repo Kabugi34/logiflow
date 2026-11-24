@@ -62,6 +62,11 @@ describe('DistributorProcurementService', () => {
     ).not.toThrow();
   });
 
+  it('allows published products into centralized checkout without legacy authorization approval', () => {
+    expect(authorizationStatus()).toBe('NONE');
+    expect(service.checkoutProducts().map((product) => product.productId)).toEqual(['product-1']);
+  });
+
   it('updates a purchase to paid from backend-confirmed per-order payment history', () => {
     service.refreshOrders();
     httpTesting.expectOne(API_ENDPOINTS.distributor.purchaseOrders).flush({

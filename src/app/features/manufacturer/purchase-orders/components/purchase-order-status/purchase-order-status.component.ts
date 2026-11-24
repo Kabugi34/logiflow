@@ -16,10 +16,11 @@ export class PurchaseOrderStatusComponent {
       case 'REJECTED': return 'border-red-200 bg-red-50 text-red-700';
       case 'CANCELLED': return 'border-slate-200 bg-slate-50 text-slate-600';
       case 'FULFILLED': return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      case 'UNKNOWN': return 'border-slate-200 bg-slate-50 text-slate-600';
     }
   }
 
   protected statusLabel(): string {
-    return this.status();
+    return this.status() === 'UNKNOWN' ? 'UNKNOWN STATUS' : this.status();
   }
 }

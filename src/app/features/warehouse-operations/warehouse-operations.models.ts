@@ -34,9 +34,10 @@ export interface WarehouseReceiptLine {
   stockItemId: string;
   product: string;
   expected: number;
-  accepted: number;
-  damaged: number;
-  missing: number;
+  accepted?: number;
+  damaged?: number;
+  missing?: number;
+  dispatched?: number;
 }
 
 export interface WarehouseReceipt {
@@ -44,6 +45,7 @@ export interface WarehouseReceipt {
   shipmentId: string;
   shipmentStatus: string;
   reference: string;
+  manufacturerName?: string;
   sku: string;
   product: string;
   expected: number;

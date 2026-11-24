@@ -9,6 +9,7 @@ export interface NewShipment {
   poReference: string;
   destination: string;
   freightDetails: string;
+  trackingNumber?: string;
 }
 interface Page<T> {
   content?: T[];
@@ -71,7 +72,7 @@ export class ManufacturerShipmentService {
 
   create(shipment: NewShipment) {
     const order = this.purchaseOrders.findById(shipment.poReference);
-    if (!order || order.status !== 'ACCEPTED' || order.paymentStatus !== 'PAID') {
+    if (!order || order.status !== 'ACCEPTED' || order.paymentStatus !== 'PAID' || order.fulfilmentStatus !== 'READY_FOR_DISPATCH') {
       return throwError(
         () =>
           new Error(
@@ -83,6 +84,7 @@ export class ManufacturerShipmentService {
       purchaseOrderId: shipment.poReference,
       destinationWarehouseId: shipment.destination,
       carrier: shipment.freightDetails || undefined,
+      trackingNumber: shipment.trackingNumber?.trim() || undefined,
     }).pipe(map((row) => this.mapShipment(row)));
   }
 

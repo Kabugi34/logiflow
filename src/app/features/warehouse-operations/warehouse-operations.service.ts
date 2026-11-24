@@ -28,6 +28,8 @@ interface ApiShipment {
   id: string;
   purchaseOrderNumber: string;
   status: string;
+  manufacturerOrganizationName?: string | null;
+  manufacturerName?: string | null;
   receiptLines: {
     purchaseOrderItemId: string;
     stockItemId: string;
@@ -36,6 +38,7 @@ interface ApiShipment {
     acceptedQuantity?: number;
     damagedQuantity?: number;
     missingQuantity?: number;
+    dispatchedQuantity?: number;
   }[];
 }
 
@@ -424,9 +427,10 @@ export class WarehouseOperationsService {
       stockItemId: line.stockItemId,
       product: line.productName,
       expected: line.expectedQuantity,
-      accepted: line.acceptedQuantity ?? line.expectedQuantity,
-      damaged: line.damagedQuantity ?? 0,
-      missing: line.missingQuantity ?? 0,
+      accepted: shipment.status === 'RECEIVED' ? line.acceptedQuantity ?? 0 : undefined,
+      damaged: shipment.status === 'RECEIVED' ? line.damagedQuantity ?? 0 : undefined,
+      missing: shipment.status === 'RECEIVED' ? line.missingQuantity ?? 0 : undefined,
+      dispatched: line.dispatchedQuantity,
     }));
     const received = shipment.status === 'RECEIVED';
     return {
@@ -434,13 +438,14 @@ export class WarehouseOperationsService {
       shipmentId: shipment.id,
       shipmentStatus: shipment.status,
       reference: shipment.purchaseOrderNumber,
+      manufacturerName: shipment.manufacturerOrganizationName ?? shipment.manufacturerName ?? undefined,
       sku: '',
       product: lines.map((line) => line.product).join(', '),
       expected: lines.reduce((sum, line) => sum + line.expected, 0),
       status: received ? 'RECEIVED' : 'PENDING',
-      accepted: received ? lines.reduce((sum, line) => sum + line.accepted, 0) : undefined,
-      damaged: received ? lines.reduce((sum, line) => sum + line.damaged, 0) : undefined,
-      missing: received ? lines.reduce((sum, line) => sum + line.missing, 0) : undefined,
+      accepted: received ? lines.reduce((sum, line) => sum + (line.accepted ?? 0), 0) : undefined,
+      damaged: received ? lines.reduce((sum, line) => sum + (line.damaged ?? 0), 0) : undefined,
+      missing: received ? lines.reduce((sum, line) => sum + (line.missing ?? 0), 0) : undefined,
       lines,
     };
   }

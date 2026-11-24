@@ -20,5 +20,15 @@
   @if (auditMessage()) { <p role="status" class="text-xs text-slate-600">{{ auditMessage() }}</p> }
   @if (inventoryService.loading()) { <app-loading-skeleton variant="cards" [rows]="4" /> <app-loading-skeleton [rows]="6" [columns]="5" /> }
   @if (inventoryService.error()) { <p role="alert" class="text-xs text-red-600">{{ inventoryService.error() }}</p> }
-  <app-inventory-table [rows]="rows()" />
+  @if (operationMessage()) { <p role="status" class="rounded-md border border-slate-200 bg-white p-3 text-xs text-slate-700">{{ operationMessage() }}</p> }
+  @if (operationBusy()) { <p role="status" class="text-xs text-blue-700">Saving inventory operation…</p> }
+  <app-inventory-table [rows]="rows()" [warehouses]="inventoryService.warehouseService.warehouses()" (associate)="associateWarehouse($event)" (intake)="recordIntake($event)" (movements)="showMovements($event)" />
+  @if (movementItemId()) {
+    <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <h2 class="border-b border-slate-200 px-4 py-3 text-sm font-semibold text-slate-900">Movement history · {{ movementItemId() }}</h2>
+      <div class="overflow-x-auto"><table class="w-full min-w-150 text-xs"><thead class="bg-slate-50 text-left"><tr><th class="px-3 py-2">Movement</th><th class="px-3 py-2">Quantity</th><th class="px-3 py-2">Source</th><th class="px-3 py-2">Status</th><th class="px-3 py-2">Date</th></tr></thead><tbody class="divide-y divide-slate-100">
+        @for (movement of movementRows(); track movement.id) { <tr><td class="px-3 py-2">{{ movement.movementType }}</td><td class="px-3 py-2">{{ movement.quantity ?? movement.quantityDelta ?? '—' }}</td><td class="px-3 py-2">{{ movement.sourceReference ?? movement.reference ?? movement.note ?? '—' }}</td><td class="px-3 py-2">{{ movement.status ?? '—' }}</td><td class="px-3 py-2">{{ movement.createdAt ?? '—' }}</td></tr> } @empty { <tr><td colspan="5" class="px-3 py-5 text-center text-slate-500">No movements returned for this stock item.</td></tr> }
+      </tbody></table></div>
+    </section>
+  }
 </section>

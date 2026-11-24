@@ -22,6 +22,7 @@ export class OrderListComponent {
     { value: 'IN_TRANSIT', label: 'In Transit' },
     { value: 'REROUTED', label: 'Rerouted' },
     { value: 'COMPLETED', label: 'Completed' },
+    { value: 'UNKNOWN', label: 'Unknown status' },
   ];
   protected readonly paymentOptions: { value: 'ALL' | PaymentStatus; label: string }[] = [
     { value: 'ALL', label: 'All' },

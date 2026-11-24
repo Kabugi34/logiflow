@@ -1,7 +1,7 @@
 import { LogisticsRoutePoint } from '../../../core/logistics/logistics.models';
 import { PaymentStatus } from '../../../core/models/payment.model';
 
-export type ProcurementStatus = 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'FULFILLED';
+export type ProcurementStatus = 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'FULFILLED' | 'UNKNOWN';
 
 export interface ProcurementManufacturer {
   id: string;

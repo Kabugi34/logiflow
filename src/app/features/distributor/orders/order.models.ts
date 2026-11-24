@@ -11,7 +11,8 @@ export type CustomerOrderStatus =
   | 'PARTIALLY_DELIVERED'
   | 'CANCELLED'
   | 'REFUNDED'
-  | 'FAILED';
+  | 'FAILED'
+  | 'UNKNOWN';
 export type { PaymentStatus } from '../../../core/models/payment.model';
 export type DeliveryStatus = 'UNASSIGNED' | 'ON_ROUTE' | 'HOLD' | 'DELIVERED' | 'UNKNOWN';
 export type OrderBadgeValue = CustomerOrderStatus | PaymentStatus | DeliveryStatus;

@@ -8,7 +8,7 @@ import {
   PurchaseOrderStatus,
   PurchasePaymentStatus,
 } from './purchase-order.models';
-import { Observable, forkJoin, map, tap } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, tap } from 'rxjs';
 import { PaymentService } from '../../payments/payment.service';
 
 interface ApiPo {
@@ -30,12 +30,16 @@ interface ApiPo {
   rejectionReason?: string | null;
   reviewedAt?: string | null;
   fulfilledAt?: string | null;
-  items: { sku: string; name: string; quantity: number; unitPrice: number }[];
+  fulfilmentStatus?: string | null;
+  packageCount?: number;
+  items: { id?: string; purchaseOrderItemId?: string; stockItemId?: string; sku: string; name: string; quantity: number; pickedQuantity?: number; packedQuantity?: number; unitPrice: number }[];
 }
 interface ApiPage<T> {
   content?: T[];
 }
 interface ApiStock {
+  id?: string;
+  stockItemId?: string;
   sku: string;
   quantityOnHand: number;
   reservedQuantity?: number;
@@ -47,6 +51,7 @@ export class ManufacturerPurchaseOrderService {
   private readonly auth = inject(AuthService);
   private readonly payments = inject(PaymentService);
   private readonly records = signal<ManufacturerPurchaseOrder[]>([]);
+  private stockRecords: ApiStock[] = [];
   readonly orders = this.records.asReadonly();
   readonly loading = signal(false);
   readonly error = signal('');
@@ -58,6 +63,7 @@ export class ManufacturerPurchaseOrderService {
       REJECTED: rows.filter((row) => row.status === 'REJECTED').length,
       CANCELLED: rows.filter((row) => row.status === 'CANCELLED').length,
       FULFILLED: rows.filter((row) => row.status === 'FULFILLED').length,
+      UNKNOWN: rows.filter((row) => row.status === 'UNKNOWN').length,
     } satisfies Record<PurchaseOrderStatus, number>;
   });
 
@@ -72,15 +78,16 @@ export class ManufacturerPurchaseOrderService {
       orders: this.http.get<ApiPage<ApiPo> | ApiPo[]>(API_ENDPOINTS.manufacturer.purchaseOrders),
       stock: this.http.get<ApiPage<ApiStock> | ApiStock[]>(
         `${API_ENDPOINTS.manufacturer.stockItems}?size=100`,
-      ),
+      ).pipe(catchError(() => of([] as ApiStock[]))),
     }).subscribe({
       next: ({ orders, stock }) => {
         const page = Array.isArray(orders) ? orders : (orders.content ?? []);
         const stockRows = Array.isArray(stock) ? stock : (stock.content ?? []);
+        this.stockRecords = stockRows;
         const mappedOrders = page.map((row) => this.mapOrder(row, stockRows));
         this.records.set(mappedOrders);
         for (const order of mappedOrders) {
-          if (order.status === 'ACCEPTED') this.refreshPaymentStatus(order.id);
+          if (order.status === 'ACCEPTED' || order.status === 'FULFILLED') this.refreshPaymentStatus(order.id);
         }
         this.error.set('');
         this.loading.set(false);
@@ -110,17 +117,34 @@ export class ManufacturerPurchaseOrderService {
       );
   }
 
+  retryFulfilment(id: string): Observable<ApiPo> {
+    return this.http.post<ApiPo>(API_ENDPOINTS.manufacturer.purchaseOrderFulfilmentRetry(id), {})
+      .pipe(tap(() => { this.refreshPurchaseOrder(id); this.refreshStock(); }));
+  }
+
+  pickLine(id: string, purchaseOrderItemId: string, pickedQuantity: number): Observable<ApiPo> {
+    if (!Number.isSafeInteger(pickedQuantity) || pickedQuantity < 0) throw new Error('Picked quantity must be a non-negative whole number.');
+    return this.http.patch<ApiPo>(API_ENDPOINTS.manufacturer.purchaseOrderPick(id), { purchaseOrderItemId, pickedQuantity })
+      .pipe(tap(() => { this.refreshPurchaseOrder(id); this.refreshStock(); }));
+  }
+
+  packOrder(id: string, packageCount: number, lines: { purchaseOrderItemId: string; packedQuantity: number }[]): Observable<ApiPo> {
+    if (!Number.isSafeInteger(packageCount) || packageCount < 1) throw new Error('Package count must be a positive whole number.');
+    if (!lines.length || lines.some(line => !line.purchaseOrderItemId || !Number.isSafeInteger(line.packedQuantity) || line.packedQuantity < 0)) throw new Error('Provide valid packed quantities for every purchase-order line.');
+    return this.http.patch<ApiPo>(API_ENDPOINTS.manufacturer.purchaseOrderPack(id), { packageCount, lines })
+      .pipe(tap(() => { this.refreshPurchaseOrder(id); this.refreshStock(); }));
+  }
+
   private mapOrder(row: ApiPo, stock: ApiStock[]): ManufacturerPurchaseOrder {
-    const status: PurchaseOrderStatus =
-      row.status === 'APPROVED'
-        ? 'ACCEPTED'
-        : row.status === 'FULFILLED'
-          ? 'FULFILLED'
-          : row.status === 'REJECTED'
-            ? 'REJECTED'
-            : row.status === 'CANCELLED'
-              ? 'CANCELLED'
-            : 'PENDING';
+    const status: PurchaseOrderStatus = ({
+      SUBMITTED: 'PENDING',
+      PENDING: 'PENDING',
+      APPROVED: 'ACCEPTED',
+      ACCEPTED: 'ACCEPTED',
+      FULFILLED: 'FULFILLED',
+      REJECTED: 'REJECTED',
+      CANCELLED: 'CANCELLED',
+    } as Record<string, PurchaseOrderStatus>)[row.status] ?? 'UNKNOWN';
     return {
       id: row.id,
       distributorName:
@@ -138,24 +162,55 @@ export class ManufacturerPurchaseOrderService {
       destinationWarehouseId: row.destinationWarehouseId?.trim() || undefined,
       issueDate: row.submittedAt,
       status,
+      purchaseOrderNumber: row.purchaseOrderNumber,
+      fulfilmentStatus: this.mapFulfilmentStatus(row.fulfilmentStatus),
+      packageCount: row.packageCount,
       paymentStatus: this.mapPaymentStatus(
         row.paymentStatus,
       ),
       lines: (row.items ?? []).map((item) => {
-        const matching = stock.find((stockItem) => stockItem.sku === item.sku);
+        const lineId = item.purchaseOrderItemId ?? item.id;
+        const matching = item.stockItemId ? stock.find(stockItem => stockItem.id === item.stockItemId || stockItem.stockItemId === item.stockItemId) : undefined;
         return {
           productName: item.name,
           sku: item.sku,
           requestedQuantity: item.quantity,
-          availableStock:
-            matching?.availableQuantity ??
-            Math.max(0, (matching?.quantityOnHand ?? 0) - (matching?.reservedQuantity ?? 0)),
+          availableStock: matching?.availableQuantity ?? 0,
+          purchaseOrderItemId: lineId,
+          stockItemId: item.stockItemId,
+          pickedQuantity: item.pickedQuantity ?? 0,
+          packedQuantity: item.packedQuantity ?? 0,
           unitPrice: item.unitPrice,
           unit: 'Pcs',
         };
       }),
       timeline: [],
     };
+  }
+
+  private mapFulfilmentStatus(status: string | null | undefined): ManufacturerPurchaseOrder['fulfilmentStatus'] {
+    switch (status) {
+      case 'INVENTORY_EXCEPTION': case 'READY_FOR_PICKING': case 'PICKING': case 'READY_FOR_DISPATCH': return status;
+      default: return 'UNKNOWN';
+    }
+  }
+
+  private refreshStock(): void {
+    this.http.get<ApiPage<ApiStock> | ApiStock[]>(`${API_ENDPOINTS.manufacturer.stockItems}?size=100`).subscribe({
+      next: response => { this.stockRecords = Array.isArray(response) ? response : response.content ?? []; },
+    });
+  }
+
+  private refreshPurchaseOrder(id: string): void {
+    this.http.get<ApiPo>(API_ENDPOINTS.manufacturer.purchaseOrder(id)).subscribe({
+      next: row => {
+        const mapped = this.mapOrder(row, this.stockRecords);
+        this.records.update(rows => rows.some(order => order.id === id)
+          ? rows.map(order => order.id === id ? mapped : order)
+          : [mapped, ...rows]);
+      },
+      error: () => this.refresh(),
+    });
   }
 
   private mapPaymentStatus(status: string | null | undefined): PurchasePaymentStatus {

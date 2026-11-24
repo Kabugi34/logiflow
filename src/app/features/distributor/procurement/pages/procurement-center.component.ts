@@ -57,6 +57,8 @@ export class ProcurementCenterComponent implements OnInit {
         return 'border-slate-200 bg-slate-50 text-slate-600';
       case 'REJECTED':
         return 'border-red-200 bg-red-50 text-red-700';
+      case 'UNKNOWN':
+        return 'border-slate-200 bg-slate-50 text-slate-600';
     }
   }
 

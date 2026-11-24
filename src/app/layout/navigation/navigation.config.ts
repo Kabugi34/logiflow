@@ -104,6 +104,11 @@ export const distributorNavigation: NavigationItem[] = [
     icon: 'package',
   },
   {
+    label: 'My Catalogue',
+    route: '/distributor/catalog/my',
+    icon: 'layers',
+  },
+  {
     label: 'Inventory',
     route: '/distributor/inventory',
     icon: 'layers',

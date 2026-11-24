@@ -7,8 +7,8 @@
 
   @if (!checkout()) {
     @if (invalidCartRows().length) {
-      <p role="alert" class="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Enter a quantity for every product and remove or update any unavailable, unauthorized, or overstocked lines before checkout.</p>
-      @for (row of invalidCartRows(); track row.line.productId) { @if (!row.product || catalog.authorizationStatus(row.line.productId) !== 'APPROVED') { <div class="flex items-center justify-between rounded border border-amber-200 bg-white px-4 py-3"><div><p class="text-sm font-medium">{{ row.line.name }} · {{ row.line.sku }}</p><p class="text-xs text-amber-800">No longer available or authorized for purchase.</p></div><button type="button" (click)="removeProduct(row.line)" class="text-xs font-medium text-red-700">Remove</button></div> } }
+      <p role="alert" class="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Enter a quantity for every product and remove or update any unavailable or overstocked lines before checkout.</p>
+      @for (row of invalidCartRows(); track row.line.productId) { @if (!row.product) { <div class="flex items-center justify-between rounded border border-amber-200 bg-white px-4 py-3"><div><p class="text-sm font-medium">{{ row.line.name }} · {{ row.line.sku }}</p><p class="text-xs text-amber-800">Product is no longer available for checkout.</p></div><button type="button" (click)="removeProduct(row.line)" class="text-xs font-medium text-red-700">Remove</button></div> } }
     }
     @for (supplier of suppliers(); track supplier.id) {
       <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">

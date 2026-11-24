@@ -124,7 +124,7 @@ export class MasterCatalogComponent {
   }
   protected addToPurchaseCart(product: import('../catalog.models').DistributorCatalogProduct): void {
     const liveProduct = this.procurement.checkoutProducts().find((row) => row.productId === product.id);
-    if (product.authorizationStatus !== 'APPROVED' || !liveProduct) {
+    if (!liveProduct) {
       this.actionMessage.set('This product is not currently available for purchase. Refresh the catalog and try again.');
       return;
     }

@@ -168,6 +168,11 @@
           ><span class="text-xs">Site manager</span
           ><input formControlName="siteManager" class="h-9 w-full rounded border px-3 text-xs"
         /></label>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="block space-y-1"><span class="text-xs">Latitude (optional)</span><input type="number" step="any" formControlName="latitude" class="h-9 w-full rounded border px-3 text-xs" /></label>
+          <label class="block space-y-1"><span class="text-xs">Longitude (optional)</span><input type="number" step="any" formControlName="longitude" class="h-9 w-full rounded border px-3 text-xs" /></label>
+        </div>
+        <label class="block space-y-1"><span class="text-xs">Location description (optional)</span><input formControlName="locationDescription" placeholder="Gate, entrance, or site directions" class="h-9 w-full rounded border px-3 text-xs" /></label>
         @if (error()) {
           <p role="alert" class="text-xs text-red-600">{{ error() }}</p>
         }

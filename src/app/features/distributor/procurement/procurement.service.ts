@@ -80,7 +80,6 @@ export class DistributorProcurementService {
     [
       ...new Set(
         this.productRecords()
-          .filter((product) => this.catalog.authorizationStatus(product.productId) === 'APPROVED')
           .map((product) => product.organizationId),
       ),
     ].map((id) => ({
@@ -210,9 +209,9 @@ export class DistributorProcurementService {
     );
   }
   checkoutProducts(): ProcurementProduct[] {
-    return this.productRecords().filter(
-      (product) => this.catalog.authorizationStatus(product.productId) === 'APPROVED',
-    );
+    // Centralized wholesale checkout is purchase based. Authorization requests
+    // remain available as a separate legacy distribution workflow.
+    return this.productRecords();
   }
   findOrder(id: string): DistributorPurchaseOrder | undefined {
     return this.orderRecords().find((order) => order.id === id);
@@ -281,7 +280,7 @@ export class DistributorProcurementService {
   private toPurchaseOrder(po: ApiPo): DistributorPurchaseOrder {
     const status = ['SUBMITTED', 'APPROVED', 'REJECTED', 'CANCELLED', 'FULFILLED'].includes(po.status)
       ? po.status as DistributorPurchaseOrder['status']
-      : 'SUBMITTED';
+      : 'UNKNOWN';
     const lines: ProcurementOrderLine[] = (po.items ?? []).map((item) => ({
       sku: item.sku,
       productName: item.name,

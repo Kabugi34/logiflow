@@ -26,7 +26,7 @@ export class ShipmentListComponent {
   protected readonly dispatchableOrders = computed(() =>
     this.purchaseOrderService
       .orders()
-      .filter((order) => order.status === 'ACCEPTED' && order.paymentStatus === 'PAID'),
+      .filter((order) => order.status === 'ACCEPTED' && order.paymentStatus === 'PAID' && order.fulfilmentStatus === 'READY_FOR_DISPATCH'),
   );
   protected readonly shipments = computed(() =>
     this.shipmentService.shipments().filter((shipment) => {
@@ -43,6 +43,7 @@ export class ShipmentListComponent {
     poReference: ['', trimmedRequired],
     destination: ['', [trimmedRequired, Validators.pattern(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)]],
     freightDetails: ['', Validators.maxLength(100)],
+    trackingNumber: ['', Validators.maxLength(100)],
   });
 
   protected setStatus(event: Event): void {
@@ -56,6 +57,7 @@ export class ShipmentListComponent {
       poReference: firstOrderId,
       destination: '',
       freightDetails: '',
+      trackingNumber: '',
     });
     this.updateOrderDefaults();
     this.isAllocationOpen.set(true);
@@ -92,9 +94,9 @@ export class ShipmentListComponent {
       );
       return;
     }
-    if (order.status !== 'ACCEPTED' || order.paymentStatus !== 'PAID') {
+    if (order.status !== 'ACCEPTED' || order.paymentStatus !== 'PAID' || order.fulfilmentStatus !== 'READY_FOR_DISPATCH') {
       this.allocationError.set(
-        'The purchase order must be accepted and payment must be backend-confirmed before shipment allocation.',
+        'The purchase order must be approved, payment-verified, and fully picked and packed before consignment creation.',
       );
       return;
     }
@@ -104,6 +106,7 @@ export class ShipmentListComponent {
         poReference: this.form.controls.poReference.value,
         destination: this.form.controls.destination.value,
         freightDetails: this.form.controls.freightDetails.value,
+        trackingNumber: this.form.controls.trackingNumber.value,
       })
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
@@ -124,8 +127,7 @@ export class ShipmentListComponent {
 
   protected statusLabel(status: ShipmentStatus): string {
     switch (status) {
-      case 'BORDER_HOLD':
-        return 'BORDER HOLD';
+      case 'AWAITING_PICKING': return 'AWAITING PICKING';
       case 'READY_FOR_DISPATCH':
         return 'READY FOR DISPATCH';
       case 'RECEIVED':
@@ -143,8 +145,7 @@ export class ShipmentListComponent {
 
   protected statusClass(status: ShipmentStatus): string {
     switch (status) {
-      case 'BORDER_HOLD':
-        return 'border-red-200 bg-red-50 text-red-700';
+      case 'AWAITING_PICKING': return 'border-amber-200 bg-amber-50 text-amber-700';
       case 'READY_FOR_DISPATCH':
         return 'border-blue-200 bg-blue-50 text-blue-700';
       case 'RECEIVED':

@@ -7,11 +7,13 @@ interface WarehouseDto {
   id: string; code?: string; name: string; address: string; city?: string | null; postalCode?: string | null;
   siteManager?: string | null; status?: 'ACTIVE' | 'INACTIVE'; active?: boolean;
   stockUnits?: number; staffCount?: number;
+  latitude?: number | null; longitude?: number | null; locationDescription?: string | null;
 }
 interface Page<T> { content?: T[]; }
 
 export interface WarehouseCreateRequest {
   code: string; name: string; address: string; city: string; postalCode: string; siteManager: string;
+  latitude?: number; longitude?: number; locationDescription?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -44,6 +46,7 @@ export class ManufacturerWarehouseService {
   }
 
   createWarehouse(details: WarehouseCreateRequest) {
+    if ((details.latitude == null) !== (details.longitude == null)) throw new Error('Latitude and longitude must be supplied together.');
     return this.http.post<WarehouseDto>(API_ENDPOINTS.manufacturer.warehouses, details);
   }
 
@@ -56,6 +59,7 @@ export class ManufacturerWarehouseService {
       id: row.id, name: row.name, address: row.address, city: row.city ?? '', postalCode: row.postalCode ?? '',
       status: row.status ?? (row.active === false ? 'INACTIVE' : 'ACTIVE'), stockUnits: row.stockUnits ?? 0,
       staffCount: row.staffCount ?? 0, siteManager: row.siteManager ?? 'Not assigned', managerRole: 'Site Manager',
+      latitude: row.latitude ?? null, longitude: row.longitude ?? null, locationDescription: row.locationDescription ?? null,
       activities: [], staff: []
     };
   }
