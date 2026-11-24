@@ -155,7 +155,7 @@
             (change)="updateOrderDefaults()"
             class="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-xs"
           >
-            <option value="">Choose a paid, fully picked and packed PO</option>
+            <option value="">Choose an accepted, paid PO</option>
             @for (order of dispatchableOrders(); track order.id) {
               <option [value]="order.id">{{ order.id }} · {{ order.distributorName }}</option>
             }
@@ -163,7 +163,7 @@
           @if (dispatchableOrders().length === 0) {
             <span class="block text-[10px] text-amber-700"
               >Accept the purchase order and wait for backend-confirmed payment before creating a
-              dispatch.</span
+              consignment.</span
             >
           }
         </label>
