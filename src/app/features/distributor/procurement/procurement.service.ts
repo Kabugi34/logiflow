@@ -3,6 +3,10 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import { normalizePaymentStatus } from '../../../core/models/payment.model';
+import {
+  PurchaseOrderSettlement,
+  PurchasePaymentTerms,
+} from '../../../core/models/purchase-order-settlement.model';
 import { PaymentService } from '../../payments/payment.service';
 import { DistributorCatalogService } from '../catalog/catalog.service';
 import {
@@ -38,6 +42,11 @@ interface ApiPo {
   manufacturerName?: string | null;
   status: string;
   paymentStatus?: string | null;
+  paymentTerms?: PurchasePaymentTerms | null;
+  dueAt?: string | null;
+  overdue?: boolean | null;
+  amountPaid?: number | null;
+  amountOutstanding?: number | null;
   totalAmount: number;
   submittedAt: string;
   items: {
@@ -181,16 +190,37 @@ export class DistributorProcurementService {
   }
 
   loadSettlements(id: string) {
-    return this.http.get<
-      {
-        id: string;
-        status: string;
-        amount: number;
-        currency: string;
-        note: string | null;
-        settledAt: string | null;
-      }[]
-    >(API_ENDPOINTS.distributor.purchaseOrderSettlements(id));
+    return this.http.get<PurchaseOrderSettlement[]>(
+      API_ENDPOINTS.distributor.purchaseOrderSettlements(id),
+    );
+  }
+
+  /**
+   * Submits the bank reference and proof. This does not settle the order: it stays
+   * unpaid until the supplier's administrator confirms the amount received. The
+   * idempotency key must be reused when the same submission is retried.
+   */
+  submitBankTransfer(
+    orderId: string,
+    reference: string,
+    proof: File,
+    idempotencyKey: string,
+  ): Observable<void> {
+    const body = new FormData();
+    body.append('reference', reference.trim());
+    body.append('file', proof, proof.name);
+    return this.http
+      .post<ApiPo>(API_ENDPOINTS.distributor.purchaseOrderBankTransfer(orderId), body, {
+        headers: { 'Idempotency-Key': idempotencyKey },
+      })
+      .pipe(
+        map((row) => {
+          const order = this.toPurchaseOrder(row);
+          this.orderRecords.update((rows) =>
+            rows.map((existing) => (existing.id === orderId ? order : existing)),
+          );
+        }),
+      );
   }
   findManufacturer(id: string): ProcurementManufacturer | undefined {
     return this.manufacturers().find((manufacturer) => manufacturer.id === id);
@@ -248,7 +278,11 @@ export class DistributorProcurementService {
     });
   }
 
-  createDraft(manufacturerId: string, draftLines: DraftProcurementLine[]): Observable<string> {
+  createDraft(
+    manufacturerId: string,
+    draftLines: DraftProcurementLine[],
+    paymentTerms: PurchasePaymentTerms = 'PAY_NOW',
+  ): Observable<string> {
     const products = this.productRecords().filter(
       (product) => product.organizationId === manufacturerId,
     );
@@ -268,6 +302,7 @@ export class DistributorProcurementService {
       .post<ApiPo>(API_ENDPOINTS.distributor.purchaseOrders, {
         supplierOrganizationId: manufacturerId,
         items,
+        paymentTerms,
       })
       .pipe(
         map((result) => {
@@ -301,6 +336,11 @@ export class DistributorProcurementService {
       expectedDelivery: '',
       status,
       paymentStatus: normalizePaymentStatus(po.paymentStatus),
+      paymentTerms: po.paymentTerms === 'CREDIT' ? 'CREDIT' : 'PAY_NOW',
+      dueAt: po.dueAt ?? null,
+      overdue: po.overdue ?? false,
+      amountPaid: po.amountPaid ?? 0,
+      amountOutstanding: po.amountOutstanding ?? po.totalAmount,
       destination: '',
       logisticsCost: 0,
       lines,

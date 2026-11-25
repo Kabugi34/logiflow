@@ -1,4 +1,8 @@
 import { PaymentStatus } from '../../../core/models/payment.model';
+import {
+  PurchaseOrderSettlement,
+  PurchasePaymentTerms,
+} from '../../../core/models/purchase-order-settlement.model';
 
 export type PurchaseOrderStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'FULFILLED' | 'UNKNOWN';
 export type PurchasePaymentStatus = PaymentStatus;
@@ -26,7 +30,16 @@ export interface PurchaseOrderTimelineEvent {
 
 export interface ManufacturerPurchaseOrder {
   id: string;
+  distributorId: string;
   distributorName: string;
+  paymentTerms: PurchasePaymentTerms;
+  /** Order total from the API; the line total can differ when the API adds no extra charges. */
+  totalAmount: number;
+  amountPaid: number;
+  amountOutstanding: number;
+  dueAt: string | null;
+  overdue: boolean;
+  settlements: PurchaseOrderSettlement[];
   manufacturerName: string;
   destinationHub: string;
   destinationWarehouseId?: string;

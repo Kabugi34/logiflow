@@ -62,6 +62,16 @@ export const API_ENDPOINTS = {
     warehouses: `${API_CONFIG.baseUrl}/warehouses`,
     warehouse: (id: string) => `${API_CONFIG.baseUrl}/warehouses/${encodeURIComponent(id)}`,
     purchaseOrders: `${API_CONFIG.baseUrl}/manufacturer/purchase-orders`,
+    purchaseOrderConfirmPayment: (id: string) =>
+      `${API_CONFIG.baseUrl}/manufacturer/purchase-orders/${encodeURIComponent(id)}/settlement/confirm`,
+    purchaseOrderCancelOverdue: (id: string) =>
+      `${API_CONFIG.baseUrl}/manufacturer/purchase-orders/${encodeURIComponent(id)}/cancel-overdue`,
+    purchaseOrderProof: (id: string, documentId: string) =>
+      `${API_CONFIG.baseUrl}/manufacturer/purchase-orders/${encodeURIComponent(id)}/settlement/proofs/${encodeURIComponent(documentId)}`,
+    distributorCredit: (distributorId: string) =>
+      `${API_CONFIG.baseUrl}/manufacturer/distributors/${encodeURIComponent(distributorId)}/credit`,
+    distributorStatement: (distributorId: string) =>
+      `${API_CONFIG.baseUrl}/manufacturer/distributors/${encodeURIComponent(distributorId)}/statement`,
     purchaseOrderDecision: (id: string) =>
       `${API_CONFIG.baseUrl}/manufacturer/purchase-orders/${encodeURIComponent(id)}/decision`,
     purchaseOrder: (id: string) => `${API_CONFIG.baseUrl}/manufacturer/purchase-orders/${encodeURIComponent(id)}`,
@@ -109,6 +119,8 @@ export const API_ENDPOINTS = {
       `${API_CONFIG.baseUrl}/purchase-orders/${encodeURIComponent(id)}`,
     purchaseOrderSettlements: (id: string) =>
       `${API_CONFIG.baseUrl}/purchase-orders/${encodeURIComponent(id)}/settlements`,
+    purchaseOrderBankTransfer: (id: string) =>
+      `${API_CONFIG.baseUrl}/purchase-orders/${encodeURIComponent(id)}/settlement/bank-transfer`,
     orders: `${API_CONFIG.baseUrl}/orders`,
     orderStatus: (id: string) => `${API_CONFIG.baseUrl}/orders/${encodeURIComponent(id)}/status`,
     paymentInitiate: `${API_CONFIG.baseUrl}/payments/initiate`,
