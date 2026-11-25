@@ -43,10 +43,13 @@ interface ApiShipment {
 }
 
 interface ApiStockLocation {
+  id?: string;
   stockItemId: string;
   sku: string;
   locationCode: string;
   quantity: number;
+  movementId?: string | null;
+  movedQuantity?: number | null;
 }
 
 interface ApiStockMovement {
@@ -263,6 +266,19 @@ export class WarehouseOperationsService {
               at: new Date().toISOString(),
             }, ...state.movements],
           }));
+          if (saved.movementId && typeof saved.movedQuantity === 'number') {
+            this.addPersistedMovement({
+              id: saved.movementId,
+              stockItemId: saved.stockItemId,
+              movementType: 'PUT_AWAY',
+              quantityDelta: 0,
+              movedQuantity: saved.movedQuantity,
+              referenceType: 'STOCK_LOCATION',
+              referenceId: saved.id,
+              note: saved.locationCode,
+              createdAt: new Date().toISOString(),
+            });
+          }
         }),
       );
   }
@@ -423,10 +439,14 @@ export class WarehouseOperationsService {
   }
 
   private toMovement(movement: ApiStockMovement, sku: string): WarehouseMovement {
+    const quantity =
+      movement.movementType === 'PUT_AWAY'
+        ? (movement.movedQuantity ?? 0)
+        : (movement.quantityDelta ?? movement.quantity ?? 0);
     return {
       id: movement.id,
       sku,
-      quantity: movement.movedQuantity ?? movement.quantity ?? movement.quantityDelta ?? 0,
+      quantity,
       type: movement.movementType,
       reference: [movement.referenceType, movement.referenceId].filter(Boolean).join(' · ') || '—',
       reason: movement.note ?? '',
