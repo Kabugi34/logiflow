@@ -31,6 +31,7 @@ interface ApiPo {
   reviewedAt?: string | null;
   fulfilledAt?: string | null;
   fulfilmentStatus?: string | null;
+  fulfillmentStatus?: string | null;
   packageCount?: number;
   items: { id?: string; purchaseOrderItemId?: string; stockItemId?: string; sku: string; name: string; quantity: number; pickedQuantity?: number; packedQuantity?: number; unitPrice: number }[];
 }
@@ -163,7 +164,7 @@ export class ManufacturerPurchaseOrderService {
       issueDate: row.submittedAt,
       status,
       purchaseOrderNumber: row.purchaseOrderNumber,
-      fulfilmentStatus: this.mapFulfilmentStatus(row.fulfilmentStatus),
+      fulfilmentStatus: this.mapFulfilmentStatus(row.fulfilmentStatus ?? row.fulfillmentStatus),
       packageCount: row.packageCount,
       paymentStatus: this.mapPaymentStatus(
         row.paymentStatus,
@@ -189,8 +190,13 @@ export class ManufacturerPurchaseOrderService {
   }
 
   private mapFulfilmentStatus(status: string | null | undefined): ManufacturerPurchaseOrder['fulfilmentStatus'] {
-    switch (status) {
-      case 'INVENTORY_EXCEPTION': case 'READY_FOR_PICKING': case 'PICKING': case 'READY_FOR_DISPATCH': return status;
+    switch (status?.trim().toUpperCase()) {
+      case 'INVENTORY_EXCEPTION': return 'INVENTORY_EXCEPTION';
+      case 'READY_FOR_PICKING': return 'READY_FOR_PICKING';
+      case 'PICKING': return 'PICKING';
+      case 'READY_FOR_DISPATCH': return 'READY_FOR_DISPATCH';
+      case 'PICKING_IN_PROGRESS': case 'PACKING': return 'PICKING';
+      case 'READY_FOR_SHIPMENT': case 'READY_TO_SHIP': return 'READY_FOR_DISPATCH';
       default: return 'UNKNOWN';
     }
   }

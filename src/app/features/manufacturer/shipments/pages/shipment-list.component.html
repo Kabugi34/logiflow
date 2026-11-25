@@ -149,24 +149,39 @@
         <app-form-validation-summary [form]="form" />
         <label class="space-y-1"
           ><span class="block text-xs font-medium text-slate-700"
-            >Ready for dispatch Purchase Order</span
+            >Purchase order ready for dispatch</span
           ><select
             formControlName="poReference"
             (change)="updateOrderDefaults()"
             class="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-xs"
           >
-            <option value="">Choose an accepted, paid PO</option>
+            <option value="">Choose a fully picked and packed PO</option>
             @for (order of dispatchableOrders(); track order.id) {
               <option [value]="order.id">{{ order.id }} · {{ order.distributorName }}</option>
             }
           </select>
-          @if (dispatchableOrders().length === 0) {
+          @if (dispatchableOrders().length === 0 && paidOrders().length === 0) {
             <span class="block text-[10px] text-amber-700"
-              >Accept the purchase order and wait for backend-confirmed payment before creating a
-              consignment.</span
+              >An accepted, backend-paid purchase order is required before shipment creation.</span
             >
           }
+          @if (dispatchableOrders().length === 0 && paidOrders().length > 0) {
+            <span class="block text-[10px] text-amber-700">None of the paid orders are ready yet. Pick and pack an order below before allocating its shipment.</span>
+          }
         </label>
+        @if (ordersNeedingPreparation().length > 0) {
+          <div class="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs sm:col-span-2">
+            <p class="font-medium text-amber-900">Paid orders needing warehouse preparation</p>
+            <ul class="mt-2 space-y-1.5">
+              @for (order of ordersNeedingPreparation(); track order.id) {
+                <li class="flex flex-wrap items-center justify-between gap-2 text-amber-900">
+                  <span>{{ order.id }} · {{ order.fulfilmentStatus.replaceAll('_', ' ') }}</span>
+                  <a [routerLink]="['/manufacturer/purchase-orders', order.id]" queryParamsHandling="preserve" (click)="closeAllocation()" class="font-semibold text-blue-700 underline">Pick and pack</a>
+                </li>
+              }
+            </ul>
+          </div>
+        }
         <label class="space-y-1"
           ><span class="block text-xs font-medium text-slate-700">Distributor Destination Warehouse ID</span
           ><input
@@ -190,6 +205,9 @@
         @if (allocationError()) {
           <p role="alert" class="text-xs text-red-600 sm:col-span-2">{{ allocationError() }}</p>
         }
+        @if (packingOrderId()) {
+          <a [routerLink]="['/manufacturer/purchase-orders', packingOrderId()]" queryParamsHandling="preserve" (click)="closeAllocation()" class="text-xs font-semibold text-blue-700 underline sm:col-span-2">Open this purchase order to pick and pack</a>
+        }
         <div class="mt-2 flex justify-end gap-2 sm:col-span-2">
           <button
             type="button"
@@ -202,7 +220,7 @@
             [disabled]="saving() || !destinationFromOrder()"
             class="h-9 rounded-md bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            Create Consignment
+            Create Shipment
           </button>
         </div>
       </form>

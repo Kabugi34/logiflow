@@ -143,12 +143,38 @@ export class ManufacturerWarehouseOperationsComponent implements OnInit {
   }
 
   protected confirmPutAway(): void {
-    this.error.set(
-      'Put-away is unavailable for manufacturer stock: the backend location API permits distributor roles only.',
-    );
-    if (!this.adjustmentSku() || this.putAwayForm.invalid) {
+    const sku = this.adjustmentSku();
+    if (!sku || this.putAwayForm.invalid) {
       this.putAwayForm.markAllAsTouched();
+      return;
     }
+    const stock = this.operations.stock().find(item => item.sku === sku);
+    if (!stock?.id) {
+      this.error.set('Put-away is unavailable because the canonical stock-item ID is missing.');
+      return;
+    }
+    const { location, quantity } = this.putAwayForm.getRawValue();
+    const unlocated = this.unlocatedQuantity(sku);
+    if (quantity > unlocated) {
+      this.error.set(`Only ${unlocated} unlocated units are available to assign.`);
+      return;
+    }
+    this.saving.set(true);
+    this.operations.putAwayStock(stock.id, location, quantity).subscribe({
+      next: () => {
+        this.adjustmentSku.set('');
+        this.stockDialog.set('');
+        this.feedback.set(`${quantity} units were assigned to location ${location.trim()}.`);
+        this.error.set('');
+        this.inventory.refresh();
+        this.operations.refreshPersistedWarehouseData('MANUFACTURER');
+        this.saving.set(false);
+      },
+      error: error => {
+        this.showError(error, 'Stock could not be assigned to the location.');
+        this.saving.set(false);
+      },
+    });
   }
 
   protected openAdjustment(sku: string): void {
@@ -301,6 +327,12 @@ export class ManufacturerWarehouseOperationsComponent implements OnInit {
     if (unassigned > 0) locations.push(`Unassigned: ${unassigned}`);
     if (item.staged > 0) locations.push(`Picking: ${item.staged}`);
     return locations.join(', ') || 'No stock assigned';
+  }
+
+  protected unlocatedQuantity(sku: string): number {
+    const item = this.operations.stock().find(stock => stock.sku === sku);
+    if (!item) return 0;
+    return Math.max(0, item.onHand - item.staged - Object.values(item.locations).reduce((sum, quantity) => sum + quantity, 0));
   }
 
   protected progress(order: WarehouseOrder): string {

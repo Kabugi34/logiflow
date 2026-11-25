@@ -40,7 +40,7 @@
         queryParamsHandling="preserve"
         (click)="closeOnNavigate()"
         routerLinkActive="bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200"
-        [routerLinkActiveOptions]="{ exact: false }"
+        [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
         [attr.aria-label]="item.label"
         [attr.title]="layout.isExpanded() ? null : item.label"
         [attr.aria-current]="null"

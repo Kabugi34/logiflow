@@ -23,9 +23,11 @@ export class PurchaseOrderReviewComponent {
 
   protected readonly order = computed(() => this.orderService.findById(this.routeParams().get('id') ?? ''));
   protected readonly savingDecision = signal(false);
+  protected readonly refreshing = this.orderService.loading;
   protected readonly canReview = this.auth.hasRole('MANUFACTURER_ADMIN');
   protected readonly operationBusy = signal(false);
   protected readonly operationMessage = signal('');
+  protected readonly locationStockBlocked = signal(false);
   protected readonly pickedValues = signal<Record<string, number>>({});
   protected readonly packedValues = signal<Record<string, number>>({});
   protected readonly packageCount = signal(1);
@@ -67,6 +69,12 @@ export class PurchaseOrderReviewComponent {
   protected hasMissingLineIds(lines: PurchaseOrderLine[]): boolean { return lines.some(line => !line.purchaseOrderItemId); }
   protected pickedValue(id: string, current: number): number { return Object.hasOwn(this.pickedValues(), id) ? this.pickedValues()[id] : current; }
   protected packedValue(id: string, current: number): number { return Object.hasOwn(this.packedValues(), id) ? this.packedValues()[id] : current; }
+  protected allLinesPicked(lines: PurchaseOrderLine[]): boolean { return !!lines.length && lines.every(line => line.pickedQuantity >= line.requestedQuantity); }
+  protected canPack(order: { fulfilmentStatus: string; lines: PurchaseOrderLine[] }): boolean {
+    return order.fulfilmentStatus === 'PICKING'
+      || (order.fulfilmentStatus === 'UNKNOWN' && this.allLinesPicked(order.lines));
+  }
+  protected refreshOrder(): void { this.orderService.refresh(); }
 
   protected retryFulfilment(): void {
     const order = this.order();
@@ -81,10 +89,18 @@ export class PurchaseOrderReviewComponent {
   protected savePick(lineId: string | undefined, currentPicked: number): void {
     const order = this.order(); if (!order || !lineId || this.operationBusy()) return;
     const quantity = this.pickedValues()[lineId] ?? currentPicked;
-    this.operationBusy.set(true); this.operationMessage.set('');
+    this.operationBusy.set(true); this.operationMessage.set(''); this.locationStockBlocked.set(false);
     try { this.orderService.pickLine(order.id, lineId, quantity).pipe(finalize(() => this.operationBusy.set(false))).subscribe({
       next: () => this.operationMessage.set('Pick saved. Purchase-order lines and movement history are refreshing.'),
-      error: error => this.operationMessage.set(error?.error?.message ?? 'Picking could not be saved.'),
+      error: error => {
+        const message = String(error?.error?.message ?? '');
+        if (error?.status === 409 && message.toLowerCase().includes('locations do not contain enough assigned stock')) {
+          this.locationStockBlocked.set(true);
+          this.operationMessage.set('This stock is included in the warehouse total, but it is not assigned to pickable storage locations. The backend requires location-assigned stock before it can be picked.');
+          return;
+        }
+        this.operationMessage.set(message || 'Picking could not be saved.');
+      },
     }); } catch (e) { this.operationBusy.set(false); this.operationMessage.set(e instanceof Error ? e.message : 'Picking could not be saved.'); }
   }
 

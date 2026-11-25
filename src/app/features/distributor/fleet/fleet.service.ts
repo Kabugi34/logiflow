@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import { DriverInvitationCreatedResponse } from '../../../core/models/driver-invitation.model';
+import { AuthService } from '../../../core/auth/auth.service';
 import { Observable, map, tap } from 'rxjs';
 import {
   DistributorDriver,
@@ -11,7 +12,7 @@ import {
 } from './fleet.models';
 
 interface DriverApiRow { id: string; fullName?: string; name?: string; email?: string; phoneNumber?: string; phone?: string; licenseNumber?: string; license?: string; nationalId?: string; licenseExpiryDate?: string; accountStatus?: DriverAccountStatus; operationalStatus?: DriverOperationalStatus; baseWarehouseId?: string | null; createdAt?: string; vehicleId?: string; invitationStatus?: 'QUEUED' | 'SENT' | 'FAILED'; }
-interface VehicleApiRow { id: string; model?: string; type?: string; plate?: string; registrationNumber?: string; status?: DistributorVehicle['status']; locationLabel?: string; latitude?: number; longitude?: number; }
+interface VehicleApiRow { id: string; organizationId?: string | number; model?: string; type?: string; plate?: string; registrationNumber?: string; maxWeightCapacity?: number; status?: DistributorVehicle['status']; locationLabel?: string; latitude?: number; longitude?: number; }
 interface Page<T> { content?: T[]; }
 
 const HOME_WAREHOUSE = 'Nairobi Distribution Hub';
@@ -21,6 +22,7 @@ const initialDrivers: DistributorDriver[] = [];
 @Injectable({ providedIn: 'root' })
 export class DistributorFleetService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
   private readonly vehicleRecords = signal(initialVehicles);
   private readonly driverRecords = signal(initialDrivers);
   readonly vehicles = this.vehicleRecords.asReadonly();
@@ -75,8 +77,8 @@ export class DistributorFleetService {
     return this.http.patch(API_ENDPOINTS.distributor.driverOperationalStatus(id), { status }).pipe(tap(() => this.refresh()));
   }
 
-  createVehicle(details: { model: string; plate: string }): Observable<DistributorVehicle> {
-    return this.http.post<VehicleApiRow>(API_ENDPOINTS.distributor.vehicles, { model: details.model.trim(), registrationNumber: details.plate.trim().toUpperCase() })
+  createVehicle(details: { type: string; plate: string; maxWeightCapacity: number }): Observable<DistributorVehicle> {
+    return this.http.post<VehicleApiRow>(API_ENDPOINTS.distributor.vehicles, { type: details.type.trim(), registrationNumber: details.plate.trim().toUpperCase(), maxWeightCapacity: details.maxWeightCapacity })
       .pipe(map(row => this.mapVehicle(row)), tap(vehicle => this.vehicleRecords.update(rows => [vehicle, ...rows])));
   }
 
@@ -97,6 +99,8 @@ export class DistributorFleetService {
   }
 
   refresh(): void {
+    // Drop the previous organization's cached fleet before loading this one.
+    this.vehicleRecords.set([]);
     this.loading.set(true);
     let completed = 0;
     const done = () => { completed++; if (completed === 2) this.loading.set(false); };
@@ -115,10 +119,15 @@ export class DistributorFleetService {
     this.http.get<Page<VehicleApiRow> | VehicleApiRow[]>(`${API_ENDPOINTS.distributor.vehicles}?size=100`).subscribe({
       next: result => {
         const rows = Array.isArray(result) ? result : result.content ?? [];
-        this.vehicleRecords.set(rows.map(row => ({ id: row.id, model: row.model ?? row.type ?? '', plate: row.plate ?? row.registrationNumber ?? '', status: row.status ?? 'AVAILABLE', locationLabel: row.locationLabel ?? '', latitude: row.latitude ?? 0, longitude: row.longitude ?? 0 })));
+        this.vehicleRecords.set(this.tenantVehicles(rows).map(row => ({ id: row.id, model: row.model ?? row.type ?? '', plate: row.plate ?? row.registrationNumber ?? '', status: row.status ?? 'AVAILABLE', locationLabel: row.locationLabel ?? '', latitude: row.latitude ?? 0, longitude: row.longitude ?? 0 })));
         done();
       }, error: () => { this.error.set('Vehicle directory API is unavailable.'); done(); }
     });
+  }
+
+  private tenantVehicles(rows: VehicleApiRow[]): VehicleApiRow[] {
+    const organizationId = this.auth.user()?.organization.id;
+    return rows.filter(row => row.organizationId !== undefined && String(row.organizationId) === String(organizationId));
   }
 
   findVehicle(id: string | undefined): DistributorVehicle | undefined {

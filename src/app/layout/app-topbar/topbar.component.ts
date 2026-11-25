@@ -8,7 +8,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { AuthenticatedImageComponent } from '../../shared/authenticated-image.component';
 import { AppearanceService } from '../../core/services/appearance.service';
@@ -27,7 +27,6 @@ export class TopbarComponent implements OnInit {
   protected readonly layout = inject(LayoutService);
   protected readonly authService = inject(AuthService);
   protected readonly profileService = inject(ProfileService);
-  private readonly router = inject(Router);
   private readonly profileMenu = viewChild<ElementRef<HTMLElement>>('profileMenu');
   private readonly profileButton = viewChild<ElementRef<HTMLButtonElement>>('profileButton');
   protected readonly profileOpen = signal(false);
@@ -74,6 +73,6 @@ export class TopbarComponent implements OnInit {
   protected logout(): void {
     if (this.loggingOut()) return;
     this.loggingOut.set(true);
-    this.authService.logout().subscribe(() => void this.router.navigate(['/auth/login']));
+    this.authService.logout().subscribe();
   }
 }

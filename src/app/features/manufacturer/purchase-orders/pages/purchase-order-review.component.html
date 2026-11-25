@@ -22,7 +22,7 @@
       </p>
     </header>
 
-    @if (operationMessage()) { <p role="status" class="rounded-md border border-slate-200 bg-white p-3 text-xs text-slate-700">{{ operationMessage() }}</p> }
+    @if (operationMessage()) { <div [attr.role]="locationStockBlocked() ? 'alert' : 'status'" class="rounded-md border p-3 text-xs" [class.border-amber-200]="locationStockBlocked()" [class.bg-amber-50]="locationStockBlocked()" [class.text-amber-900]="locationStockBlocked()" [class.border-slate-200]="!locationStockBlocked()" [class.bg-white]="!locationStockBlocked()" [class.text-slate-700]="!locationStockBlocked()"><p>{{ operationMessage() }}</p>@if (locationStockBlocked()) { <p class="mt-2">Manufacturer warehouse put-away is currently unavailable because the stock-location API does not support manufacturer accounts. A backend update is needed before this order can be picked.</p><a routerLink="/manufacturer/warehouses/operations" queryParamsHandling="preserve" class="mt-2 inline-block font-semibold text-blue-700 underline">Review warehouse stock locations</a> }</div> }
 
     <div class="grid grid-cols-1 items-start gap-4 2xl:grid-cols-[1.55fr_1fr]">
       <div class="space-y-4">
@@ -86,36 +86,53 @@
           }
         </section>
 
-        <section class="rounded-lg border border-slate-200 bg-white p-4">
-          <h2 class="text-sm font-semibold text-slate-900">Warehouse fulfilment</h2>
-          <p class="mt-2 text-xs text-slate-600">Payment: <strong>{{ currentOrder.paymentStatus }}</strong></p>
-          <p class="mt-1 text-xs text-slate-600">Fulfilment: <strong>{{ currentOrder.fulfilmentStatus }}</strong></p>
-          @if (currentOrder.fulfilmentStatus === 'INVENTORY_EXCEPTION' && currentOrder.paymentStatus === 'PAID') {
-            <button type="button" (click)="retryFulfilment()" [disabled]="operationBusy()" class="mt-3 min-h-9 rounded bg-amber-600 px-3 text-xs font-medium text-white disabled:opacity-50">{{ operationBusy() ? 'Retrying…' : 'Retry fulfilment' }}</button>
+        <section id="warehouse-fulfilment" class="rounded-lg border border-slate-200 bg-white p-4">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div><h2 class="text-sm font-semibold text-slate-900">Prepare this order for shipment</h2><p class="mt-1 text-xs text-slate-600">Complete the warehouse steps below. Shipment creation unlocks after the backend confirms all items are picked and packed.</p></div>
+            <button type="button" (click)="refreshOrder()" [disabled]="operationBusy() || refreshing()" class="min-h-8 rounded border border-slate-200 px-2 text-[10px] font-medium text-slate-700 disabled:opacity-50">{{ refreshing() ? 'Refreshing…' : 'Refresh status' }}</button>
+          </div>
+          <div class="mt-3 grid gap-2 sm:grid-cols-3">
+            <div class="rounded border p-2 text-xs"><strong>1. Pick items</strong><p class="mt-1 text-slate-500">Match the requested quantities.</p></div>
+            <div class="rounded border p-2 text-xs"><strong>2. Pack items</strong><p class="mt-1 text-slate-500">Record packed quantities and package count.</p></div>
+            <div class="rounded border p-2 text-xs"><strong>3. Create shipment</strong><p class="mt-1 text-slate-500">Available when fulfilment is ready.</p></div>
+          </div>
+          <p class="mt-3 text-xs text-slate-600">Payment: <strong>{{ currentOrder.paymentStatus }}</strong> · Fulfilment: <strong>{{ currentOrder.fulfilmentStatus.replaceAll('_', ' ') }}</strong></p>
+          @if (currentOrder.fulfilmentStatus === 'UNKNOWN') {
+            <p role="status" class="mt-2 rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">The purchase-order API has not returned a recognized fulfilment stage. You can record warehouse quantities below; refresh after each save. Shipment creation will remain unavailable until the backend confirms READY FOR DISPATCH.</p>
           }
-          @if (currentOrder.fulfilmentStatus === 'READY_FOR_PICKING' || currentOrder.fulfilmentStatus === 'PICKING') {
-            <div class="mt-3 space-y-2">
+          @if (currentOrder.fulfilmentStatus === 'INVENTORY_EXCEPTION' && currentOrder.paymentStatus === 'PAID') {
+            <button type="button" (click)="retryFulfilment()" [disabled]="operationBusy()" class="mt-3 min-h-9 rounded bg-amber-600 px-3 text-xs font-medium text-white disabled:opacity-50">{{ operationBusy() ? 'Retrying…' : 'Retry inventory fulfilment' }}</button>
+          }
+          @if ((currentOrder.fulfilmentStatus === 'READY_FOR_PICKING' || currentOrder.fulfilmentStatus === 'PICKING' || currentOrder.fulfilmentStatus === 'UNKNOWN') && currentOrder.paymentStatus === 'PAID' && currentOrder.status === 'ACCEPTED') {
+            <div class="mt-4 space-y-2 border-t border-slate-100 pt-3">
+              <h3 class="text-xs font-semibold text-slate-800">Step 1 · Pick the requested quantities</h3>
               @for (line of currentOrder.lines; track line.purchaseOrderItemId ?? line.sku) {
                 <div class="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-100 p-2">
                   <span class="text-xs">{{ line.productName }} · {{ line.pickedQuantity }}/{{ line.requestedQuantity }} picked</span>
                   @if (line.purchaseOrderItemId) {
                     <input type="number" [min]="line.pickedQuantity" [max]="line.requestedQuantity" step="1" [value]="pickedValue(line.purchaseOrderItemId, line.pickedQuantity)" (input)="setLineValue('picked', line.purchaseOrderItemId, $event)" aria-label="Cumulative picked quantity" class="h-8 w-24 rounded border px-2 text-xs" />
                     <button type="button" (click)="savePick(line.purchaseOrderItemId, line.pickedQuantity)" [disabled]="operationBusy()" class="h-8 rounded border px-2 text-[10px]">Save picked quantity</button>
-                  } @else { <span class="text-[10px] text-amber-700">Missing purchase-order line ID</span> }
+                  } @else { <span class="text-[10px] text-amber-700">Missing purchase-order line ID; contact support.</span> }
                 </div>
               }
             </div>
           }
-          @if (currentOrder.fulfilmentStatus === 'PICKING' || currentOrder.fulfilmentStatus === 'READY_FOR_DISPATCH') {
+          @if (canPack(currentOrder)) {
             <div class="mt-4 space-y-2 border-t border-slate-100 pt-3">
-              <label class="block text-xs">Package count <input type="number" min="1" step="1" [value]="packageCount()" (input)="setPackageCount($event)" class="ml-2 h-8 w-20 rounded border px-2" /></label>
+              <h3 class="text-xs font-semibold text-slate-800">Step 2 · Pack picked items</h3>
+              <label class="block text-xs">Number of packages <input type="number" min="1" step="1" [value]="packageCount()" (input)="setPackageCount($event)" class="ml-2 h-8 w-20 rounded border px-2" /></label>
               @for (line of currentOrder.lines; track line.purchaseOrderItemId ?? line.sku) {
                 <label class="flex items-center justify-between gap-2 text-xs">{{ line.productName }} · {{ line.packedQuantity }}/{{ line.pickedQuantity }} packed
                   <input type="number" min="0" [max]="line.pickedQuantity" step="1" [value]="packedValue(line.purchaseOrderItemId ?? '', line.packedQuantity)" (input)="setLineValue('packed', line.purchaseOrderItemId, $event)" [disabled]="!line.purchaseOrderItemId" class="h-8 w-24 rounded border px-2" />
                 </label>
               }
-              <button type="button" (click)="savePacking()" [disabled]="operationBusy() || hasMissingLineIds(currentOrder.lines)" class="min-h-9 rounded bg-blue-600 px-3 text-xs font-medium text-white disabled:opacity-50">Save packing</button>
+              <button type="button" (click)="savePacking()" [disabled]="operationBusy() || hasMissingLineIds(currentOrder.lines)" class="min-h-9 rounded bg-blue-600 px-3 text-xs font-medium text-white disabled:opacity-50">Save packed quantities</button>
             </div>
+          }
+          @if (currentOrder.fulfilmentStatus === 'READY_FOR_DISPATCH') {
+            <a routerLink="/manufacturer/shipments" queryParamsHandling="preserve" class="mt-4 inline-flex min-h-9 items-center rounded bg-blue-600 px-3 text-xs font-semibold text-white">Continue to create shipment</a>
+          } @else if (canPack(currentOrder) && currentOrder.lines.every(line => line.packedQuantity >= line.pickedQuantity)) {
+            <p class="mt-3 rounded border border-blue-200 bg-blue-50 p-2 text-xs text-blue-900">Packing is recorded. Refresh after saving; once the backend confirms READY FOR DISPATCH, create the shipment.</p>
           }
         </section>
 
