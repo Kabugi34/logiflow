@@ -70,7 +70,7 @@ export interface WarehouseMovement {
   id: string;
   sku: string;
   quantity: number;
-  type: 'RESTOCK_IN' | 'SALE_OUT' | 'ADJUSTMENT' | 'RETURN' | 'DAMAGE';
+  type: 'RESTOCK_IN' | 'SALE_OUT' | 'ADJUSTMENT' | 'RETURN' | 'DAMAGE' | 'PUT_AWAY';
   reference: string;
   reason: string;
   user: string;

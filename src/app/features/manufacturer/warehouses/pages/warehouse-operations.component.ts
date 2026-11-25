@@ -329,6 +329,10 @@ export class ManufacturerWarehouseOperationsComponent implements OnInit {
     return locations.join(', ') || 'No stock assigned';
   }
 
+  protected locatedQuantity(item: { locations: Record<string, number> }): number {
+    return Object.values(item.locations).reduce((sum, quantity) => sum + quantity, 0);
+  }
+
   protected unlocatedQuantity(sku: string): number {
     const item = this.operations.stock().find(stock => stock.sku === sku);
     if (!item) return 0;
