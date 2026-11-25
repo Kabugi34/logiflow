@@ -146,11 +146,24 @@ describe('WarehouseOperationsService', () => {
           stockItemId: stockId,
           movementType: 'RESTOCK_IN',
           quantityDelta: 8,
+          movedQuantity: 0,
           referenceType: 'PURCHASE_ORDER_SHIPMENT',
           referenceId: shipmentId,
           performedBy: 'user-uuid',
           note: 'Received',
           createdAt: '2026-01-01T10:00:00Z',
+        },
+        {
+          id: 'put-away-uuid',
+          stockItemId: stockId,
+          movementType: 'PUT_AWAY',
+          quantityDelta: 0,
+          movedQuantity: 500,
+          referenceType: 'STOCK_LOCATION',
+          referenceId: 'location-uuid',
+          performedBy: 'user-uuid',
+          note: 'A-01',
+          createdAt: '2026-01-01T11:00:00Z',
         },
       ],
     });
@@ -162,12 +175,19 @@ describe('WarehouseOperationsService', () => {
 
     expect(getCalls).toContain(locationsUrl);
     expect(service.stock()[0]).toMatchObject({ id: stockId, locations: { 'A-01': 8 } });
-    expect(service.movements()[0]).toMatchObject({
+    expect(service.movements().find((row) => row.id === 'movement-uuid')).toMatchObject({
       id: 'movement-uuid',
       type: 'RESTOCK_IN',
       quantity: 8,
       reference: `PURCHASE_ORDER_SHIPMENT · ${shipmentId}`,
       user: 'user-uuid',
+    });
+    expect(service.movements().find((row) => row.id === 'put-away-uuid')).toMatchObject({
+      id: 'put-away-uuid',
+      type: 'PUT_AWAY',
+      quantity: 500,
+      reference: 'STOCK_LOCATION · location-uuid',
+      reason: 'A-01',
     });
   });
 
