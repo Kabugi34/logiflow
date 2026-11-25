@@ -21,6 +21,9 @@ export interface ManufacturerWarehouse {
   stockUnits: number;
   staffCount: number;
   siteManager: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  locationDescription?: string | null;
   managerRole: string;
   activities: WarehouseActivity[];
   staff: WarehouseStaffMember[];

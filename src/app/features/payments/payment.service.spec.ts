@@ -98,9 +98,19 @@ describe('PaymentService', () => {
     service.verifyOrderPayment('PURCHASE_ORDER', 'po-retry').subscribe((result) => {
       status = result.status;
     });
-    http
-      .expectOne(API_ENDPOINTS.distributor.paymentStatus('po-retry'))
-      .flush({ orderId: 'po-retry', paymentId: 'payment-first', status: 'FAILED', amount: 125, mpesaReceiptNumber: null, failureReason: 'Declined' });
+    const verification = http.expectOne(
+      (request) => request.url === API_ENDPOINTS.payments.transactions
+        && request.params.get('orderType') === 'PURCHASE_ORDER'
+        && request.params.get('orderId') === 'po-retry',
+    );
+    verification.flush({
+      content: [{
+        id: 'payment-first', orderId: 'po-retry', orderType: 'PURCHASE_ORDER',
+        direction: 'OUTGOING', amount: 125, currency: 'KES', provider: 'MPESA',
+        status: 'FAILED', createdAt: '2026-10-28T09:00:00Z', updatedAt: '2026-10-28T09:01:00Z',
+        failureReason: 'Declined',
+      }],
+    });
 
     expect(status).toBe('FAILED');
     service.initiate(request).subscribe();
@@ -110,11 +120,14 @@ describe('PaymentService', () => {
   it('loads supplier payment history without trusting local or initiation state', () => {
     service.refreshTransactions('PURCHASE_ORDER');
 
+    http.expectOne(API_ENDPOINTS.distributor.purchaseOrders).flush({ content: [{ id: 'po-1' }] });
+
     http
       .expectOne(
         (request) =>
           request.url === API_ENDPOINTS.payments.transactions &&
-          request.params.get('orderType') === 'PURCHASE_ORDER',
+          request.params.get('orderType') === 'PURCHASE_ORDER' &&
+          request.params.get('orderId') === 'po-1',
       )
       .flush({
         content: [

@@ -21,6 +21,7 @@ export interface AuthUserResponse {
 export interface AuthSession {
   accessToken: string;
   refreshToken: string;
+  expiresInSeconds?: number;
   redirectPath: string | null;
   user: AuthUserResponse;
 }

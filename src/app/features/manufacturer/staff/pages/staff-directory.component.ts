@@ -99,10 +99,11 @@ export class StaffDirectoryComponent {
     const member = this.selectedMember();
     if (!member) return;
     this.actionError.set('');
-    this.staffService.updateEmployeeStatus(
-      member.id,
-      (event.target as HTMLSelectElement).value as StaffStatus,
-    ).subscribe({ error: error => this.actionError.set(error?.error?.message ?? 'Employee status could not be updated.') });
+    const status = (event.target as HTMLSelectElement).value as StaffStatus;
+    const update = member.category === 'DRIVER'
+      ? this.staffService.updateDriverStatus(member.id, status as Extract<StaffStatus, 'ACTIVE' | 'SUSPENDED'>)
+      : this.staffService.updateEmployeeStatus(member.id, status);
+    update.subscribe({ error: error => this.actionError.set(error?.error?.message ?? 'Staff status could not be updated.') });
   }
 
   protected statusClass(status: StaffStatus): string {

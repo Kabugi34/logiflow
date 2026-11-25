@@ -12,7 +12,7 @@
   [style.width]="layout.isMobileViewport() ? '18rem' : layout.isSidebarOpen() ? '16rem' : '5rem'"
   [class.-translate-x-full]="!layout.isMobileNavOpen()"
   [class.translate-x-0]="layout.isMobileNavOpen()"
-  class="fixed inset-y-0 left-0 z-50 flex shrink-0 flex-col border-r border-slate-200 bg-white shadow-xl transition-[width,transform] duration-200 ease-in-out md:static md:z-auto md:h-screen md:translate-x-0 md:shadow-none"
+  class="fixed inset-y-0 left-0 z-50 flex shrink-0 flex-col border-r border-slate-200 bg-white shadow-xl transition-[width,transform] duration-200 ease-in-out md:sticky md:top-0 md:z-auto md:h-dvh md:self-start md:translate-x-0 md:shadow-none"
 >
   <div class="flex h-16 shrink-0 items-center border-b border-slate-100 px-3">
     <a
@@ -40,7 +40,7 @@
         queryParamsHandling="preserve"
         (click)="closeOnNavigate()"
         routerLinkActive="bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200"
-        [routerLinkActiveOptions]="{ exact: false }"
+        [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
         [attr.aria-label]="item.label"
         [attr.title]="layout.isExpanded() ? null : item.label"
         [attr.aria-current]="null"
@@ -63,7 +63,7 @@
             [routerLinkActiveOptions]="{ exact: false }"
             [attr.aria-label]="child.label"
             [attr.title]="layout.isExpanded() ? null : child.label"
-            class="group flex min-h-9 items-center gap-3 rounded-lg px-3 text-xs text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+            class="group flex min-h-9 items-center gap-3 rounded-lg px-3 text-sm text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
             [class.justify-center]="!layout.isExpanded()"
             [class.px-0]="!layout.isExpanded()"
             [class.pl-10]="layout.isExpanded()"

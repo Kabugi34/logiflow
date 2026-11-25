@@ -22,11 +22,16 @@ export class ShipmentListComponent {
   protected readonly selectedStatus = signal('ACTIVE');
   protected readonly isAllocationOpen = signal(false);
   protected readonly allocationError = signal('');
+  protected readonly packingOrderId = signal('');
   protected readonly saving = signal(false);
+  protected readonly paidOrders = computed(() =>
+    this.purchaseOrderService.orders().filter(order => order.status === 'ACCEPTED' && order.paymentStatus === 'PAID'),
+  );
   protected readonly dispatchableOrders = computed(() =>
-    this.purchaseOrderService
-      .orders()
-      .filter((order) => order.status === 'ACCEPTED' && order.paymentStatus === 'PAID'),
+    this.paidOrders().filter(order => order.fulfilmentStatus === 'READY_FOR_DISPATCH'),
+  );
+  protected readonly ordersNeedingPreparation = computed(() =>
+    this.paidOrders().filter(order => order.fulfilmentStatus !== 'READY_FOR_DISPATCH'),
   );
   protected readonly shipments = computed(() =>
     this.shipmentService.shipments().filter((shipment) => {
@@ -43,6 +48,7 @@ export class ShipmentListComponent {
     poReference: ['', trimmedRequired],
     destination: ['', [trimmedRequired, Validators.pattern(/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)]],
     freightDetails: ['', Validators.maxLength(100)],
+    trackingNumber: ['', Validators.maxLength(100)],
   });
 
   protected setStatus(event: Event): void {
@@ -51,18 +57,26 @@ export class ShipmentListComponent {
 
   protected openAllocation(): void {
     this.allocationError.set('');
+    this.packingOrderId.set('');
     const firstOrderId = this.dispatchableOrders()[0]?.id ?? '';
     this.form.reset({
       poReference: firstOrderId,
       destination: '',
       freightDetails: '',
+      trackingNumber: '',
     });
     this.updateOrderDefaults();
     this.isAllocationOpen.set(true);
   }
 
   protected updateOrderDefaults(): void {
-    // The PO response has no destination warehouse; the manufacturer supplies the buyer's warehouse UUID.
+    const order = this.purchaseOrderService.findById(this.form.controls.poReference.value);
+    this.form.controls.destination.setValue(order?.destinationWarehouseId ?? '');
+    this.form.controls.destination.markAsUntouched();
+  }
+
+  protected destinationFromOrder(): boolean {
+    return !!this.purchaseOrderService.findById(this.form.controls.poReference.value)?.destinationWarehouseId;
   }
 
   protected closeAllocation(): void {
@@ -80,9 +94,15 @@ export class ShipmentListComponent {
       this.allocationError.set('Select a valid purchase order.');
       return;
     }
+    if (!order.destinationWarehouseId) {
+      this.allocationError.set(
+        'The purchase-order API did not return the destination warehouse selected at checkout. Refresh the order or have the backend return destinationWarehouseId before allocating a shipment.',
+      );
+      return;
+    }
     if (order.status !== 'ACCEPTED' || order.paymentStatus !== 'PAID') {
       this.allocationError.set(
-        'The purchase order must be accepted and payment must be backend-confirmed before shipment allocation.',
+        'The purchase order must be approved and payment-verified before consignment creation.',
       );
       return;
     }
@@ -92,6 +112,7 @@ export class ShipmentListComponent {
         poReference: this.form.controls.poReference.value,
         destination: this.form.controls.destination.value,
         freightDetails: this.form.controls.freightDetails.value,
+        trackingNumber: this.form.controls.trackingNumber.value,
       })
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
@@ -102,18 +123,23 @@ export class ShipmentListComponent {
             queryParamsHandling: 'preserve',
           });
         },
-        error: (error) =>
-          this.allocationError.set(
-            error?.error?.message ??
-              'Shipment could not be allocated. Check purchase order and fleet availability.',
-          ),
+        error: (error) => {
+          const backendCode = error?.error?.code;
+          const backendMessage = error?.error?.message;
+          if (error?.status === 409 && (backendCode === 'CONFLICT' || backendMessage?.toLowerCase().includes('picked and packed'))) {
+            this.packingOrderId.set(order.id);
+            this.allocationError.set('This purchase order is not fully picked and packed yet. Open it to continue warehouse preparation, then return here to create the shipment.');
+            this.purchaseOrderService.refresh();
+            return;
+          }
+          this.allocationError.set(backendMessage ?? 'Shipment could not be allocated. Check the purchase order and try again.');
+        },
       });
   }
 
   protected statusLabel(status: ShipmentStatus): string {
     switch (status) {
-      case 'BORDER_HOLD':
-        return 'BORDER HOLD';
+      case 'AWAITING_PICKING': return 'AWAITING PICKING';
       case 'READY_FOR_DISPATCH':
         return 'READY FOR DISPATCH';
       case 'RECEIVED':
@@ -131,8 +157,7 @@ export class ShipmentListComponent {
 
   protected statusClass(status: ShipmentStatus): string {
     switch (status) {
-      case 'BORDER_HOLD':
-        return 'border-red-200 bg-red-50 text-red-700';
+      case 'AWAITING_PICKING': return 'border-amber-200 bg-amber-50 text-amber-700';
       case 'READY_FOR_DISPATCH':
         return 'border-blue-200 bg-blue-50 text-blue-700';
       case 'RECEIVED':

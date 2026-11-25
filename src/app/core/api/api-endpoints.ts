@@ -54,6 +54,11 @@ export const API_ENDPOINTS = {
     productAuthorizationDecision: (id: string) =>
       `${API_CONFIG.baseUrl}/products/authorizations/${encodeURIComponent(id)}/decision`,
     stockItems: `${API_CONFIG.apiRoot}/stock/items`,
+    stockItem: (id: string) => `${API_CONFIG.apiRoot}/stock/items/${encodeURIComponent(id)}`,
+    stockItemWarehouse: (id: string, warehouseId: string) =>
+      `${API_CONFIG.apiRoot}/stock/items/${encodeURIComponent(id)}/warehouse/${encodeURIComponent(warehouseId)}`,
+    stockItemIntakes: (id: string) => `${API_CONFIG.apiRoot}/stock/items/${encodeURIComponent(id)}/intakes`,
+    stockItemMovements: (id: string) => `${API_CONFIG.apiRoot}/stock/items/${encodeURIComponent(id)}/movements`,
     warehouses: `${API_CONFIG.baseUrl}/warehouses`,
     warehouse: (id: string) => `${API_CONFIG.baseUrl}/warehouses/${encodeURIComponent(id)}`,
     purchaseOrders: `${API_CONFIG.baseUrl}/manufacturer/purchase-orders`,
@@ -69,6 +74,10 @@ export const API_ENDPOINTS = {
       `${API_CONFIG.baseUrl}/manufacturer/distributors/${encodeURIComponent(distributorId)}/statement`,
     purchaseOrderDecision: (id: string) =>
       `${API_CONFIG.baseUrl}/manufacturer/purchase-orders/${encodeURIComponent(id)}/decision`,
+    purchaseOrder: (id: string) => `${API_CONFIG.baseUrl}/manufacturer/purchase-orders/${encodeURIComponent(id)}`,
+    purchaseOrderFulfilmentRetry: (id: string) => `${API_CONFIG.baseUrl}/manufacturer/purchase-orders/${encodeURIComponent(id)}/fulfilment/retry`,
+    purchaseOrderPick: (id: string) => `${API_CONFIG.baseUrl}/manufacturer/purchase-orders/${encodeURIComponent(id)}/warehouse/pick`,
+    purchaseOrderPack: (id: string) => `${API_CONFIG.baseUrl}/manufacturer/purchase-orders/${encodeURIComponent(id)}/warehouse/pack`,
     shipments: `${API_CONFIG.baseUrl}/manufacturer/shipments`,
     shipment: (id: string) => `${API_CONFIG.baseUrl}/manufacturer/shipments/${encodeURIComponent(id)}`,
     shipmentStatus: (id: string) =>
@@ -87,6 +96,12 @@ export const API_ENDPOINTS = {
     tripStatus: (id: string) => `${API_CONFIG.baseUrl}/trips/${encodeURIComponent(id)}/status`,
   },
   distributor: {
+    resellerListings: `${API_CONFIG.baseUrl}/distributor/reseller-listings`,
+    eligibleResellerProducts: `${API_CONFIG.baseUrl}/distributor/reseller-listings/eligible-products`,
+    resellerListing: (id: string) => `${API_CONFIG.baseUrl}/distributor/reseller-listings/${encodeURIComponent(id)}`,
+    resellerListingPrice: (id: string) => `${API_CONFIG.baseUrl}/distributor/reseller-listings/${encodeURIComponent(id)}/price`,
+    resellerListingPause: (id: string) => `${API_CONFIG.baseUrl}/distributor/reseller-listings/${encodeURIComponent(id)}/pause`,
+    resellerListingResume: (id: string) => `${API_CONFIG.baseUrl}/distributor/reseller-listings/${encodeURIComponent(id)}/resume`,
     checkouts: `${API_CONFIG.baseUrl}/checkouts`,
     checkout: (id: string) => `${API_CONFIG.baseUrl}/checkouts/${encodeURIComponent(id)}`,
     checkoutOrders: (id: string) => `${API_CONFIG.baseUrl}/checkouts/${encodeURIComponent(id)}/orders`,
@@ -95,6 +110,7 @@ export const API_ENDPOINTS = {
     checkoutPaymentState: (id: string) => `${API_CONFIG.baseUrl}/checkouts/${encodeURIComponent(id)}/payment`,
     checkoutCancel: (id: string) => `${API_CONFIG.baseUrl}/checkouts/${encodeURIComponent(id)}/cancel`,
     products: `${API_CONFIG.baseUrl}/products`,
+    productImage: (id: string) => `${API_CONFIG.baseUrl}/products/${encodeURIComponent(id)}/image`,
     productAuthorizations: `${API_CONFIG.baseUrl}/products/authorizations`,
     productAuthorizationRequest: (id: string) =>
       `${API_CONFIG.baseUrl}/products/${encodeURIComponent(id)}/authorization-requests`,

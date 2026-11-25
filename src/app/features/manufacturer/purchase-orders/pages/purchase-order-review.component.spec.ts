@@ -22,6 +22,7 @@ function order(overrides: Partial<ManufacturerPurchaseOrder> = {}): Manufacturer
     destinationHub: 'Nairobi',
     issueDate: '2026-11-24',
     status: 'ACCEPTED',
+    fulfilmentStatus: 'UNKNOWN',
     paymentStatus: 'PENDING',
     lines: [],
     timeline: [],
@@ -66,7 +67,14 @@ describe('PurchaseOrderReviewComponent payment confirmation', () => {
         { provide: AuthService, useValue: { hasRole: (candidate: string) => candidate === role, user: signal(null) } },
         {
           provide: ManufacturerPurchaseOrderService,
-          useValue: { findById: () => value, confirmBankPayment, downloadProof: () => of(new Blob()) },
+          useValue: {
+            findById: () => value,
+            confirmBankPayment,
+            downloadProof: () => of(new Blob()),
+            loading: signal(false),
+            refresh: () => undefined,
+            error: signal(''),
+          },
         },
       ],
     });

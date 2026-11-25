@@ -9,6 +9,7 @@ export interface NewShipment {
   poReference: string;
   destination: string;
   freightDetails: string;
+  trackingNumber?: string;
 }
 interface Page<T> {
   content?: T[];
@@ -39,6 +40,7 @@ export class ManufacturerShipmentService {
   }
 
   refresh(): void {
+    if (this.loading()) return;
     this.loading.set(true);
     this.http
       .get<Page<ApiShipment> | ApiShipment[]>(
@@ -82,6 +84,7 @@ export class ManufacturerShipmentService {
       purchaseOrderId: shipment.poReference,
       destinationWarehouseId: shipment.destination,
       carrier: shipment.freightDetails || undefined,
+      trackingNumber: shipment.trackingNumber?.trim() || undefined,
     }).pipe(map((row) => this.mapShipment(row)));
   }
 

@@ -1,7 +1,7 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { printPurchaseOrderPdf } from '../purchase-order-pdf';
+import { downloadPurchaseOrderPdf } from '../purchase-order-pdf';
 import { DistributorProcurementService } from '../procurement.service';
 import { DistributorPurchaseOrder, ProcurementStatus } from '../procurement.models';
 import { LoadingSkeletonComponent } from '../../../../shared/loading/loading-skeleton.component';
@@ -11,11 +11,15 @@ import { LoadingSkeletonComponent } from '../../../../shared/loading/loading-ske
   imports: [CurrencyPipe, DatePipe, LoadingSkeletonComponent, RouterLink],
   templateUrl: './procurement-center.component.html',
 })
-export class ProcurementCenterComponent {
+export class ProcurementCenterComponent implements OnInit {
   protected readonly procurement = inject(DistributorProcurementService);
   protected readonly searchTerm = signal('');
   protected readonly selectedStatus = signal<'ALL' | ProcurementStatus>('ALL');
   protected readonly exportError = signal('');
+
+  ngOnInit(): void {
+    this.procurement.refreshOrders();
+  }
   protected readonly filteredOrders = computed(() => {
     const query = this.searchTerm().trim().toLowerCase();
     return this.procurement.orders().filter((order) => {
@@ -53,6 +57,8 @@ export class ProcurementCenterComponent {
         return 'border-slate-200 bg-slate-50 text-slate-600';
       case 'REJECTED':
         return 'border-red-200 bg-red-50 text-red-700';
+      case 'UNKNOWN':
+        return 'border-slate-200 bg-slate-50 text-slate-600';
     }
   }
 
@@ -76,8 +82,6 @@ export class ProcurementCenterComponent {
 
   protected exportPdf(order: DistributorPurchaseOrder): void {
     this.exportError.set('');
-    if (!printPurchaseOrderPdf(order, this.procurement.total(order))) {
-      this.exportError.set('Allow pop-ups for LogiFlow to export this purchase order as a PDF.');
-    }
+    downloadPurchaseOrderPdf(order, this.procurement.total(order));
   }
 }

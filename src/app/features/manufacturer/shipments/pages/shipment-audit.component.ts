@@ -20,32 +20,16 @@ export class ShipmentAuditComponent {
   protected readonly canCancel = this.auth.hasRole('MANUFACTURER_ADMIN');
   private readonly routeParams = toSignal(this.route.paramMap, { initialValue: this.route.snapshot.paramMap });
   protected readonly shipment = computed(() => this.shipmentService.findById(this.routeParams().get('id') ?? ''));
-  protected readonly busy = signal(false);
   protected readonly feedback = signal('');
-
-  protected advanceStatus(): void {
-    const shipment = this.shipment();
-    if (!shipment || this.busy()) return;
-    if (shipment.status !== 'READY_FOR_DISPATCH') return;
-    this.feedback.set('');
-    this.busy.set(true);
-    this.shipmentService.updateStatus(shipment.id, 'IN_TRANSIT').pipe(finalize(() => this.busy.set(false))).subscribe({
-      next: () => { this.feedback.set('Shipment status updated.'); this.shipmentService.refresh(); },
-      error: error => this.feedback.set(error?.error?.message ?? 'Shipment status could not be updated.')
-    });
-  }
-
-  protected actionLabel(): string {
-    return 'Dispatch Shipment';
-  }
+  protected readonly busy = signal(false);
 
   protected cancelShipment(): void {
     const shipment = this.shipment();
     if (!shipment || !this.canCancel || this.busy()) return;
     const note = globalThis.prompt('Provide a cancellation reason:')?.trim();
     if (!note) return;
-    this.busy.set(true);
     this.feedback.set('');
+    this.busy.set(true);
     this.shipmentService.updateStatus(shipment.id, 'CANCELLED', note)
       .pipe(finalize(() => this.busy.set(false)))
       .subscribe({

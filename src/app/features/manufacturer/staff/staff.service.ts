@@ -4,6 +4,8 @@ import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import { map, tap } from 'rxjs';
 import { ManufacturerWarehouseService } from '../warehouses/warehouse.service';
 import { AuthService } from '../../../core/auth/auth.service';
+import { ManufacturerFleetService } from '../fleet/fleet.service';
+import { FleetDriver } from '../fleet/fleet.models';
 import { StaffAccessRole } from './staff.models';
 import { ManufacturerStaffMember, NewManufacturerEmployee, StaffStatus } from './staff.models';
 
@@ -16,6 +18,7 @@ export class ManufacturerStaffService {
   private readonly http = inject(HttpClient);
   private readonly warehouseService = inject(ManufacturerWarehouseService);
   private readonly auth = inject(AuthService);
+  private readonly fleet = inject(ManufacturerFleetService);
   private readonly employeeRecords = signal(initialEmployees);
 
   constructor() { this.refreshEmployees(); }
@@ -36,7 +39,33 @@ export class ManufacturerStaffService {
   readonly warehouses = computed(() =>
     this.warehouseService.warehouses().filter(warehouse => warehouse.status === 'ACTIVE'),
   );
-  readonly members = computed(() => this.employeeRecords());
+  readonly members = computed(() => [
+    ...this.employeeRecords(),
+    ...this.fleet.drivers().map(driver => this.toDriverMember(driver)),
+  ]);
+
+  private toDriverMember(driver: FleetDriver): ManufacturerStaffMember {
+    const warehouseId = driver.baseWarehouseId;
+    const status: StaffStatus = driver.accountStatus === 'ACTIVE'
+      ? 'ACTIVE'
+      : driver.accountStatus === 'SUSPENDED' ? 'SUSPENDED' : 'PENDING';
+    return {
+      id: driver.id,
+      name: driver.name,
+      email: driver.email,
+      jobTitle: 'Driver',
+      accessRole: 'MANUFACTURER_STAFF',
+      warehouseId,
+      warehouseName: this.warehouseService.findById(warehouseId ?? '')?.name ?? 'Unassigned',
+      status,
+      lastActive: driver.accountStatus === 'ACTIVE' ? 'Active driver' : driver.accountStatus.replaceAll('_', ' '),
+      category: 'DRIVER',
+    };
+  }
+
+  updateDriverStatus(id: string, status: Extract<StaffStatus, 'ACTIVE' | 'SUSPENDED'>) {
+    return this.fleet.driverActionApi(id, status === 'SUSPENDED' ? 'SUSPEND' : 'REACTIVATE');
+  }
 
   private isDriver(row: ApiMember): boolean {
     return row.role?.toUpperCase() === 'DRIVER' || row.accessRole?.toUpperCase() === 'DRIVER'

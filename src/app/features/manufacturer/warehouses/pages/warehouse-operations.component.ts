@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  OnInit,
   computed,
   effect,
   inject,
@@ -24,13 +25,18 @@ import { ManufacturerShipmentService } from '../../shipments/shipment.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './warehouse-operations.component.html',
 })
-export class ManufacturerWarehouseOperationsComponent {
+export class ManufacturerWarehouseOperationsComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   protected readonly operations = inject(WarehouseOperationsService);
   protected readonly inventory = inject(ManufacturerInventoryService);
   protected readonly purchaseOrders = inject(ManufacturerPurchaseOrderService);
   protected readonly shipments = inject(ManufacturerShipmentService);
+  ngOnInit(): void {
+    this.purchaseOrders.refresh();
+    this.shipments.refresh();
+  }
+
   private readonly sourceSync = effect(() => {
     if (this.inventory.loading() || this.purchaseOrders.loading()) return;
     const inventory = this.inventory.getRows().map((item) => ({
@@ -42,6 +48,8 @@ export class ManufacturerWarehouseOperationsComponent {
     const orders = this.purchaseOrders.orders().map((order) => ({
       id: order.id,
       orderNumber: order.id,
+      receivingOrganization: order.distributorName,
+      destinationWarehouseId: order.destinationWarehouseId,
       status: order.status,
       paymentStatus: order.paymentStatus,
       lines: order.lines.map((line) => ({
@@ -135,12 +143,38 @@ export class ManufacturerWarehouseOperationsComponent {
   }
 
   protected confirmPutAway(): void {
-    this.error.set(
-      'Put-away is unavailable for manufacturer stock: the backend location API permits distributor roles only.',
-    );
-    if (!this.adjustmentSku() || this.putAwayForm.invalid) {
+    const sku = this.adjustmentSku();
+    if (!sku || this.putAwayForm.invalid) {
       this.putAwayForm.markAllAsTouched();
+      return;
     }
+    const stock = this.operations.stock().find(item => item.sku === sku);
+    if (!stock?.id) {
+      this.error.set('Put-away is unavailable because the canonical stock-item ID is missing.');
+      return;
+    }
+    const { location, quantity } = this.putAwayForm.getRawValue();
+    const unlocated = this.unlocatedQuantity(sku);
+    if (quantity > unlocated) {
+      this.error.set(`Only ${unlocated} unlocated units are available to assign.`);
+      return;
+    }
+    this.saving.set(true);
+    this.operations.putAwayStock(stock.id, location, quantity).subscribe({
+      next: () => {
+        this.adjustmentSku.set('');
+        this.stockDialog.set('');
+        this.feedback.set(`${quantity} units were assigned to location ${location.trim()}.`);
+        this.error.set('');
+        this.inventory.refresh();
+        this.operations.refreshPersistedWarehouseData('MANUFACTURER');
+        this.saving.set(false);
+      },
+      error: error => {
+        this.showError(error, 'Stock could not be assigned to the location.');
+        this.saving.set(false);
+      },
+    });
   }
 
   protected openAdjustment(sku: string): void {
@@ -223,6 +257,10 @@ export class ManufacturerWarehouseOperationsComponent {
     this.selectedDispatchOrderId.set(order.id);
   }
 
+  protected shipmentForOrder(orderId: string) {
+    return this.shipments.findByPurchaseOrderId(orderId);
+  }
+
   protected confirmDispatch(): void {
     const order = this.selectedDispatchOrder();
     if (!order || this.saving()) return;
@@ -289,6 +327,16 @@ export class ManufacturerWarehouseOperationsComponent {
     if (unassigned > 0) locations.push(`Unassigned: ${unassigned}`);
     if (item.staged > 0) locations.push(`Picking: ${item.staged}`);
     return locations.join(', ') || 'No stock assigned';
+  }
+
+  protected locatedQuantity(item: { locations: Record<string, number> }): number {
+    return Object.values(item.locations).reduce((sum, quantity) => sum + quantity, 0);
+  }
+
+  protected unlocatedQuantity(sku: string): number {
+    const item = this.operations.stock().find(stock => stock.sku === sku);
+    if (!item) return 0;
+    return Math.max(0, item.onHand - item.staged - Object.values(item.locations).reduce((sum, quantity) => sum + quantity, 0));
   }
 
   protected progress(order: WarehouseOrder): string {

@@ -33,7 +33,10 @@ export class ResetPasswordComponent {
   protected readonly showConfirmPassword = signal(false);
 
   protected readonly requestForm = this.formBuilder.nonNullable.group({
-    email: ['', [trimmedRequired, Validators.email, Validators.maxLength(120)]],
+    email: [
+      this.route.snapshot.queryParamMap.get('email') ?? '',
+      [trimmedRequired, Validators.email, Validators.maxLength(120)],
+    ],
   });
 
   protected readonly resetForm = this.formBuilder.nonNullable.group(

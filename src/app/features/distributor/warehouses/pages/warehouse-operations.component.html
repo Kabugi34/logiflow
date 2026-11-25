@@ -141,6 +141,7 @@
         <thead class="bg-slate-50 text-left text-[10px] text-slate-600">
           <tr>
             <th scope="col" class="px-4 py-3">Purchase order</th>
+            <th scope="col" class="px-3 py-3">Manufacturer</th>
             <th scope="col" class="px-3 py-3">Product / SKU</th>
             <th scope="col" class="px-3 py-3">Expected</th>
             <th scope="col" class="px-3 py-3">Status</th>
@@ -153,6 +154,7 @@
               <td class="whitespace-nowrap px-4 py-3 font-medium text-slate-800">
                 {{ receipt.reference }}
               </td>
+              <td class="px-3 py-3">{{ receipt.manufacturerName || 'Not provided' }}</td>
               <td class="px-3 py-3">
                 <p class="font-medium text-slate-800">{{ receipt.product }}</p>
                 <p class="mt-0.5 text-[10px] text-slate-500">
@@ -201,7 +203,7 @@
             </tr>
           } @empty {
             <tr>
-              <td colspan="5" class="px-4 py-8 text-center text-slate-500">
+              <td colspan="7" class="px-4 py-8 text-center text-slate-500">
                 No incoming approved purchase order lines are available.
               </td>
             </tr>
@@ -237,7 +239,8 @@
           <tr>
             <th scope="col" class="px-4 py-3">Product</th>
             <th scope="col" class="px-3 py-3">On hand</th>
-            <th scope="col" class="px-3 py-3">Allocated</th>
+            <th scope="col" class="px-3 py-3">Allocated to locations</th>
+            <th scope="col" class="px-3 py-3">Reserved for orders</th>
             <th scope="col" class="px-3 py-3">Available</th>
             <th scope="col" class="px-3 py-3">Storage locations</th>
             <th scope="col" class="px-3 py-3">Actions</th>
@@ -251,6 +254,7 @@
                 <p class="mt-0.5 text-[10px] text-slate-500">{{ item.sku }}</p>
               </td>
               <td class="px-3 py-3">{{ item.onHand }}</td>
+              <td class="px-3 py-3 font-medium">{{ locatedQuantity(item) }}</td>
               <td class="px-3 py-3">{{ item.allocated }}</td>
               <td
                 class="px-3 py-3 font-medium"
@@ -541,6 +545,7 @@
           <p class="mt-1 text-xs text-slate-500">
             {{ receipt.reference }} · {{ receipt.product }} ({{ receipt.expected }} expected)
           </p>
+          <p class="mt-1 text-xs text-slate-500">Manufacturer: {{ receipt.manufacturerName || 'Not provided by shipment response' }}</p>
         </div>
         <button
           type="button"
@@ -613,7 +618,7 @@
         <div>
           <h2 id="putaway-title" class="text-base font-semibold text-slate-900">Put away stock</h2>
           <p class="mt-1 text-xs text-slate-500">
-            {{ adjustmentSku() }} · assign unlocated units to a storage location.
+            {{ adjustmentSku() }} · {{ unlocatedQuantity(adjustmentSku()) }} unlocated units available to assign.
           </p>
         </div>
         <button
@@ -640,6 +645,7 @@
           <input
             type="number"
             min="1"
+            [max]="unlocatedQuantity(adjustmentSku())"
             step="1"
             formControlName="quantity"
             class="h-9 w-full rounded border px-3 text-xs"

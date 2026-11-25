@@ -28,6 +28,8 @@ interface ApiShipment {
   id: string;
   purchaseOrderNumber: string;
   status: string;
+  manufacturerOrganizationName?: string | null;
+  manufacturerName?: string | null;
   receiptLines: {
     purchaseOrderItemId: string;
     stockItemId: string;
@@ -36,6 +38,7 @@ interface ApiShipment {
     acceptedQuantity?: number;
     damagedQuantity?: number;
     missingQuantity?: number;
+    dispatchedQuantity?: number;
   }[];
 }
 
@@ -49,8 +52,10 @@ interface ApiStockLocation {
 interface ApiStockMovement {
   id: string;
   stockItemId: string;
-  movementType: 'RESTOCK_IN' | 'SALE_OUT' | 'ADJUSTMENT' | 'RETURN' | 'DAMAGE';
-  quantityDelta: number;
+  movementType: 'RESTOCK_IN' | 'SALE_OUT' | 'ADJUSTMENT' | 'RETURN' | 'DAMAGE' | 'PUT_AWAY';
+  quantityDelta?: number;
+  movedQuantity?: number;
+  quantity?: number;
   referenceType?: string;
   referenceId?: string;
   performedBy?: string;
@@ -143,7 +148,9 @@ export class WarehouseOperationsService {
     const orders: WarehouseOrder[] = [];
     for (const source of sourceOrders) {
       if (source.paymentStatus !== 'PAID') continue;
-      const status = this.orderStatus(source.status);
+      const status = warehouseOwner === 'MANUFACTURER' && source.status === 'ACCEPTED'
+        ? 'READY_TO_DISPATCH'
+        : this.orderStatus(source.status);
       if (!status) continue;
 
       const lines: WarehouseLine[] = source.lines.map((line, index) => {
@@ -169,6 +176,8 @@ export class WarehouseOperationsService {
       orders.push({
         id: source.id,
         orderNumber: source.orderNumber,
+        receivingOrganization: source.receivingOrganization,
+        destinationWarehouseId: source.destinationWarehouseId,
         status,
         lines,
         packages: 0,
@@ -182,7 +191,7 @@ export class WarehouseOperationsService {
     this.sourceWarnings.set(warnings);
     this.initialized.set(true);
 
-    for (const item of stock) this.loadStockDetails(item.id, warehouseOwner);
+    for (const item of stock) this.loadStockDetails(item.id);
   }
 
   loadShipments(): void {
@@ -213,7 +222,7 @@ export class WarehouseOperationsService {
     this.locationRequests.clear();
     this.movementRequests.clear();
     if (warehouseOwner === 'DISTRIBUTOR') this.loadShipments();
-    for (const item of this.stock()) this.loadStockDetails(item.id, warehouseOwner);
+    for (const item of this.stock()) this.loadStockDetails(item.id);
   }
 
   putAwayStock(
@@ -243,6 +252,16 @@ export class WarehouseOperationsService {
                   }
                 : item,
             ),
+            movements: [{
+              id: `local-put-away:${globalThis.crypto?.randomUUID?.() ?? Date.now()}`,
+              sku: saved.sku,
+              quantity,
+              type: 'PUT_AWAY',
+              reference: 'WAREHOUSE_PUT_AWAY',
+              reason: `Put away into ${locationCode}`,
+              user: 'Current session',
+              at: new Date().toISOString(),
+            }, ...state.movements],
           }));
         }),
       );
@@ -333,9 +352,9 @@ export class WarehouseOperationsService {
     }
   }
 
-  private loadStockDetails(stockItemId: string, owner: 'MANUFACTURER' | 'DISTRIBUTOR'): void {
+  private loadStockDetails(stockItemId: string): void {
     if (!this.http) return;
-    if (owner === 'DISTRIBUTOR' && !this.locationRequests.has(stockItemId)) {
+    if (!this.locationRequests.has(stockItemId)) {
       this.locationRequests.add(stockItemId);
       this.http
         .get<ApiStockLocation[]>(
@@ -377,7 +396,9 @@ export class WarehouseOperationsService {
             this.warehouseState.update((state) => ({
               ...state,
               movements: [
-                ...mapped,
+                ...mapped.filter(movement => !state.movements.some(local =>
+                  local.id.startsWith('local-put-away:') && local.sku === movement.sku &&
+                  local.type === movement.type && local.reason === movement.reason)),
                 ...state.movements.filter((movement) => !movementIds.has(movement.id)),
               ].sort((a, b) => b.at.localeCompare(a.at)),
             }));
@@ -405,7 +426,7 @@ export class WarehouseOperationsService {
     return {
       id: movement.id,
       sku,
-      quantity: movement.quantityDelta,
+      quantity: movement.movedQuantity ?? movement.quantity ?? movement.quantityDelta ?? 0,
       type: movement.movementType,
       reference: [movement.referenceType, movement.referenceId].filter(Boolean).join(' · ') || '—',
       reason: movement.note ?? '',
@@ -420,9 +441,10 @@ export class WarehouseOperationsService {
       stockItemId: line.stockItemId,
       product: line.productName,
       expected: line.expectedQuantity,
-      accepted: line.acceptedQuantity ?? line.expectedQuantity,
-      damaged: line.damagedQuantity ?? 0,
-      missing: line.missingQuantity ?? 0,
+      accepted: shipment.status === 'RECEIVED' ? line.acceptedQuantity ?? 0 : undefined,
+      damaged: shipment.status === 'RECEIVED' ? line.damagedQuantity ?? 0 : undefined,
+      missing: shipment.status === 'RECEIVED' ? line.missingQuantity ?? 0 : undefined,
+      dispatched: line.dispatchedQuantity,
     }));
     const received = shipment.status === 'RECEIVED';
     return {
@@ -430,13 +452,14 @@ export class WarehouseOperationsService {
       shipmentId: shipment.id,
       shipmentStatus: shipment.status,
       reference: shipment.purchaseOrderNumber,
+      manufacturerName: shipment.manufacturerOrganizationName ?? shipment.manufacturerName ?? undefined,
       sku: '',
       product: lines.map((line) => line.product).join(', '),
       expected: lines.reduce((sum, line) => sum + line.expected, 0),
       status: received ? 'RECEIVED' : 'PENDING',
-      accepted: received ? lines.reduce((sum, line) => sum + line.accepted, 0) : undefined,
-      damaged: received ? lines.reduce((sum, line) => sum + line.damaged, 0) : undefined,
-      missing: received ? lines.reduce((sum, line) => sum + line.missing, 0) : undefined,
+      accepted: received ? lines.reduce((sum, line) => sum + (line.accepted ?? 0), 0) : undefined,
+      damaged: received ? lines.reduce((sum, line) => sum + (line.damaged ?? 0), 0) : undefined,
+      missing: received ? lines.reduce((sum, line) => sum + (line.missing ?? 0), 0) : undefined,
       lines,
     };
   }

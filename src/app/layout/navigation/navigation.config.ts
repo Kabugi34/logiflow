@@ -2,6 +2,7 @@ export interface NavigationItem {
   label: string;
   route: string;
   icon: string;
+  exact?: boolean;
   children?: NavigationItem[];
 }
 
@@ -102,6 +103,12 @@ export const distributorNavigation: NavigationItem[] = [
     label: 'Catalog',
     route: '/distributor/catalog',
     icon: 'package',
+    exact: true,
+  },
+  {
+    label: 'My Catalogue',
+    route: '/distributor/catalog/my',
+    icon: 'layers',
   },
   {
     label: 'Inventory',

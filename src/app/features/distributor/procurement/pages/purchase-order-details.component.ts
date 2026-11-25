@@ -4,7 +4,7 @@ import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { printPurchaseOrderPdf } from '../purchase-order-pdf';
+import { downloadPurchaseOrderPdf } from '../purchase-order-pdf';
 import { DistributorProcurementService } from '../procurement.service';
 import { PaymentInitiationComponent } from '../../../payments/payment-initiation.component';
 import { AuthService } from '../../../../core/auth/auth.service';
@@ -127,9 +127,7 @@ export class PurchaseOrderDetailsComponent {
 
   protected exportPdf(order: NonNullable<ReturnType<typeof this.order>>): void {
     this.exportError.set('');
-    if (!printPurchaseOrderPdf(order, this.procurement.total(order))) {
-      this.exportError.set('Allow pop-ups for LogiFlow to export this purchase order as a PDF.');
-    }
+    downloadPurchaseOrderPdf(order, this.procurement.total(order));
   }
 
   protected updatePaymentStatus(orderId: string, status: PaymentStatus): void {

@@ -1,22 +1,19 @@
-import { FormValidationSummaryComponent } from '../../../../shared/forms/form-validation-summary.component';
 import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { FleetDriver, FleetVehicle, VehicleStatus } from '../../fleet/fleet.models';
 import { ManufacturerFleetService } from '../../fleet/fleet.service';
-import { trimmedRequired } from '../../../../core/forms/form-validators';
 import { finalize } from 'rxjs';
+import { VehicleRegistrationDetails, VehicleRegistrationDialogComponent } from '../../../../shared/fleet/vehicle-registration-dialog.component';
 
 @Component({
   selector: 'app-vehicle-center',
   standalone: true,
-  imports: [FormValidationSummaryComponent, DecimalPipe, ReactiveFormsModule, RouterLink],
+  imports: [VehicleRegistrationDialogComponent, DecimalPipe, RouterLink],
   templateUrl: './vehicle-center.component.html',
 })
 export class VehicleCenterComponent {
   private readonly fleetService = inject(ManufacturerFleetService);
-  private readonly formBuilder = inject(FormBuilder);
   protected readonly vehicles = computed(() =>
     this.fleetService.vehicles().map((vehicle) => ({
       ...vehicle,
@@ -37,21 +34,12 @@ export class VehicleCenterComponent {
         this.fleetService.vehicleStatus(vehicle) === this.selectedStatus(),
     ),
   );
-  protected readonly form = this.formBuilder.nonNullable.group({
-    plate: [
-      '',
-      [trimmedRequired, Validators.maxLength(20), Validators.pattern(/^[A-Za-z0-9 -]+$/)],
-    ],
-    type: ['', [trimmedRequired, Validators.maxLength(80)]],
-    maxWeightCapacity: [26000, [Validators.required, Validators.min(1)]],
-  });
 
   protected updateStatus(event: Event): void {
     this.selectedStatus.set((event.target as HTMLSelectElement).value);
   }
 
   protected openRegisterDialog(): void {
-    this.form.reset({ plate: '', type: '', maxWeightCapacity: 26000 });
     this.formError.set('');
     this.isRegisterOpen.set(true);
   }
@@ -60,14 +48,10 @@ export class VehicleCenterComponent {
     this.isRegisterOpen.set(false);
   }
 
-  protected registerVehicle(): void {
+  protected registerVehicle(vehicle: VehicleRegistrationDetails): void {
     if (this.saving()) return;
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
     this.saving.set(true);
-    this.fleetService.createVehicleApi(this.form.getRawValue()).pipe(finalize(() => this.saving.set(false))).subscribe({
+    this.fleetService.createVehicleApi(vehicle).pipe(finalize(() => this.saving.set(false))).subscribe({
       next: () => { this.selectedStatus.set('ALL'); this.isRegisterOpen.set(false); },
       error: error => this.formError.set(error?.error?.message ?? 'Unable to register vehicle.')
     });

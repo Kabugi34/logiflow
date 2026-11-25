@@ -44,10 +44,13 @@ export class WarehouseOverviewComponent {
     city: ['', [trimmedRequired, personName, Validators.maxLength(60)]],
     postalCode: ['', [Validators.maxLength(20), Validators.pattern(/^[A-Za-z0-9 -]*$/)]],
     siteManager: ['', [trimmedRequired, personName, Validators.maxLength(80)]],
+    latitude: [''],
+    longitude: [''],
+    locationDescription: ['', Validators.maxLength(240)],
   });
 
   protected openCreate(): void {
-    this.form.reset({ code: '', name: '', address: '', city: '', postalCode: '', siteManager: '' });
+    this.form.reset({ code: '', name: '', address: '', city: '', postalCode: '', siteManager: '', latitude: '', longitude: '', locationDescription: '' });
     this.error.set('');
     this.createOpen.set(true);
   }
@@ -58,8 +61,18 @@ export class WarehouseOverviewComponent {
     }
     if (this.saving()) return;
     this.saving.set(true);
+    const values = this.form.getRawValue();
+    if (!!values.latitude !== !!values.longitude) {
+      this.error.set('Latitude and longitude must be provided together.'); this.saving.set(false); return;
+    }
+    const latitude = values.latitude === '' ? undefined : Number(values.latitude);
+    const longitude = values.longitude === '' ? undefined : Number(values.longitude);
+    if ((latitude !== undefined && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90)) ||
+        (longitude !== undefined && (!Number.isFinite(longitude) || longitude < -180 || longitude > 180))) {
+      this.error.set('Enter valid latitude and longitude coordinates.'); this.saving.set(false); return;
+    }
     this.warehouseService
-      .createWarehouse(this.form.getRawValue())
+      .createWarehouse({ ...values, latitude, longitude, locationDescription: values.locationDescription.trim() || undefined })
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
         next: (row) => {
