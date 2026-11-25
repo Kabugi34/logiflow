@@ -56,8 +56,9 @@ interface ApiStockMovement {
   id: string;
   stockItemId: string;
   movementType: 'RESTOCK_IN' | 'SALE_OUT' | 'ADJUSTMENT' | 'RETURN' | 'DAMAGE' | 'PUT_AWAY';
-  quantityDelta: number;
+  quantityDelta?: number;
   movedQuantity?: number;
+  quantity?: number;
   referenceType?: string;
   referenceId?: string;
   performedBy?: string;
@@ -254,6 +255,16 @@ export class WarehouseOperationsService {
                   }
                 : item,
             ),
+            movements: [{
+              id: `local-put-away:${globalThis.crypto?.randomUUID?.() ?? Date.now()}`,
+              sku: saved.sku,
+              quantity,
+              type: 'PUT_AWAY',
+              reference: 'WAREHOUSE_PUT_AWAY',
+              reason: `Put away into ${locationCode}`,
+              user: 'Current session',
+              at: new Date().toISOString(),
+            }, ...state.movements],
           }));
           if (saved.movementId && typeof saved.movedQuantity === 'number') {
             this.addPersistedMovement({
@@ -401,7 +412,9 @@ export class WarehouseOperationsService {
             this.warehouseState.update((state) => ({
               ...state,
               movements: [
-                ...mapped,
+                ...mapped.filter(movement => !state.movements.some(local =>
+                  local.id.startsWith('local-put-away:') && local.sku === movement.sku &&
+                  local.type === movement.type && local.reason === movement.reason)),
                 ...state.movements.filter((movement) => !movementIds.has(movement.id)),
               ].sort((a, b) => b.at.localeCompare(a.at)),
             }));
@@ -429,7 +442,7 @@ export class WarehouseOperationsService {
     const quantity =
       movement.movementType === 'PUT_AWAY'
         ? (movement.movedQuantity ?? 0)
-        : movement.quantityDelta;
+        : (movement.quantityDelta ?? movement.quantity ?? 0);
     return {
       id: movement.id,
       sku,

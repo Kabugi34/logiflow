@@ -8,6 +8,13 @@ import {
   PurchaseOrderStatus,
   PurchasePaymentStatus,
 } from './purchase-order.models';
+import {
+  CreditStatement,
+  CreditTermsUpdate,
+  DistributorCredit,
+  PurchaseOrderSettlement,
+  PurchasePaymentTerms,
+} from '../../../core/models/purchase-order-settlement.model';
 import { Observable, catchError, forkJoin, map, of, tap } from 'rxjs';
 import { PaymentService } from '../../payments/payment.service';
 
@@ -26,7 +33,13 @@ interface ApiPo {
   status: string;
   submittedAt: string;
   paymentStatus?: string | null;
-  settlements?: { status: string }[];
+  settlements?: PurchaseOrderSettlement[];
+  totalAmount?: number | null;
+  paymentTerms?: PurchasePaymentTerms | null;
+  dueAt?: string | null;
+  overdue?: boolean | null;
+  amountPaid?: number | null;
+  amountOutstanding?: number | null;
   rejectionReason?: string | null;
   reviewedAt?: string | null;
   fulfilledAt?: string | null;
@@ -45,6 +58,12 @@ interface ApiStock {
   quantityOnHand: number;
   reservedQuantity?: number;
   availableQuantity?: number;
+}
+interface ApiPayment {
+  orderId: string;
+  counterpartyName?: string | null;
+  status: string;
+  createdAt?: string;
 }
 @Injectable({ providedIn: 'root' })
 export class ManufacturerPurchaseOrderService {
@@ -118,6 +137,56 @@ export class ManufacturerPurchaseOrderService {
       );
   }
 
+  /**
+   * Records a bank payment the supplier has seen arrive. Only a manufacturer
+   * administrator is allowed; the server enforces it and the exact-amount rule
+   * for pay-now orders.
+   */
+  confirmBankPayment(id: string, reference: string, amountReceived: number): Observable<void> {
+    return this.http
+      .post<ApiPo>(API_ENDPOINTS.manufacturer.purchaseOrderConfirmPayment(id), {
+        reference,
+        amountReceived,
+      })
+      .pipe(
+        tap(() => this.refresh()),
+        map(() => undefined),
+      );
+  }
+
+  cancelOverdue(id: string, note = ''): Observable<void> {
+    return this.http
+      .post<ApiPo>(API_ENDPOINTS.manufacturer.purchaseOrderCancelOverdue(id), { note })
+      .pipe(
+        tap(() => this.refresh()),
+        map(() => undefined),
+      );
+  }
+
+  /** The proof is fetched with the session's credentials; it is never a public URL. */
+  downloadProof(id: string, documentId: string): Observable<Blob> {
+    return this.http.get(API_ENDPOINTS.manufacturer.purchaseOrderProof(id, documentId), {
+      responseType: 'blob',
+    });
+  }
+
+  loadCredit(distributorId: string): Observable<DistributorCredit> {
+    return this.http.get<DistributorCredit>(API_ENDPOINTS.manufacturer.distributorCredit(distributorId));
+  }
+
+  saveCredit(distributorId: string, update: CreditTermsUpdate): Observable<DistributorCredit> {
+    return this.http.put<DistributorCredit>(
+      API_ENDPOINTS.manufacturer.distributorCredit(distributorId),
+      update,
+    );
+  }
+
+  loadStatement(distributorId: string): Observable<CreditStatement> {
+    return this.http.get<CreditStatement>(
+      API_ENDPOINTS.manufacturer.distributorStatement(distributorId),
+    );
+  }
+
   retryFulfilment(id: string): Observable<ApiPo> {
     return this.http.post<ApiPo>(API_ENDPOINTS.manufacturer.purchaseOrderFulfilmentRetry(id), {})
       .pipe(tap(() => { this.refreshPurchaseOrder(id); this.refreshStock(); }));
@@ -136,7 +205,7 @@ export class ManufacturerPurchaseOrderService {
       .pipe(tap(() => { this.refreshPurchaseOrder(id); this.refreshStock(); }));
   }
 
-  private mapOrder(row: ApiPo, stock: ApiStock[]): ManufacturerPurchaseOrder {
+  private mapOrder(row: ApiPo, stock: ApiStock[], payment?: ApiPayment): ManufacturerPurchaseOrder {
     const status: PurchaseOrderStatus = ({
       SUBMITTED: 'PENDING',
       PENDING: 'PENDING',
@@ -146,8 +215,17 @@ export class ManufacturerPurchaseOrderService {
       REJECTED: 'REJECTED',
       CANCELLED: 'CANCELLED',
     } as Record<string, PurchaseOrderStatus>)[row.status] ?? 'UNKNOWN';
+    const lineTotal = (row.items ?? []).reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
     return {
       id: row.id,
+      distributorId: row.buyerOrganizationId,
+      paymentTerms: row.paymentTerms === 'CREDIT' ? 'CREDIT' : 'PAY_NOW',
+      totalAmount: row.totalAmount ?? lineTotal,
+      amountPaid: row.amountPaid ?? 0,
+      amountOutstanding: row.amountOutstanding ?? row.totalAmount ?? lineTotal,
+      dueAt: row.dueAt ?? null,
+      overdue: row.overdue ?? false,
+      settlements: row.settlements ?? [],
       distributorName:
         row.buyerOrganizationName?.trim() ||
         row.distributorOrganizationName?.trim() ||
@@ -157,6 +235,7 @@ export class ManufacturerPurchaseOrderService {
         row.buyerOrganization?.name?.trim() ||
         row.customerOrganizationName?.trim() ||
         row.organizationName?.trim() ||
+        payment?.counterpartyName?.trim() ||
         (row.buyerOrganizationId ? `Distributor ${row.buyerOrganizationId}` : 'Distributor name unavailable'),
       manufacturerName: this.auth.user()?.organization.name?.trim() || 'Manufacturer',
       destinationHub: row.destinationWarehouseId?.trim() || 'Destination unavailable from purchase-order API',
@@ -167,16 +246,20 @@ export class ManufacturerPurchaseOrderService {
       fulfilmentStatus: this.mapFulfilmentStatus(row.fulfilmentStatus ?? row.fulfillmentStatus),
       packageCount: row.packageCount,
       paymentStatus: this.mapPaymentStatus(
-        row.paymentStatus,
+        row.paymentStatus ?? row.settlements?.[row.settlements.length - 1]?.status ?? payment?.status,
       ),
       lines: (row.items ?? []).map((item) => {
         const lineId = item.purchaseOrderItemId ?? item.id;
-        const matching = item.stockItemId ? stock.find(stockItem => stockItem.id === item.stockItemId || stockItem.stockItemId === item.stockItemId) : undefined;
+        const matching = item.stockItemId
+          ? stock.find(stockItem => stockItem.id === item.stockItemId || stockItem.stockItemId === item.stockItemId)
+          : stock.find(stockItem => stockItem.sku === item.sku);
         return {
           productName: item.name,
           sku: item.sku,
           requestedQuantity: item.quantity,
-          availableStock: matching?.availableQuantity ?? 0,
+          availableStock:
+            matching?.availableQuantity ??
+            Math.max(0, (matching?.quantityOnHand ?? 0) - (matching?.reservedQuantity ?? 0)),
           purchaseOrderItemId: lineId,
           stockItemId: item.stockItemId,
           pickedQuantity: item.pickedQuantity ?? 0,
