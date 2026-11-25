@@ -1,5 +1,5 @@
 import { CurrencyPipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import { RouterLink } from '@angular/router';
 import { AuthenticatedImageComponent } from '../../../../shared/authenticated-image.component';
@@ -16,6 +16,13 @@ export class MyCatalogueComponent implements OnInit {
   protected readonly service = inject(DistributorResellerListingService);
   protected readonly listings = signal<ResellerListing[]>([]);
   protected readonly eligibleProducts = signal<EligibleResellerProduct[]>([]);
+  protected readonly readyToList = computed(() =>
+    this.eligibleProducts().filter(
+      (product) =>
+        !product.alreadyListed &&
+        !this.listings().some((listing) => listing.manufacturerProductId === product.manufacturerProductId),
+    ),
+  );
   protected readonly loading = signal(false);
   protected readonly error = signal('');
 
@@ -37,10 +44,6 @@ export class MyCatalogueComponent implements OnInit {
         this.loading.set(false);
       },
     });
-  }
-
-  protected listingFor(product: EligibleResellerProduct): ResellerListing | undefined {
-    return this.listings().find((listing) => listing.manufacturerProductId === product.manufacturerProductId);
   }
 
   protected acceptedQuantity(listing: ResellerListing): number {

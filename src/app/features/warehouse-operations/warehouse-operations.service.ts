@@ -189,7 +189,7 @@ export class WarehouseOperationsService {
     this.sourceWarnings.set(warnings);
     this.initialized.set(true);
 
-    for (const item of stock) this.loadStockDetails(item.id, warehouseOwner);
+    for (const item of stock) this.loadStockDetails(item.id);
   }
 
   loadShipments(): void {
@@ -220,7 +220,7 @@ export class WarehouseOperationsService {
     this.locationRequests.clear();
     this.movementRequests.clear();
     if (warehouseOwner === 'DISTRIBUTOR') this.loadShipments();
-    for (const item of this.stock()) this.loadStockDetails(item.id, warehouseOwner);
+    for (const item of this.stock()) this.loadStockDetails(item.id);
   }
 
   putAwayStock(
@@ -340,9 +340,9 @@ export class WarehouseOperationsService {
     }
   }
 
-  private loadStockDetails(stockItemId: string, owner: 'MANUFACTURER' | 'DISTRIBUTOR'): void {
+  private loadStockDetails(stockItemId: string): void {
     if (!this.http) return;
-    if (owner === 'DISTRIBUTOR' && !this.locationRequests.has(stockItemId)) {
+    if (!this.locationRequests.has(stockItemId)) {
       this.locationRequests.add(stockItemId);
       this.http
         .get<ApiStockLocation[]>(

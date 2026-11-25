@@ -38,6 +38,8 @@ describe('AuthService', () => {
   afterEach(() => {
     http.verify();
     window.sessionStorage.clear();
+    window.localStorage.removeItem('logiflow.distributor.purchaseCart.v2.organization-12');
+    vi.useRealTimers();
   });
 
   it('stores backend tokens and normalizes the login user', () => {
@@ -109,6 +111,19 @@ describe('AuthService', () => {
 
     expect(window.sessionStorage.getItem('logiflow.accessToken')).toBe('test-access-token');
     expect(window.sessionStorage.getItem('logiflow.refreshToken')).toBe('test-refresh-token');
+  });
+
+  it('silently refreshes shortly before the access token expires', async () => {
+    vi.useFakeTimers();
+    service.login('admin@example.com', 'secret-password').subscribe();
+    http.expectOne(API_ENDPOINTS.auth.login).flush({ ...session, expiresInSeconds: 90 });
+    const lastActivity = window.sessionStorage.getItem('logiflow.session.lastActivityAt');
+
+    await vi.advanceTimersByTimeAsync(30_000);
+    const refreshRequest = http.expectOne(API_ENDPOINTS.auth.refresh);
+    refreshRequest.flush({ ...session, accessToken: 'proactively-refreshed-access', expiresInSeconds: 900 });
+    expect(service.accessToken).toBe('proactively-refreshed-access');
+    expect(window.sessionStorage.getItem('logiflow.session.lastActivityAt')).toBe(lastActivity);
   });
 
   it('keeps refresh credentials when session restoration fails temporarily', () => {
@@ -186,5 +201,103 @@ describe('AuthService', () => {
     const request = http.expectOne(API_ENDPOINTS.auth.logout);
     expect(request.request.body).toEqual({ refreshToken: 'existing-refresh-token' });
     request.flush(null);
+  });
+
+  it('shows the inactivity warning after 18 minutes and validates Stay Signed In', async () => {
+    vi.useFakeTimers();
+    service.login('admin@example.com', 'secret-password').subscribe();
+    http.expectOne(API_ENDPOINTS.auth.login).flush({ ...session, expiresInSeconds: 3600 });
+
+    await vi.advanceTimersByTimeAsync(18 * 60_000);
+    expect(service.sessionWarningVisible()).toBe(true);
+    service.staySignedIn().subscribe((valid) => expect(valid).toBe(true));
+    http.expectOne(API_ENDPOINTS.auth.me).flush(backendUser);
+    expect(service.sessionWarningVisible()).toBe(false);
+    expect(Number(window.sessionStorage.getItem('logiflow.session.lastActivityAt'))).toBe(Date.now());
+  });
+
+  it('clears the session after 20 minutes without activity', async () => {
+    vi.useFakeTimers();
+    service.login('admin@example.com', 'secret-password').subscribe();
+    http.expectOne(API_ENDPOINTS.auth.login).flush({ ...session, expiresInSeconds: 3600 });
+
+    await vi.advanceTimersByTimeAsync(20 * 60_000);
+    expect(service.user()).toBeNull();
+    expect(window.sessionStorage.getItem('logiflow.accessToken')).toBeNull();
+    http.expectOne(API_ENDPOINTS.auth.logout).flush(null);
+    expect(service.sessionEnd()?.reason).toBe('idle');
+  });
+
+  it('enforces the persisted eight-hour absolute session limit on restore', () => {
+    vi.useFakeTimers();
+    window.sessionStorage.setItem('logiflow.accessToken', 'existing-access-token');
+    window.sessionStorage.setItem('logiflow.refreshToken', 'existing-refresh-token');
+    window.sessionStorage.setItem('logiflow.session.startedAt', String(Date.now() - 8 * 60 * 60_000));
+    window.sessionStorage.setItem('logiflow.session.organizationId', 'organization-12');
+
+    service.restoreSession().subscribe((user) => expect(user).toBeNull());
+    http.expectNone(API_ENDPOINTS.auth.me);
+    http.expectOne(API_ENDPOINTS.auth.logout).flush(null);
+    expect(service.sessionEnd()?.reason).toBe('absolute');
+  });
+
+  it('preserves the manufacturer workspace when restoring its authenticated user', () => {
+    window.sessionStorage.setItem('logiflow.accessToken', 'existing-access-token');
+    window.sessionStorage.setItem('logiflow.refreshToken', 'existing-refresh-token');
+    service.restoreSession().subscribe((user) => {
+      expect(user?.organization.type).toBe('MANUFACTURER');
+      expect(user?.roles).toEqual(['MANUFACTURER_ADMIN']);
+    });
+    http.expectOne(API_ENDPOINTS.auth.me).flush({
+      ...backendUser,
+      role: 'MANUFACTURER_ADMIN',
+      organizationId: 'manufacturer-1',
+      organizationtype: 'MANUFACTURER',
+    });
+  });
+
+  it('logs a manufacturer account out through the same revocation endpoint', () => {
+    const manufacturer = {
+      ...backendUser,
+      role: 'MANUFACTURER_ADMIN',
+      organizationId: 'manufacturer-1',
+      organizationName: 'Test Manufacturer',
+      organizationtype: 'MANUFACTURER' as const,
+    };
+    service.login('manufacturer@example.com', 'secret-password').subscribe((user) => {
+      expect(user?.organization.type).toBe('MANUFACTURER');
+    });
+    http.expectOne(API_ENDPOINTS.auth.login).flush({
+      ...session,
+      refreshToken: 'manufacturer-refresh-token',
+      user: manufacturer,
+    });
+    service.logout().subscribe();
+    http.expectOne(API_ENDPOINTS.auth.logout).flush(null);
+    expect(service.user()).toBeNull();
+    expect(service.sessionEnd()?.workspace).toBe('MANUFACTURER');
+  });
+
+  it('clears the prior organization cache when the signed-in organization changes', () => {
+    const cachedKey = 'logiflow.distributor.purchaseCart.v2.organization-12';
+    window.localStorage.setItem(cachedKey, '{"lines":[]}');
+    service.login('admin@example.com', 'secret-password').subscribe();
+    http.expectOne(API_ENDPOINTS.auth.login).flush(session);
+    service.login('manufacturer@example.com', 'secret-password').subscribe();
+    http.expectOne(API_ENDPOINTS.auth.login).flush({
+      ...session,
+      accessToken: 'manufacturer-access-token',
+      refreshToken: 'manufacturer-refresh-token',
+      user: {
+        ...backendUser,
+        role: 'MANUFACTURER_ADMIN',
+        organizationId: 'manufacturer-1',
+        organizationName: 'Test Manufacturer',
+        organizationtype: 'MANUFACTURER',
+      },
+    });
+    expect(service.organizationChanged()).toBe(true);
+    expect(window.localStorage.getItem(cachedKey)).toBeNull();
+    expect(service.user()?.organization.type).toBe('MANUFACTURER');
   });
 });

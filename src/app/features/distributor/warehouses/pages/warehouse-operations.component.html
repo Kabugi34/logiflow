@@ -616,7 +616,7 @@
         <div>
           <h2 id="putaway-title" class="text-base font-semibold text-slate-900">Put away stock</h2>
           <p class="mt-1 text-xs text-slate-500">
-            {{ adjustmentSku() }} · assign unlocated units to a storage location.
+            {{ adjustmentSku() }} · {{ unlocatedQuantity(adjustmentSku()) }} unlocated units available to assign.
           </p>
         </div>
         <button
@@ -643,6 +643,7 @@
           <input
             type="number"
             min="1"
+            [max]="unlocatedQuantity(adjustmentSku())"
             step="1"
             formControlName="quantity"
             class="h-9 w-full rounded border px-3 text-xs"

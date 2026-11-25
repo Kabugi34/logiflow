@@ -48,11 +48,11 @@ export class CatalogOfferFormComponent {
   });
 
   constructor() {
-    const selectedSku = this.route.snapshot.queryParamMap.get('sku') ?? '';
-    if (selectedSku)
+    const selectedProductId = this.route.snapshot.queryParamMap.get('productId') ?? '';
+    if (selectedProductId)
       effect(() => {
         this.availableProducts();
-        this.selectProduct(selectedSku);
+        this.selectProduct(selectedProductId);
       });
   }
 
@@ -116,8 +116,8 @@ export class CatalogOfferFormComponent {
       });
   }
 
-  private selectProduct(sku: string): void {
-    const product = this.availableProducts().find((item) => item.sku === sku);
+  private selectProduct(productId: string): void {
+    const product = this.availableProducts().find((item) => item.id === productId || item.sku === productId);
     if (!product) return;
     this.form.patchValue({
       sku: product.sku,

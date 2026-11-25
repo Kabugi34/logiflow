@@ -71,10 +71,7 @@
     </div>
   }
   <p class="rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800">
-    Stock adjustments and movement history use persisted stock APIs. Manufacturer put-away is
-    disabled because the locations API is distributor-only; picking and packing are disabled because
-    the backend order endpoints accept distributor customer orders, not manufacturer purchase-order
-    lines. Shipment creation and status remain on the separate manufacturer shipment workflow.
+    Both workspaces use the same organization-scoped stock-location API. Assign unlocated stock to a storage location before recording a manufacturer purchase-order pick. Purchase-order packing and shipment creation remain in the purchase-order and shipment workflows.
   </p>
 
   <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Warehouse summary">
@@ -167,8 +164,6 @@
                   <button
                     type="button"
                     (click)="openPutAway(item.sku)"
-                    disabled
-                    title="The backend location API permits distributor users only."
                     class="rounded border border-slate-200 px-2 py-1 text-[10px] hover:bg-slate-50"
                   >
                     Put away
@@ -404,7 +399,7 @@
       <div class="flex items-start justify-between gap-3">
         <div>
           <h2 id="putaway-title" class="text-base font-semibold text-slate-900">Put away stock</h2>
-          <p class="mt-1 text-xs text-slate-500">{{ adjustmentSku() }} · assign unlocated units.</p>
+          <p class="mt-1 text-xs text-slate-500">{{ adjustmentSku() }} · {{ unlocatedQuantity(adjustmentSku()) }} unlocated units available to assign.</p>
         </div>
         <button
           type="button"
@@ -429,6 +424,7 @@
           ><input
             type="number"
             min="1"
+            [max]="unlocatedQuantity(adjustmentSku())"
             step="1"
             formControlName="quantity"
             class="h-9 w-full rounded border px-3 text-xs"

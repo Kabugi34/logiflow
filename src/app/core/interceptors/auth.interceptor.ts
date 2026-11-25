@@ -35,7 +35,8 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   // Sending that expired bearer token as well can cause some backends to
   // reject the refresh request before they inspect the refresh token.
   const refreshPath = new URL(API_ENDPOINTS.auth.refresh).pathname;
-  if (requestUrl.pathname === refreshPath) return next(request);
+  const logoutPath = new URL(API_ENDPOINTS.auth.logout).pathname;
+  if (requestUrl.pathname === refreshPath || requestUrl.pathname === logoutPath) return next(request);
 
   return token
     ? next(request.clone({ setHeaders: { Authorization: `Bearer ${token}` } }))

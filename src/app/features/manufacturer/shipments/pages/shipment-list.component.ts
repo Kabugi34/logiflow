@@ -22,11 +22,16 @@ export class ShipmentListComponent {
   protected readonly selectedStatus = signal('ACTIVE');
   protected readonly isAllocationOpen = signal(false);
   protected readonly allocationError = signal('');
+  protected readonly packingOrderId = signal('');
   protected readonly saving = signal(false);
+  protected readonly paidOrders = computed(() =>
+    this.purchaseOrderService.orders().filter(order => order.status === 'ACCEPTED' && order.paymentStatus === 'PAID'),
+  );
   protected readonly dispatchableOrders = computed(() =>
-    this.purchaseOrderService
-      .orders()
-      .filter((order) => order.status === 'ACCEPTED' && order.paymentStatus === 'PAID'),
+    this.paidOrders().filter(order => order.fulfilmentStatus === 'READY_FOR_DISPATCH'),
+  );
+  protected readonly ordersNeedingPreparation = computed(() =>
+    this.paidOrders().filter(order => order.fulfilmentStatus !== 'READY_FOR_DISPATCH'),
   );
   protected readonly shipments = computed(() =>
     this.shipmentService.shipments().filter((shipment) => {
@@ -52,6 +57,7 @@ export class ShipmentListComponent {
 
   protected openAllocation(): void {
     this.allocationError.set('');
+    this.packingOrderId.set('');
     const firstOrderId = this.dispatchableOrders()[0]?.id ?? '';
     this.form.reset({
       poReference: firstOrderId,
@@ -117,11 +123,17 @@ export class ShipmentListComponent {
             queryParamsHandling: 'preserve',
           });
         },
-        error: (error) =>
-          this.allocationError.set(
-            error?.error?.message ??
-              'Shipment could not be allocated. Check purchase order and fleet availability.',
-          ),
+        error: (error) => {
+          const backendCode = error?.error?.code;
+          const backendMessage = error?.error?.message;
+          if (error?.status === 409 && (backendCode === 'CONFLICT' || backendMessage?.toLowerCase().includes('picked and packed'))) {
+            this.packingOrderId.set(order.id);
+            this.allocationError.set('This purchase order is not fully picked and packed yet. Open it to continue warehouse preparation, then return here to create the shipment.');
+            this.purchaseOrderService.refresh();
+            return;
+          }
+          this.allocationError.set(backendMessage ?? 'Shipment could not be allocated. Check the purchase order and try again.');
+        },
       });
   }
 

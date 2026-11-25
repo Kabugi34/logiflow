@@ -1,8 +1,8 @@
 <section class="mx-auto max-w-3xl space-y-5">
   <header class="border-b border-slate-200 pb-4">
     <nav aria-label="Breadcrumb" class="mb-2 flex items-center gap-2 text-xs text-slate-400"><a routerLink="/distributor/dashboard" class="hover:text-blue-600">LogiFlow</a><span aria-hidden="true">›</span><a routerLink="/distributor/catalog/my" class="hover:text-blue-600">My Catalogue</a><span aria-hidden="true">›</span><span class="font-medium text-slate-600">New listing</span></nav>
-    <h1 class="text-xl font-semibold text-slate-900">List a purchased product</h1>
-    <p class="mt-1 text-sm text-slate-600">Select a backend-eligible Manufacturer product and set your retail price. Accepted inventory remains backend controlled.</p>
+    <h1 class="text-xl font-semibold text-slate-900">Publish a customer listing</h1>
+    <p class="mt-1 text-sm text-slate-600">Choose a paid purchase and set the price customers will pay. Publishing creates one customer-facing listing; accepted inventory remains backend controlled.</p>
   </header>
 
   @if (error()) { <p role="alert" class="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">{{ error() }}</p> }
@@ -29,11 +29,11 @@
 
     @if (!loading() && !availableProducts().length) { <p class="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">There are no eligible unlisted products. A paid purchase is required; inventory availability is tracked separately.</p> }
 
-    <label class="block max-w-sm text-xs font-medium text-slate-700">Retail selling price
+    <label class="block max-w-sm text-xs font-medium text-slate-700">Customer retail price
       <div class="mt-1 flex items-center rounded-md border border-slate-200"><span class="px-3 text-sm text-slate-500">KES</span><input type="number" min="0.01" step="0.01" formControlName="retailPrice" class="h-10 min-w-0 flex-1 rounded-r-md border-l border-slate-200 px-3 text-sm" /></div>
     </label>
-    <p class="text-xs text-slate-500">The listing request sends only the canonical Manufacturer product ID and retail price. Product metadata and inventory cannot be edited here.</p>
-    <div class="flex flex-wrap gap-2"><button type="submit" [disabled]="loading() || saving() || !availableProducts().length" class="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{{ saving() ? 'Creating listing…' : 'Publish reseller listing' }}</button><a routerLink="/distributor/catalog/my" class="rounded border border-slate-200 px-4 py-2 text-sm text-slate-700">Cancel</a></div>
+    <p class="text-xs text-slate-500">Publishing adds this product to your customer listings. Customers can order it when the listing is active and accepted stock is available.</p>
+    <div class="flex flex-wrap gap-2"><button type="submit" [disabled]="loading() || saving() || !availableProducts().length" class="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{{ saving() ? 'Publishing…' : 'Publish to customer catalog' }}</button><a routerLink="/distributor/catalog/my" class="rounded border border-slate-200 px-4 py-2 text-sm text-slate-700">Cancel</a></div>
   </form>
 </section>
 

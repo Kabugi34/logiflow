@@ -4,16 +4,18 @@ import { Observable, map, tap } from 'rxjs';
 import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import { DriverInvitationCreatedResponse } from '../../../core/models/driver-invitation.model';
 import { DriverAccountStatus, DriverOperationalStatus, FleetDriver, FleetVehicle, NewFleetDriver, NewFleetVehicle, VehicleCondition, VehicleStatus } from './fleet.models';
+import { AuthService } from '../../../core/auth/auth.service';
 
 const initialDrivers: FleetDriver[] = [];
 const initialVehicles: FleetVehicle[] = [];
 interface DriverDto { id: string; fullName?: string; name?: string; email: string; phoneNumber?: string; phone?: string; licenseNumber?: string; license?: string; nationalId?: string; licenseExpiryDate?: string; accountStatus?: DriverAccountStatus; operationalStatus?: DriverOperationalStatus; baseWarehouseId?: string | null; vehicleId?: string | null; activeTripId?: string | null; createdAt?: string; invitationStatus?: 'QUEUED' | 'SENT' | 'FAILED'; }
-interface VehicleDto { id: string; plate?: string; registrationNumber?: string; type?: string; model?: string; maxWeightCapacity?: number; status?: string; condition?: VehicleCondition; driverId?: string | null; activeTripId?: string | null; }
+interface VehicleDto { id: string; organizationId?: string | number; plate?: string; registrationNumber?: string; type?: string; model?: string; maxWeightCapacity?: number; status?: string; condition?: VehicleCondition; driverId?: string | null; activeTripId?: string | null; }
 interface Page<T> { content?: T[]; }
 
 @Injectable({ providedIn: 'root' })
 export class ManufacturerFleetService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
   private readonly driverRecords = signal(initialDrivers);
   private readonly vehicleRecords = signal(initialVehicles);
   private readonly lastPingedDriverId = signal<string | null>(null);
@@ -25,12 +27,21 @@ export class ManufacturerFleetService {
   constructor() { this.refresh(); }
 
   refresh(): void {
+    // Clear cached records during identity/organization changes so an old fleet
+    // is never briefly rendered while the next tenant's response is loading.
+    this.vehicleRecords.set([]);
+    this.driverRecords.set([]);
     this.http.get<Page<DriverDto> | DriverDto[]>(`${API_ENDPOINTS.manufacturer.drivers}?size=100`).subscribe({
       next: result => this.driverRecords.set((Array.isArray(result) ? result : result.content ?? []).map(row => this.mapDriver(row))),
     });
     this.http.get<Page<VehicleDto> | VehicleDto[]>(`${API_ENDPOINTS.manufacturer.vehicles}?size=100`).subscribe({
-      next: result => this.vehicleRecords.set((Array.isArray(result) ? result : result.content ?? []).map(row => this.mapVehicle(row))),
+      next: result => this.vehicleRecords.set(this.tenantVehicles(Array.isArray(result) ? result : result.content ?? []).map(row => this.mapVehicle(row))),
     });
+  }
+
+  private tenantVehicles(rows: VehicleDto[]): VehicleDto[] {
+    const organizationId = this.auth.user()?.organization.id;
+    return rows.filter(row => row.organizationId !== undefined && String(row.organizationId) === String(organizationId));
   }
 
   createDriverApi(details: Pick<NewFleetDriver, 'name' | 'email' | 'phone' | 'license' | 'nationalId' | 'licenseExpiryDate'> & { notes?: string }): Observable<DriverInvitationCreatedResponse> {

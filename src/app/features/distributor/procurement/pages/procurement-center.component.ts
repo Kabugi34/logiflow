@@ -1,7 +1,7 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { printPurchaseOrderPdf } from '../purchase-order-pdf';
+import { downloadPurchaseOrderPdf } from '../purchase-order-pdf';
 import { DistributorProcurementService } from '../procurement.service';
 import { DistributorPurchaseOrder, ProcurementStatus } from '../procurement.models';
 import { LoadingSkeletonComponent } from '../../../../shared/loading/loading-skeleton.component';
@@ -82,8 +82,6 @@ export class ProcurementCenterComponent implements OnInit {
 
   protected exportPdf(order: DistributorPurchaseOrder): void {
     this.exportError.set('');
-    if (!printPurchaseOrderPdf(order, this.procurement.total(order))) {
-      this.exportError.set('Allow pop-ups for LogiFlow to export this purchase order as a PDF.');
-    }
+    downloadPurchaseOrderPdf(order, this.procurement.total(order));
   }
 }

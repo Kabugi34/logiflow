@@ -1,86 +1,106 @@
 import { DistributorPurchaseOrder } from './procurement.models';
 
-/** Opens a print-ready purchase order; users can choose Save as PDF in the browser dialog. */
-export function printPurchaseOrderPdf(
-  order: DistributorPurchaseOrder,
-  total: number,
-): boolean {
-  const printWindow = window.open('', '_blank');
-  if (!printWindow) return false;
-
-  const escapeHtml = (value: string): string =>
-    value.replace(/[&<>"']/g, (character) => {
-      const entities: Record<string, string> = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;',
-      };
-      return entities[character];
+/** Creates and downloads a self-contained PDF purchase order without opening a popup. */
+export function downloadPurchaseOrderPdf(order: DistributorPurchaseOrder, total: number): void {
+  const clean = (value: unknown): string =>
+    String(value ?? '').normalize('NFKD').replace(/[^\x20-\x7E]/g, '');
+  const money = (value: number): string =>
+    `KES ${new Intl.NumberFormat('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value || 0)}`;
+  const date = (value: string): string => {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? clean(value) : new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium' }).format(parsed);
+  };
+  const wrap = (value: string, max: number): string[] => {
+    const words = clean(value).split(/\s+/);
+    const result: string[] = [];
+    let line = '';
+    for (const word of words) {
+      if (line && `${line} ${word}`.length > max) { result.push(line); line = word; }
+      else line = line ? `${line} ${word}` : word;
+    }
+    if (line) result.push(line);
+    return result.length ? result : [''];
+  };
+  const contentPages: string[][] = [[]];
+  const add = (line: string) => {
+    if (contentPages.at(-1)!.length >= 48) contentPages.push([]);
+    contentPages.at(-1)!.push(line);
+  };
+  add('LOGIFLOW | DISTRIBUTOR PROCUREMENT');
+  add(`PURCHASE ORDER ${clean(order.id)}`);
+  add('');
+  add(`Status: ${clean(order.status.replace('_', ' '))}    Payment: ${clean(order.paymentStatus)}`);
+  add(`Supplier: ${clean(order.manufacturerName)} (${clean(order.manufacturerId)})`);
+  add(`Supplier location: ${clean(order.manufacturerLocation)}`);
+  add(`Destination: ${clean(order.destination)}`);
+  add(`Order date: ${date(order.orderDate)}    Expected delivery: ${date(order.expectedDelivery)}`);
+  if (order.shipmentId) add(`Shipment: ${clean(order.shipmentId)}`);
+  if (order.tripId) add(`Trip: ${clean(order.tripId)}`);
+  if (order.driverName) add(`Driver: ${clean(order.driverName)}`);
+  if (order.vehicleLabel) add(`Vehicle: ${clean(order.vehicleLabel)}`);
+  add('');
+  add('ORDERED ITEMS');
+  add('SKU / ID       PRODUCT                         QTY / UNIT       UNIT COST       SUBTOTAL');
+  add('-'.repeat(88));
+  for (const item of order.lines) {
+    const product = wrap(`${item.productName} (${item.sku})`, 38);
+    product.forEach((part, index) => {
+      const qty = index === 0 ? `${item.quantity} ${item.unit}` : '';
+      const unitCost = index === 0 ? money(item.unitCost) : '';
+      const subtotal = index === 0 ? money(item.quantity * item.unitCost) : '';
+      add(`${index === 0 ? clean(item.sku).slice(0, 14).padEnd(14) : ''.padEnd(14)} ${part.slice(0, 38).padEnd(38)} ${qty.slice(0, 14).padEnd(14)} ${unitCost.padStart(14)} ${subtotal.padStart(14)}`);
     });
-  const formatCurrency = (amount: number): string =>
-    new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-      maximumFractionDigits: 2,
-    }).format(amount);
-  const formatDate = (date: string): string =>
-    new Intl.DateTimeFormat('en-KE', { dateStyle: 'medium' }).format(new Date(date));
-  const rows = order.lines
-    .map(
-      (line) => `<tr>
-        <td>${escapeHtml(line.sku)}</td>
-        <td>${escapeHtml(line.productName)}</td>
-        <td class="number">${new Intl.NumberFormat('en-KE').format(line.quantity)} ${escapeHtml(line.unit)}</td>
-        <td class="number">${formatCurrency(line.unitCost)}</td>
-        <td class="number">${formatCurrency(line.quantity * line.unitCost)}</td>
-      </tr>`,
-    )
-    .join('');
-  const html = `<!doctype html>
-    <html lang="en"><head><meta charset="utf-8"><title>Purchase Order ${escapeHtml(order.id)}</title>
-    <style>
-      @page { size: A4; margin: 18mm; }
-      * { box-sizing: border-box; }
-      body { margin: 0; color: #172033; font: 12px/1.5 Arial, sans-serif; }
-      header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #2563eb; padding-bottom: 16px; }
-      .brand { color: #1d4ed8; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-      h1 { margin: 6px 0 0; font-size: 22px; }
-      .status { border: 1px solid #bfdbfe; border-radius: 4px; padding: 4px 8px; color: #1d4ed8; font-size: 10px; font-weight: 700; }
-      .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 28px; padding: 18px 0; }
-      .label { color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
-      .value { margin-top: 3px; font-weight: 600; }
-      table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-      th { background: #f1f5f9; color: #475569; text-align: left; font-size: 10px; text-transform: uppercase; }
-      th, td { border-bottom: 1px solid #e2e8f0; padding: 9px 7px; vertical-align: top; }
-      .number { text-align: right; white-space: nowrap; }
-      .totals { width: 280px; margin: 14px 0 0 auto; }
-      .total-row { display: flex; justify-content: space-between; padding: 5px 0; }
-      .grand { border-top: 1px solid #cbd5e1; margin-top: 4px; padding-top: 9px; font-size: 14px; font-weight: 700; }
-      footer { margin-top: 32px; border-top: 1px solid #e2e8f0; padding-top: 9px; color: #64748b; font-size: 10px; }
-    </style></head><body>
-      <header><div><div class="brand">LogiFlow · Distributor Procurement</div><h1>Purchase Order ${escapeHtml(order.id)}</h1></div><span class="status">${escapeHtml(order.status.replace('_', ' '))}</span></header>
-      <section class="meta">
-        <div><div class="label">Supplier</div><div class="value">${escapeHtml(order.manufacturerName)}</div><div>${escapeHtml(order.manufacturerLocation)}</div></div>
-        <div><div class="label">Deliver to</div><div class="value">${escapeHtml(order.destination)}</div></div>
-        <div><div class="label">Order date</div><div class="value">${escapeHtml(formatDate(order.orderDate))}</div></div>
-        <div><div class="label">Expected delivery</div><div class="value">${escapeHtml(formatDate(order.expectedDelivery))}</div></div>
-      </section>
-      <h2>Ordered items</h2>
-      <table><thead><tr><th>SKU / ID</th><th>Product</th><th class="number">Quantity</th><th class="number">Unit cost</th><th class="number">Subtotal</th></tr></thead><tbody>${rows}</tbody></table>
-      <section class="totals">
-        <div class="total-row"><span>Items subtotal</span><span>${formatCurrency(total - order.logisticsCost)}</span></div>
-        <div class="total-row"><span>Inbound logistics</span><span>${formatCurrency(order.logisticsCost)}</span></div>
-        <div class="total-row grand"><span>Grand total</span><span>${formatCurrency(total)}</span></div>
-      </section>
-      <footer>Generated from LogiFlow · ${escapeHtml(formatDate(new Date().toISOString()))}</footer>
-    </body></html>`;
-
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
-  printWindow.focus();
-  window.setTimeout(() => printWindow.print(), 250);
-  return true;
+    if (item.shippedQuantity !== undefined) add(`  Shipped quantity: ${item.shippedQuantity}`);
+  }
+  add('-'.repeat(88));
+  add(`Items subtotal: ${money(order.lines.reduce((sum, item) => sum + item.quantity * item.unitCost, 0))}`);
+  add(`Inbound logistics: ${money(order.logisticsCost)}`);
+  add(`GRAND TOTAL: ${money(total)}`);
+  if (order.timeline.length) {
+    add(''); add('ORDER TIMELINE');
+    for (const event of order.timeline) {
+      wrap(`${event.state}: ${event.title} - ${event.detail}`, 88).forEach(add);
+    }
+  }
+  const pdfEscape = (value: string) => value.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+  const objects: string[] = [];
+  const addObject = (value: string) => { objects.push(value); return objects.length; };
+  const catalogId = addObject('');
+  const pagesId = addObject('');
+  const fontId = addObject('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+  const pageIds: number[] = [];
+  for (const lines of contentPages) {
+    const commands = ['BT', '/F1 9 Tf', '50 790 Td', '13 TL'];
+    lines.forEach((line, index) => {
+      commands.push(`(${pdfEscape(line)}) Tj`);
+      if (index !== lines.length - 1) commands.push('T*');
+    });
+    commands.push('ET');
+    const stream = commands.join('\n');
+    const contentId = addObject(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
+    const pageId = addObject(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentId} 0 R >>`);
+    pageIds.push(pageId);
+  }
+  objects[catalogId - 1] = `<< /Type /Catalog /Pages ${pagesId} 0 R >>`;
+  objects[pagesId - 1] = `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(' ')}] /Count ${pageIds.length} >>`;
+  let pdf = '%PDF-1.4\n';
+  const offsets = [0];
+  objects.forEach((object, index) => {
+    offsets.push(pdf.length);
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+  const xrefOffset = pdf.length;
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  offsets.slice(1).forEach((offset) => { pdf += `${String(offset).padStart(10, '0')} 00000 n \n`; });
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  const blob = new Blob([pdf], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `purchase-order-${clean(order.id).replace(/[^a-zA-Z0-9_-]/g, '-') || 'report'}.pdf`;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

@@ -353,6 +353,11 @@ export class WarehouseOperationsComponent {
       return;
     }
     const { location, quantity } = this.putAwayForm.getRawValue();
+    const unlocated = this.unlocatedQuantity(sku);
+    if (quantity > unlocated) {
+      this.error.set(`Only ${unlocated} unlocated units are available to assign.`);
+      return;
+    }
     this.saving.set(true);
     this.operations.putAwayStock(stock.id, location, quantity).subscribe({
       next: () => {
@@ -546,6 +551,12 @@ export class WarehouseOperationsComponent {
     if (unassigned > 0) locations.push(`Unassigned: ${unassigned}`);
     if (item.staged > 0) locations.push(`Picking: ${item.staged}`);
     return locations.join(', ') || 'No stock assigned';
+  }
+
+  protected unlocatedQuantity(sku: string): number {
+    const item = this.operations.stock().find(stock => stock.sku === sku);
+    if (!item) return 0;
+    return Math.max(0, item.onHand - item.staged - Object.values(item.locations).reduce((sum, quantity) => sum + quantity, 0));
   }
 
   protected progress(order: WarehouseOrder): string {

@@ -1,5 +1,5 @@
 import { FormValidationSummaryComponent } from '../../../shared/forms/form-validation-summary.component';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -30,6 +30,17 @@ export class LoginComponent {
   protected readonly errorMessage = signal('');
   protected readonly isSubmitting = signal(false);
   protected readonly showPassword = signal(false);
+  protected readonly sessionMessage = computed(() => {
+    const reason = this.route.snapshot.queryParamMap.get('session');
+    switch (reason) {
+      case 'idle': return 'Your session expired after 20 minutes of inactivity. Sign in to continue.';
+      case 'absolute': return 'Your 8-hour session limit was reached. Sign in to continue.';
+      case 'refresh-failed': return 'Your session could not be renewed. Sign in again to continue.';
+      case 'revoked': return 'Your account access has expired or been revoked. Sign in again or contact your administrator.';
+      case 'logout': return 'You have been signed out.';
+      default: return '';
+    }
+  });
 
   protected readonly form = this.formBuilder.nonNullable.group({
     email: [
@@ -70,7 +81,11 @@ export class LoginComponent {
         const target =
           returnUrl && this.validWorkspaceReturnUrl(returnUrl, workspace) ? returnUrl : destination;
 
-        void this.router.navigateByUrl(target);
+        if (this.authService.organizationChanged() && typeof window !== 'undefined') {
+          window.location.replace(target);
+        } else {
+          void this.router.navigateByUrl(target);
+        }
       },
       error: (error) => {
         this.errorMessage.set(

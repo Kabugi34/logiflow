@@ -20,10 +20,11 @@
       <span class="font-medium text-slate-600">New Offer</span>
     </nav>
 
-    <h1 class="text-xl font-semibold text-slate-900">Add Listing Offer</h1>
+    <h1 class="text-xl font-semibold text-slate-900">Create warehouse stock offer</h1>
     <p class="mt-1 text-sm text-slate-500">
-      Choose an approved manufacturer product and set your distributor pricing. This creates a
-      stock record; customers can buy it only after stock has been received and is available.
+      Choose an approved manufacturer product and assign it to a warehouse. This creates the stock
+      offer record; it does not receive a delivery or add on-hand quantity. Confirm delivered
+      purchase shipments in Warehouse Operations so accepted quantities update inventory.
     </p>
   </header>
 
@@ -84,13 +85,13 @@
       <label class="block text-xs font-medium text-slate-700">
         <span class="mb-1.5 block">Manufacturer product</span>
         <select
-          [value]="form.controls.sku.value"
+          [value]="form.controls.sourceStockItemId.value"
           (change)="updateSelectedProduct($event)"
           class="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-700 outline-none focus:border-blue-400"
         >
           <option value="">Select a product</option>
           @for (product of availableProducts(); track product.sku) {
-            <option [value]="product.sku">{{ product.name }} · {{ product.sku }}</option>
+            <option [value]="product.id">{{ product.name }} · {{ product.sku }}</option>
           }
         </select>
       </label>
