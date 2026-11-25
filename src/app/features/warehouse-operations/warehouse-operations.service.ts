@@ -52,8 +52,10 @@ interface ApiStockLocation {
 interface ApiStockMovement {
   id: string;
   stockItemId: string;
-  movementType: 'RESTOCK_IN' | 'SALE_OUT' | 'ADJUSTMENT' | 'RETURN' | 'DAMAGE';
-  quantityDelta: number;
+  movementType: 'RESTOCK_IN' | 'SALE_OUT' | 'ADJUSTMENT' | 'RETURN' | 'DAMAGE' | 'PUT_AWAY';
+  quantityDelta?: number;
+  movedQuantity?: number;
+  quantity?: number;
   referenceType?: string;
   referenceId?: string;
   performedBy?: string;
@@ -250,6 +252,16 @@ export class WarehouseOperationsService {
                   }
                 : item,
             ),
+            movements: [{
+              id: `local-put-away:${globalThis.crypto?.randomUUID?.() ?? Date.now()}`,
+              sku: saved.sku,
+              quantity,
+              type: 'PUT_AWAY',
+              reference: 'WAREHOUSE_PUT_AWAY',
+              reason: `Put away into ${locationCode}`,
+              user: 'Current session',
+              at: new Date().toISOString(),
+            }, ...state.movements],
           }));
         }),
       );
@@ -384,7 +396,9 @@ export class WarehouseOperationsService {
             this.warehouseState.update((state) => ({
               ...state,
               movements: [
-                ...mapped,
+                ...mapped.filter(movement => !state.movements.some(local =>
+                  local.id.startsWith('local-put-away:') && local.sku === movement.sku &&
+                  local.type === movement.type && local.reason === movement.reason)),
                 ...state.movements.filter((movement) => !movementIds.has(movement.id)),
               ].sort((a, b) => b.at.localeCompare(a.at)),
             }));
@@ -412,7 +426,7 @@ export class WarehouseOperationsService {
     return {
       id: movement.id,
       sku,
-      quantity: movement.quantityDelta,
+      quantity: movement.movedQuantity ?? movement.quantity ?? movement.quantityDelta ?? 0,
       type: movement.movementType,
       reference: [movement.referenceType, movement.referenceId].filter(Boolean).join(' · ') || '—',
       reason: movement.note ?? '',
