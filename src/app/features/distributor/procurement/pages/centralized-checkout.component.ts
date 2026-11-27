@@ -6,6 +6,7 @@ import { EMPTY, Subject, catchError, exhaustMap, finalize, takeUntil, takeWhile,
 import { DistributorCatalogService } from '../../catalog/catalog.service';
 import { DistributorProcurementService } from '../procurement.service';
 import { DistributorPurchaseCartService, PurchaseCartLine } from '../purchase-cart.service';
+import { API_CONFIG } from '../../../../core/api/api.config';
 import { CentralizedCheckoutService, CheckoutPaymentMethod, CheckoutPaymentStatus, CheckoutResponse } from '../checkout.service';
 
 @Component({
@@ -15,6 +16,7 @@ import { CentralizedCheckoutService, CheckoutPaymentMethod, CheckoutPaymentStatu
   templateUrl: './centralized-checkout.component.html',
 })
 export class CentralizedCheckoutComponent {
+  protected readonly allowDemoPayments = API_CONFIG.allowDemoPayments;
   protected readonly procurement = inject(DistributorProcurementService);
   protected readonly catalog = inject(DistributorCatalogService);
   protected readonly cart = inject(DistributorPurchaseCartService);
