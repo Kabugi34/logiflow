@@ -59,19 +59,6 @@
               Transfer to the supplier, then upload the slip with the bank reference. The order is marked
               paid only after the supplier confirms the amount they received.
             </p>
-            @if (currentOrder.paymentTerms === 'CREDIT') {
-              <p class="mt-2 text-xs text-slate-700" data-testid="credit-terms-note">
-                Credit order: outstanding
-                <strong>{{ currentOrder.amountOutstanding ?? 0 | currency: 'KES' : 'symbol' : '1.2-2' }}</strong
-                >@if (currentOrder.dueAt) {
-                  , due {{ currentOrder.dueAt | date: 'dd MMM y' }}
-                }
-                @if (currentOrder.overdue) {
-                  <span class="ml-1 rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-700">OVERDUE</span>
-                }
-                . Part payments are accepted.
-              </p>
-            }
             @if (awaitingConfirmation()) {
               <p
                 class="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800"

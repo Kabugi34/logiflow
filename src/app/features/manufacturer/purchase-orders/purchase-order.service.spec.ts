@@ -176,7 +176,7 @@ describe('ManufacturerPurchaseOrderService', () => {
     ]);
 
     const [credit, plain] = service.orders();
-    expect(credit.paymentTerms).toBe('CREDIT');
+    expect(credit.paymentTerms).toBe('PAY_NOW');
     expect(credit.distributorId).toBe('distributor-9');
     expect(credit.amountPaid).toBe(400);
     expect(credit.amountOutstanding).toBe(600);
@@ -198,16 +198,6 @@ describe('ManufacturerPurchaseOrderService', () => {
     expect(done).toBe(true);
   });
 
-  it('cancels an overdue order through the dedicated endpoint', () => {
-    service.cancelOverdue('po-2', 'unpaid').subscribe();
-
-    const request = httpTesting.expectOne(API_ENDPOINTS.manufacturer.purchaseOrderCancelOverdue('po-2'));
-    expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({ note: 'unpaid' });
-    request.flush({});
-    flushRefresh([]);
-  });
-
   it('downloads proof as a blob with the session, not through a public URL', () => {
     service.downloadProof('po-3', 'doc-9').subscribe();
 
@@ -216,19 +206,4 @@ describe('ManufacturerPurchaseOrderService', () => {
     request.flush(new Blob(['x']));
   });
 
-  it('saves credit terms with the version it was editing', () => {
-    service
-      .saveCredit('dist-1', { creditLimit: 5000, termDays: 30, status: 'ACTIVE', expectedVersion: 2 })
-      .subscribe();
-
-    const request = httpTesting.expectOne(API_ENDPOINTS.manufacturer.distributorCredit('dist-1'));
-    expect(request.request.method).toBe('PUT');
-    expect(request.request.body).toEqual({
-      creditLimit: 5000,
-      termDays: 30,
-      status: 'ACTIVE',
-      expectedVersion: 2,
-    });
-    request.flush({});
-  });
 });

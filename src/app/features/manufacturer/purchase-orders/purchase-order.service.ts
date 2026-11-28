@@ -9,9 +9,6 @@ import {
   PurchasePaymentStatus,
 } from './purchase-order.models';
 import {
-  CreditStatement,
-  CreditTermsUpdate,
-  DistributorCredit,
   PurchaseOrderSettlement,
   PurchasePaymentTerms,
 } from '../../../core/models/purchase-order-settlement.model';
@@ -154,37 +151,11 @@ export class ManufacturerPurchaseOrderService {
       );
   }
 
-  cancelOverdue(id: string, note = ''): Observable<void> {
-    return this.http
-      .post<ApiPo>(API_ENDPOINTS.manufacturer.purchaseOrderCancelOverdue(id), { note })
-      .pipe(
-        tap(() => this.refresh()),
-        map(() => undefined),
-      );
-  }
-
   /** The proof is fetched with the session's credentials; it is never a public URL. */
   downloadProof(id: string, documentId: string): Observable<Blob> {
     return this.http.get(API_ENDPOINTS.manufacturer.purchaseOrderProof(id, documentId), {
       responseType: 'blob',
     });
-  }
-
-  loadCredit(distributorId: string): Observable<DistributorCredit> {
-    return this.http.get<DistributorCredit>(API_ENDPOINTS.manufacturer.distributorCredit(distributorId));
-  }
-
-  saveCredit(distributorId: string, update: CreditTermsUpdate): Observable<DistributorCredit> {
-    return this.http.put<DistributorCredit>(
-      API_ENDPOINTS.manufacturer.distributorCredit(distributorId),
-      update,
-    );
-  }
-
-  loadStatement(distributorId: string): Observable<CreditStatement> {
-    return this.http.get<CreditStatement>(
-      API_ENDPOINTS.manufacturer.distributorStatement(distributorId),
-    );
   }
 
   retryFulfilment(id: string): Observable<ApiPo> {
@@ -219,7 +190,7 @@ export class ManufacturerPurchaseOrderService {
     return {
       id: row.id,
       distributorId: row.buyerOrganizationId,
-      paymentTerms: row.paymentTerms === 'CREDIT' ? 'CREDIT' : 'PAY_NOW',
+      paymentTerms: 'PAY_NOW',
       totalAmount: row.totalAmount ?? lineTotal,
       amountPaid: row.amountPaid ?? 0,
       amountOutstanding: row.amountOutstanding ?? row.totalAmount ?? lineTotal,

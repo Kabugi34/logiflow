@@ -93,7 +93,7 @@ describe('DistributorProcurementService', () => {
 
     const request = httpTesting.expectOne(API_ENDPOINTS.distributor.purchaseOrders);
     expect(request.request.method).toBe('POST');
-    expect(request.request.body.paymentTerms).toBe('CREDIT');
+    expect(request.request.body.paymentTerms).toBe('PAY_NOW');
     request.flush({ id: 'po-new', purchaseOrderNumber: 'PO-N', status: 'SUBMITTED', totalAmount: 200, items: [] });
     // Creating an order reloads the list.
     httpTesting.expectOne(API_ENDPOINTS.distributor.purchaseOrders).flush([]);

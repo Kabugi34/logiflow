@@ -43,7 +43,6 @@ export class PurchaseOrderFormComponent {
   protected readonly errorMessage = signal('');
   protected readonly creating = signal(false);
   protected readonly confirmed = signal(false);
-  /** Credit needs terms from the manufacturer; the API refuses the order if there are none. */
   protected readonly paymentTerms = signal<PurchasePaymentTerms>('PAY_NOW');
   protected readonly form = this.formBuilder.nonNullable.group({
     sku: ['', Validators.required],
