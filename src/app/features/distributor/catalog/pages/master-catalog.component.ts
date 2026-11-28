@@ -50,6 +50,7 @@ export class MasterCatalogComponent {
   protected readonly selectedCategory = signal('All categories');
   protected readonly selectedManufacturer = signal('All manufacturers');
   protected readonly actionMessage = signal('');
+  protected readonly offerError = signal('');
   protected readonly pendingOfferId = signal('');
   protected readonly pendingProductId = signal('');
   protected readonly authorizationProductId = signal('');
@@ -90,6 +91,81 @@ export class MasterCatalogComponent {
       return matchesQuery && matchesManufacturer && matchesCategory;
     });
   });
+
+  protected saveOfferPrice(offer: import('../catalog.models').DistributorCatalogOffer, value: string): void {
+    if (this.pendingOfferId()) return;
+    const price = Number(value);
+    if (!/^\d+(\.\d{1,2})?$/.test(value.trim()) || !Number.isFinite(price) || price < 0.01) {
+      this.offerError.set('Enter a price of at least 0.01, with at most two decimal places.');
+      return;
+    }
+    this.pendingOfferId.set(offer.id);
+    this.offerError.set('');
+    this.catalogService.updateOffer(offer.id, { sellingPrice: price }).pipe(
+      finalize(() => this.pendingOfferId.set('')),
+    ).subscribe({
+      next: () => {
+        this.catalogService.refresh();
+        this.actionMessage.set('Price saved.');
+      },
+      error: (error) => this.offerError.set(error?.error?.message ?? 'The price could not be saved.'),
+    });
+  }
+
+  protected saveOfferStock(offer: import('../catalog.models').DistributorCatalogOffer, value: string): void {
+    if (this.pendingOfferId()) return;
+    if (offer.quantityOnHand === null) {
+      this.offerError.set('Stock could not be read. Refresh the catalog and try again.');
+      return;
+    }
+    if (!/^\d+$/.test(value.trim())) {
+      this.offerError.set('Enter stock as a whole number of units.');
+      return;
+    }
+    const target = Number(value);
+    const delta = target - offer.quantityOnHand;
+    if (delta === 0) {
+      this.actionMessage.set('Stock is already that quantity.');
+      return;
+    }
+    this.pendingOfferId.set(offer.id);
+    this.offerError.set('');
+    this.catalogService.setOfferStock(offer.id, delta).pipe(
+      finalize(() => this.pendingOfferId.set('')),
+    ).subscribe({
+      next: () => {
+        this.catalogService.refresh();
+        this.actionMessage.set('Stock saved.');
+      },
+      error: (error) => this.offerError.set(error?.error?.message ?? 'Stock could not be updated.'),
+    });
+  }
+
+  protected replaceOfferImage(offer: import('../catalog.models').DistributorCatalogOffer, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file || this.pendingOfferId()) return;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      this.offerError.set('Choose a PNG, JPEG, or WebP picture.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      this.offerError.set('The picture must be 5 MB or smaller.');
+      return;
+    }
+    this.pendingOfferId.set(offer.id);
+    this.offerError.set('');
+    this.catalogService.replaceOfferImage(offer.id, file).pipe(
+      finalize(() => this.pendingOfferId.set('')),
+    ).subscribe({
+      next: () => {
+        this.catalogService.refresh();
+        this.actionMessage.set('Picture saved.');
+      },
+      error: (error) => this.offerError.set(error?.error?.message ?? 'The picture could not be saved.'),
+    });
+  }
 
   protected toggleOffer(offer: import('../catalog.models').DistributorCatalogOffer): void {
     if (this.pendingOfferId()) return;

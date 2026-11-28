@@ -41,6 +41,8 @@ interface ApiStockItem {
   unitPrice: number;
   reorderThreshold: number;
   availableQuantity?: number | null;
+  quantityOnHand?: number | null;
+  imageUrl?: string | null;
   manufacturerName?: string | null;
   active: boolean;
 }
@@ -98,7 +100,7 @@ export class DistributorCatalogService {
         brand: product?.brand ?? offer.brand,
         unit: product?.unit ?? offer.unit,
         description: product?.description ?? offer.description,
-        imageUrl: product?.imageUrl ?? offer.imageUrl,
+        imageUrl: offer.imageUrl || product?.imageUrl || '',
         wholesalePrice: product?.wholesalePrice ?? offer.wholesalePrice,
       };
     }),
@@ -194,8 +196,12 @@ export class DistributorCatalogService {
                 brand: '',
                 unit: '\u2014',
                 description: '',
-                imageUrl: '',
+                imageUrl: this.resolveImageUrl(row.imageUrl ?? ''),
                 wholesalePrice: null,
+                quantityOnHand:
+                  typeof row.quantityOnHand === 'number' && Number.isInteger(row.quantityOnHand)
+                    ? row.quantityOnHand
+                    : null,
                 availableQuantity:
                   typeof row.availableQuantity === 'number' &&
                   Number.isInteger(row.availableQuantity) &&
@@ -324,5 +330,24 @@ export class DistributorCatalogService {
       if (eligibilityError) throw new Error(eligibilityError);
     }
     return this.http.patch<ApiStockItem>(API_ENDPOINTS.distributor.stockOffer(id), update);
+  }
+
+  replaceOfferImage(id: string, image: File) {
+    const data = new FormData();
+    data.append('image', image, image.name);
+    return this.http.post(API_ENDPOINTS.distributor.productImage(id), data);
+  }
+
+  setOfferStock(id: string, quantityDelta: number) {
+    return this.http.post(API_ENDPOINTS.distributor.stockItemMovements(id), {
+      movementType: 'ADJUSTMENT',
+      quantityDelta,
+      note: 'Catalog stock update',
+    });
+  }
+
+  private resolveImageUrl(imageUrl: string): string {
+    if (!imageUrl || /^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(imageUrl)) return imageUrl;
+    return new URL(imageUrl, new URL(API_ENDPOINTS.distributor.products).origin).toString();
   }
 }

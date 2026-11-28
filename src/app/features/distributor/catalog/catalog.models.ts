@@ -12,6 +12,7 @@ export interface DistributorCatalogOffer {
   imageUrl: string;
   wholesalePrice: number | null;
   availableQuantity: number | null;
+  quantityOnHand: number | null;
   listPrice: number;
   reorderThreshold: number;
   status: 'ACTIVE' | 'PAUSED';

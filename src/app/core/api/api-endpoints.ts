@@ -128,6 +128,8 @@ export const API_ENDPOINTS = {
       `${API_CONFIG.baseUrl}/payments/${encodeURIComponent(orderId)}/status`,
     stockItems: `${API_CONFIG.apiRoot}/stock/items`,
     stockItem: (id: string) => `${API_CONFIG.apiRoot}/stock/items/${encodeURIComponent(id)}`,
+    stockItemMovements: (id: string) =>
+      `${API_CONFIG.apiRoot}/stock/items/${encodeURIComponent(id)}/movements`,
     restockRequests: `${API_CONFIG.apiRoot}/stock/restock-request`,
     restockRequestStatus: (id: string) =>
       `${API_CONFIG.apiRoot}/stock/restock-request/${encodeURIComponent(id)}/status`,
