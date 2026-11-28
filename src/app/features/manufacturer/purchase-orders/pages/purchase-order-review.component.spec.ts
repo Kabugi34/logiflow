@@ -118,8 +118,12 @@ describe('PurchaseOrderReviewComponent payment confirmation', () => {
   );
 
   it('refuses a malformed amount before calling the API', () => {
-    const fixture = render('MANUFACTURER_ADMIN', order({ paymentTerms: 'CREDIT' }));
+    const fixture = render('MANUFACTURER_ADMIN', order());
     const root = fixture.nativeElement as HTMLElement;
+    const input = root.querySelector('input') as HTMLInputElement;
+    input.value = '12.345';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
     const button = Array.from(root.querySelectorAll('button')).find((b) =>
       /confirm payment received/i.test(b.textContent ?? ''),
     );

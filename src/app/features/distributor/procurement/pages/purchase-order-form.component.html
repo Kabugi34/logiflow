@@ -132,18 +132,7 @@
       {{ errorMessage() }}
     </p>
   }
-  <label class="flex flex-col gap-1 text-xs text-slate-600 sm:max-w-xs">
-    Payment terms
-    <select
-      class="h-9 rounded-md border border-slate-300 px-2 text-xs text-slate-900"
-      [value]="paymentTerms()"
-      (change)="paymentTerms.set($any($event.target).value)"
-      name="paymentTerms"
-    >
-      <option value="PAY_NOW">Pay now (M-Pesa or bank transfer)</option>
-      <option value="CREDIT">On credit (needs credit terms from the manufacturer)</option>
-    </select>
-  </label>
+  <p class="text-xs text-slate-600">Payment is pay now (M-Pesa or bank transfer).</p>
   <label class="flex items-start gap-2 text-xs text-slate-600"><input type="checkbox" [checked]="confirmed()" (change)="confirmed.set($any($event.target).checked)" class="mt-0.5 rounded border-slate-300" /><span>I reviewed the supplier, product, quantity, and backend-provided unit price and confirm this purchase order.</span></label>
   <div class="flex flex-wrap justify-end gap-2">
     <a

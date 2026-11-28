@@ -35,7 +35,6 @@ export class PurchaseOrderReviewComponent {
   protected readonly confirmingPaymentId = signal<string | null>(null);
   protected readonly paymentError = signal('');
   protected readonly paymentNotice = signal('');
-  protected readonly cancelling = signal(false);
   protected readonly operationBusy = signal(false);
   protected readonly operationMessage = signal('');
   protected readonly locationStockBlocked = signal(false);
@@ -51,24 +50,11 @@ export class PurchaseOrderReviewComponent {
   protected readonly hasAwaitingPayment = computed(() =>
     hasAwaitingBankPayment(this.order()?.settlements ?? []),
   );
-  protected readonly canCancelOverdue = computed(() => {
-    const order = this.order();
-    return (
-      this.canReview &&
-      !!order &&
-      order.overdue &&
-      order.status === 'ACCEPTED' &&
-      order.amountPaid === 0 &&
-      !this.payments().length
-    );
-  });
-
   protected amountFor(paymentId: string): string {
     const typed = this.amountInputs()[paymentId];
     if (typed !== undefined) return typed;
     const order = this.order();
-    // A pay-now order must be received in full, so offer the exact total.
-    return order && order.paymentTerms === 'PAY_NOW' ? order.totalAmount.toFixed(2) : '';
+    return order ? order.totalAmount.toFixed(2) : '';
   }
 
   protected setAmount(paymentId: string, value: string): void {
@@ -114,25 +100,6 @@ export class PurchaseOrderReviewComponent {
       },
       error: () => this.paymentError.set('The payment proof could not be downloaded.'),
     });
-  }
-
-  protected cancelOverdue(): void {
-    const order = this.order();
-    if (!order || !this.canCancelOverdue() || this.cancelling()) return;
-    const confirmed = globalThis.confirm(
-      'Cancel this overdue credit order? Its reserved stock will be released.',
-    );
-    if (!confirmed) return;
-    this.cancelling.set(true);
-    this.paymentError.set('');
-    this.orderService
-      .cancelOverdue(order.id)
-      .pipe(finalize(() => this.cancelling.set(false)))
-      .subscribe({
-        next: () => this.paymentNotice.set('The overdue order was cancelled.'),
-        error: (error) =>
-          this.paymentError.set(error?.error?.message ?? 'The order could not be cancelled.'),
-      });
   }
 
   protected totalValue(lines: PurchaseOrderLine[]): number {

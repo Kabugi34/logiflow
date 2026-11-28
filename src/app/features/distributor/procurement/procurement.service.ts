@@ -298,6 +298,9 @@ export class DistributorProcurementService {
         throw new Error('Enter a valid quantity for every product.');
       return { stockItemId: product.id, quantity: line.quantity };
     });
+    if (paymentTerms !== 'PAY_NOW') {
+      paymentTerms = 'PAY_NOW';
+    }
     return this.http
       .post<ApiPo>(API_ENDPOINTS.distributor.purchaseOrders, {
         supplierOrganizationId: manufacturerId,
@@ -336,7 +339,7 @@ export class DistributorProcurementService {
       expectedDelivery: '',
       status,
       paymentStatus: normalizePaymentStatus(po.paymentStatus),
-      paymentTerms: po.paymentTerms === 'CREDIT' ? 'CREDIT' : 'PAY_NOW',
+      paymentTerms: 'PAY_NOW',
       dueAt: po.dueAt ?? null,
       overdue: po.overdue ?? false,
       amountPaid: po.amountPaid ?? 0,
